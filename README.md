@@ -1,10 +1,10 @@
-# [Name of the Project] : [Team Number]
+# [ Tiger-Class-Drive] : [Team 4]
 # Members
-Project Manager: [Name] ([GitHub Name])\
+Project Manager: [Achilles Caceres ] ([GitHub Name])\
 Communications Lead: [Connor Brito] ([LostCalm2])\
-Git Master: [Name] ([GitHub Name])\
-Design Lead: [Name] ([GitHub Name])\
-Quality Assurance Tester: [Name] ([GitHub Name])
+Git Master: [Name] ([Nihal Mohapatro )\
+Design Lead: [Name] ([William Bradford ])\
+Quality Assurance Tester: [Name] ([Ahnaf Chowdhury ])
 
 # About Our Software
 
