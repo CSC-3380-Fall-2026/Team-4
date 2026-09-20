@@ -2,9 +2,9 @@
 # Members
 Project Manager: [Achilles Caceres ] ([GitHub Name])\
 Communications Lead: [Connor Brito] ([LostCalm2])\
-Git Master:   ([Nihal Mohapatro )\
-Design Lead: ([William Bradford ])\
-Quality Assurance Tester: ([Ahnaf Chowdhury ])
+Git Master:   ([Nihal Mohapatro )     ([GitHub Name])\
+Design Lead: ([William Bradford ])    ([GitHub Name])\
+Quality Assurance Tester: ([Ahnaf Chowdhury ])   ([GitHub Name])\
 
 # About Our Software
 
