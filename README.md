@@ -1,10 +1,10 @@
-# [Name of the Project] : [Team Number]
+# [ Tiger-Class-Drive] : [Team 4]
 # Members
-Project Manager: [Name] ([GitHub Name])\
-Communications Lead: [Name] ([GitHub Name])\
-Git Master: [Name] ([GitHub Name])\
-Design Lead: [Name] ([GitHub Name])\
-Quality Assurance Tester: [Name] ([GitHub Name])
+Project Manager: [Achilles Caceres ] ([GitHub Name])\
+Communications Lead: [Connor Brito] ([LostCalm2])\
+Git Master:   ([Nihal Mohapatro )     ([GitHub Name])\
+Design Lead: ([William Bradford ])    ([GitHub Name])\
+Quality Assurance Tester: ([Ahnaf Chowdhury ])   ([GitHub Name])\
 
 # About Our Software
 
@@ -16,7 +16,7 @@ Describe a little about what the project is about here.
 - Linux
 - Windows
 # Important Links
-Kanban Board: [link]\
+Kanban Board: [https://github.com/orgs/CSC-3380-Fall-2026/projects/2]\
 Designs: [link]\
 Styles Guide(s): [link]
 
