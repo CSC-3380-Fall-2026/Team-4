@@ -16,7 +16,7 @@ Describe a little about what the project is about here.
 - Linux
 - Windows
 # Important Links
-Kanban Board: [https://github.com/orgs/CSC-3380-Fall-2026/projects/2]\
+Kanban Board: https://github.com/orgs/CSC-3380-Fall-2026/projects/6/views/1 
 Designs: [link]\
 Styles Guide(s): [link]
 
