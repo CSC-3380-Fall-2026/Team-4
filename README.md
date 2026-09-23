@@ -1,6 +1,6 @@
 # [ Tiger-Class-Drive] : [Team 4]
 # Members
-Project Manager: [Achilles Caceres ] ([GitHub Name])\
+Project Manager: [Achilles Caceres ] ([PapaEmeritusCoder])\
 Communications Lead: [Connor Brito] ([LostCalm2])\
 Git Master:   ([Nihal Mohapatro )     ([GitHub Name])\
 Design Lead: ([William Bradford ])    ([GitHub Name])\
