@@ -18,7 +18,7 @@ The project is called Tiger-Class-Drive it is a proprietary website that will be
 - Linux
 - Windows
 # Important Links
-Kanban Board: [https://github.com/orgs/CSC-3380-Fall-2026/projects/2]\
+Kanban Board: [https://github.com/orgs/CSC-3380-Fall-2026/projects/6/views/1]\
 Designs: [link]\
 Styles Guide(s): [link]
 
