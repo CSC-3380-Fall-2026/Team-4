@@ -8,3 +8,7 @@ router = APIRouter()
 @router.post('/calculateGPA')
 def calculateGPA(classes: Classes)->float: ##takes dictionary of classes, gets 
     pass
+
+@router.post('/getClasses')
+def getClasses():
+    pass
