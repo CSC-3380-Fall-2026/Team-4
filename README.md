@@ -26,7 +26,7 @@ Styles Guide(s): [link]
 ``` 
 pip -m venv .venv
 use the command based on os: 
-	Windows: source .venv/bin/activate
+	Windows: .\.venv\Scripts\Activate.ps1
 	Linux: source .venv/bin/activate
 pip install -r requiremnts.txt
 ```
