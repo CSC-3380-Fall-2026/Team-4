@@ -29,7 +29,7 @@ As a student I want to be able to create an account and log in so that I can ret
 Story 12:
 As a lsu student, I want to be able to enter possible course grades and see my projected semester and cumulative GPA so that I can understand how these grades could affect my academic progress.
 Story 13:
-As a Lsu student I want to choose which schedule to share and make sure I don't share my GPA or commitement details private so that I stay in control of my infromation.
+As a Lsu student I want to share a selected schedule while keeping GPA or commitement details private so that I stay in control of my infromation.
 Story 14:
 As a Lsu student I want to set my preferred earliest and lastest class times so I can find my schedules that match my daily rountine.
 Story 15:
