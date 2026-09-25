@@ -4,7 +4,7 @@ from tiger_db import get_database
 def main() -> None:
   database: Client = get_database()
 
- print(
+  print(
     database.table("connection_test")
     .select("message")
     .execute()
