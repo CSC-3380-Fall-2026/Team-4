@@ -24,11 +24,11 @@ Styles Guide(s): [link]
 
 # How to Run Dev and Test Environment
 ``` 
-pip -m venv .venv
+python -m venv .venv
 use the command based on os: 
 	Windows: .\.venv\Scripts\Activate.ps1
 	Linux: source .venv/bin/activate
-pip install -r requiremnts.txt
+pip install -r requirements.txt
 ```
 
 ## Dependencies
