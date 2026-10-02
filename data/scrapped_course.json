@@ -1,0 +1,257 @@
+{
+    "retrieved at": "2026-10-02T17:16:47.097131+00:00",
+    "courses": [
+        {
+            "id": "csc-1350",
+            "course_code": "CSC 1350",
+            "course_name": "Computer Science I for Majors",
+            "credits": 4,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-1351",
+            "course_code": "CSC 1351",
+            "course_name": "Computer Science II for Majors",
+            "credits": 4,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-2259",
+            "course_code": "CSC 2259",
+            "course_name": "Discrete Structures",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-2262",
+            "course_code": "CSC 2262",
+            "course_name": "Numerical Methods",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-3102",
+            "course_code": "CSC 3102",
+            "course_name": "Advanced Data Structures & Algorithmic Analysis",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-3200",
+            "course_code": "CSC 3200",
+            "course_name": "Ethics in Computing",
+            "credits": 1,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-3380",
+            "course_code": "CSC 3380",
+            "course_name": "Object Oriented Design",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-3501",
+            "course_code": "CSC 3501",
+            "course_name": "Computer Organization & Design",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4101",
+            "course_code": "CSC 4101",
+            "course_name": "Programming Languages",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4103",
+            "course_code": "CSC 4103",
+            "course_name": "Operating Systems",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4330",
+            "course_code": "CSC 4330",
+            "course_name": "Software Systems",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4402",
+            "course_code": "CSC 4402",
+            "course_name": "Introduction to Database Management",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-2610",
+            "course_code": "CSC 2610",
+            "course_name": "Cloud Fundamentals and Web Programming",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4501",
+            "course_code": "CSC 4501",
+            "course_name": "Computer Networks",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4562",
+            "course_code": "CSC 4562",
+            "course_name": "Mobile Security and Applied Cryptography",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4610",
+            "course_code": "CSC 4610",
+            "course_name": "Virtualization and Cloud Systems",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-3304",
+            "course_code": "CSC 3304",
+            "course_name": "Introduction to Systems Programming",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4362",
+            "course_code": "CSC 4362",
+            "course_name": "Software Vulnerabilities and Exploitation",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4444",
+            "course_code": "CSC 4444",
+            "course_name": "Artificial Intelligence",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4512",
+            "course_code": "CSC 4512",
+            "course_name": "Optimization: Modeling Approaches, Algorithms and Applications",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4585",
+            "course_code": "CSC 4585",
+            "course_name": "Multiprocessor Programming",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4762",
+            "course_code": "CSC 4762",
+            "course_name": "Blockchain and Cryptocurrency",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-2362",
+            "course_code": "CSC 2362",
+            "course_name": "Introduction to Cybersecurity and Cyber Defense",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4360",
+            "course_code": "CSC 4360",
+            "course_name": "Malware Analysis and Reverse Engineering",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-3730",
+            "course_code": "CSC 3730",
+            "course_name": "Machine Learning and Data Analytics",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4243",
+            "course_code": "CSC 4243",
+            "course_name": "Interface Design and Technology",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-2730",
+            "course_code": "CSC 2730",
+            "course_name": "Data Science and Analytics",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4343",
+            "course_code": "CSC 4343",
+            "course_name": "Applied Deep Learning",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4740",
+            "course_code": "CSC 4740",
+            "course_name": "Big Data Technologies",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4332",
+            "course_code": "CSC 4332",
+            "course_name": "Software Quality & Testing",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4351",
+            "course_code": "CSC 4351",
+            "course_name": "Computer Construction",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4263",
+            "course_code": "CSC 4263",
+            "course_name": "Video Game Design",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4356",
+            "course_code": "CSC 4356",
+            "course_name": "Interactive Computer Graphics",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4357",
+            "course_code": "CSC 4357",
+            "course_name": "Applied Computer Graphics",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4370",
+            "course_code": "CSC 4370",
+            "course_name": "Software Modeling Techniques",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        },
+        {
+            "id": "csc-4890",
+            "course_code": "CSC 4890",
+            "course_name": "Introduction to Theory of Computation",
+            "credits": 3,
+            "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+        }
+    ]
+}

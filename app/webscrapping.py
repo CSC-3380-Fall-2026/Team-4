@@ -5,6 +5,7 @@ import re
 
 
 from bs4 import BeautifulSoup
+from bs4.element import Tag, NavigableString 
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -12,7 +13,12 @@ URL = "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_
 
 DEBUG = True 
 
-def fetch_page(url):
+CATEGORIES = [ "Core Coursework", "Technical Requirements", "Math Requirements", "Other Requirements"]
+
+STOP_HEADINGS = set(CATEGORIES + ["Concentrations"])
+
+
+def fetch_page(url: str) -> str:
     
     print("we are fetching your webpage...")
     
@@ -26,7 +32,7 @@ def fetch_page(url):
 
     return response.text 
 
-def inspect_html(html):
+def inspect_html(html: str) -> BeautifulSoup:
 
     soup = BeautifulSoup(html, "html.parser")
 
@@ -40,15 +46,79 @@ def inspect_html(html):
 
         for row in rows[:5]:
             print(row.get_text(" ",strip=True))
+    
+    return soup
 
-def extract_courses(soup):
+def find_categories(soup: BeautifulSoup) -> dict[str, Tag]:
 
-    courses = []
-    seen = set()
+    found: dict[str, Tag] = {}
 
-    rows = soup.select("tr")
+    headings = soup.find_all(["h2", "h3", "h4"])
+
+    for heading in headings:
+
+        title = heading.get_text(" ", strip=True)
+
+        if title in CATEGORIES:
+            found[title] = heading
+
+            if DEBUG:
+                print("Found category:", title)
+
+    missing = set(CATEGORIES) - set(found)
+
+    if missing:
+        raise ValueError(f"Missing category headings: {sorted(missing)}")
+
+    return found 
+
+def get_section_content(heading: Tag) -> tuple[list[Tag], list[str]]:
+
+    tables: list[Tag] = []
+    notes: list[str] = []
+
+    for element in heading.next_elements:
+
+        if isinstance(element, Tag):
+
+            if element.name in["h2", "h3", "h4"]:
+
+                title = element.get_text(" ", strip=True)
+
+                if title in STOP_HEADINGS:
+                    break
+            if element.name == "table":
+                tables.append(element)
+
+        elif isinstance(element, NavigableString):
+
+
+                    parent = element.parent
+
+                    if parent is None:
+                        continue
+
+                    if element.find_parent(["h2","h3","h4"]):
+                        continue 
+
+                    if element.find_parent(["Script", "style"]):
+                        continue 
+
+                    text = str(element).strip()
+
+                    if text:
+                        notes.append(text)
+    return tables, notes
+
+def extract_table_data(table: Tag, category: str) -> tuple[list[dict], list[dict]]:
+
+    courses: list[dict] = []
+    requirements: list[dict] = []
+
+    rows = table.select("tr")
 
     for row in rows:
+
         cells = row.find_all(["td", "th"])
 
         if len(cells) < 3:
@@ -58,67 +128,142 @@ def extract_courses(soup):
         name = cells[1].get_text(" ", strip=True)
         credits = cells[2].get_text(" ", strip=True)
 
-        if not re.fullmatch(r"CSC\s+\d{4}", code):
-            continue
-
         if not credits.isdigit():
             if DEBUG:
                 print("Skipping the invalid contents:", code)
             continue
+        valid_code = re.fullmatch(r"[A-Z]{2,5}\s+\d{4}", code)
 
-        if code in seen:
-            continue
-
-        seen.add(code)
-
-        course = {
+        if valid_code:
+            course = {
             "id": code.lower().replace(" ", "-"),
             "course_code": code,
             "course_name": name,
             "credits": int(credits),
+            "category": category,
             "source_url": URL
         }
 
-        courses.append(course)
+            courses.append(course)
 
-        if DEBUG:
-            print("Extracted:", course)
+            if DEBUG:
+                print("Extracted:", course)
+        
+        
+        else:
 
-    return courses
+                requirement = {
+                "listed_options": code,
+                "description": name,
+                "credits": int(credits),
+                "category": category,
+        }
+
+                requirements.append(requirement)
+
+                if DEBUG:
+                    print("Special requirement extracted:", code)
+
+    return courses, requirements
+
+def extract_all_courses(soup: BeautifulSoup) -> dict:
+
+    headings = find_categories(soup)
+
+    result: dict = {}
+
+    for category in CATEGORIES:
+
+        print("\nProcessing:", category)
+
+        heading = headings[category]
+
+        tables, notes = get_section_content(heading)
+
+        courses: list[dict] = []
+        requirements: list[dict] = []
+
+        print("Tables have been found:", len(tables))
+
+        for table in tables:
+
+            found_courses, found_requiremnts = (extract_table_data(table, category))
+
+            courses.extend(found_courses)
+            requirements.extend(found_requiremnts)
+
+        if category != "Technical Requirements":
+
+            if not tables:
+                raise ValueError(f"No tables found for {category}")
+
+            if not courses and not requirements:
+                raise ValueError(f"No rows were extracted for {category}")
+
+        else:
+
+            if not notes:
+                raise ValueError("No technical requirement text found")
+
+        result[category] = {
+            "courses": courses,
+            "requirements": requirements,
+            "notes": notes
+        }
+
+        print("Courses:", len(courses))
+        print("Special rows:", len(requirements))
+        print("Text fragments:", len(notes))
+    return result 
 
 
-def save_json(courses):
+def save_json(data: dict) -> None:
 
-    if not courses:
-        raise ValueError("No courses were found. Check the HTML selector.")
+    if not data:
+        raise ValueError ("No course data was found :(")
 
-    data = {
-        "retrieved at": datetime.now(timezone.utc).isoformat(),
-        "courses": courses
-    }
+    missing = set(CATEGORIES) - set(data)
+
+    if missing:
+        raise ValueError(f"Missing Categories: {sorted(missing)}")
 
     root = Path(__file__).resolve().parents[1]
-    output = root / "data" / "scrapped_course.json"
 
-    output.parent.mkdir(exist_ok=True)
+    output = root / "data" / "course_requirements.json"
 
-    with output.open("w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4)
+    output.parent.mkdir(parents = True, exist_ok = True)
+
+    dataset = {
+        "source_url": URL,
+        "retrieved_at": datetime.now(timezone.utc).isoformat(), "categories": data 
+    }
+
+    with output.open("w", encoding = "utf-8") as file:
+
+        json.dump(dataset, file, indent = 4, ensure_ascii = False)
 
     print("\nSaved JSON to:", output)
-    return output
 
 
-def main():
+def main() -> None:
 
-    html = fetch_page(URL)
-    soup = inspect_html(html)
-    courses = extract_courses(soup)
+    try:
+        html = fetch_page(URL)
 
-    print("\nTotal courses extracted:", len(courses))
-    save_json(courses)
-    return courses
+        soup = inspect_html(html)
 
+        data = extract_all_courses(soup)
+
+        save_json(data)
+
+        print("\nYour scraping has been completed")
+
+    except requests.RequestException as error:
+        print("webiste request has failed:", error)
+    
+    except ValueError as error:
+        print("There was an extraction:", error)
+        
 
 if __name__ == "__main__":
     main()
