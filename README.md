@@ -19,8 +19,8 @@ The project is called Tiger-Class-Drive it is a proprietary website that will be
 - Windows
 # Important Links
 Kanban Board: [https://github.com/orgs/CSC-3380-Fall-2026/projects/6/views/1]\
-Designs: [https://www.figma.com/proto/OGJkOTlSs3gKRG8gxCXiUi/Tiger-Class-Drive?node-id=2-7&t=Zzvs7lXQcMQjwnWF-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=2%3A7&show-proto-sidebar=1]
-Styles Guide(s): [https://docs.google.com/document/d/1lb0NsES7KNL0gcBS0lKdo6mIHRc-wTw1EYfAR7Z1_LI/edit?usp=sharing]
+Designs: [https://www.figma.com/proto/OGJkOTlSs3gKRG8gxCXiUi/Tiger-Class-Drive?node-id=2-7&t=Zzvs7lXQcMQjwnWF-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=2%3A7&show-proto-sidebar=1]\
+Styles Guide(s): [https://docs.google.com/document/d/1lb0NsES7KNL0gcBS0lKdo6mIHRc-wTw1EYfAR7Z1_LI/edit?usp=sharing]\
 
 # How to Run Dev and Test Environment
 ``` 
