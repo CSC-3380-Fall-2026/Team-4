@@ -26,5 +26,5 @@ class Activites(BaseModel):
     weekdays: list ##list of strings such as ["M", "W", "F"]
     notes: str ## any notes pertaining to the activity 
 
-
+##new pr because accidently pushed to main 
 
