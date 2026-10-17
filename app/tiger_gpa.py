@@ -42,3 +42,15 @@ def getClasses() -> list[Classes]:
         status_code=501,
         detail="Could not retreieve saved course, Has not been created yet."
     )
+
+@router.post("/calculateTotalCredits")
+def calculateTotalCredits(classes: list[Classes]) -> int:
+    total_credits: int = 0
+
+    for course in classes:
+        if course.credit <= 0:
+            raise HTTPException(status_code = 400, detail = "course credits have to be greater than zero")
+
+        total_credits += course.credit
+
+    return total_credits
