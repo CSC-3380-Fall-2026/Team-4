@@ -17,6 +17,7 @@ class Classes(BaseModel): ##most likely be put into a list
     semester: str
     time: datetime
     weekdays: list ##list of strings such as ["M", "W", "F"]
+    category: str ### core, tech elective or other
 
 
 class Activites(BaseModel):
