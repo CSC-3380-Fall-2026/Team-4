@@ -1,3 +1,7 @@
-this is where the catalog enpoint will be
+"this is where the catalog enpoint will be"
 
-import jsonfrom pathlib import Pathfrom
+import json
+from pathlib import Path
+from fastapi import APIRouter, HTTPException
+
+router: APIRouter= APIRouter()
