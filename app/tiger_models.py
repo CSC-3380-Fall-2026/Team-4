@@ -20,6 +20,13 @@ class Classes(BaseModel): ##most likely be put into a list
     weekdays: list ##list of strings such as ["M", "W", "F"]
     category: str ### core, tech elective or other
 
+class Activites(BaseModel):
+    isMandatory: bool
+    time: datetime
+    name: str
+    weekdays: list ##list of strings such as ["M", "W", "F"]
+    notes: str ## any notes pertaining to the activity 
+
 class UserAuthSchema(BaseModel):
     email: EmailStr
     password: str
@@ -30,6 +37,3 @@ class Activites(BaseModel):
     name: str
     weekdays: list ##list of strings such as ["M", "W", "F"]
     notes: str ## any notes pertaining to the activity 
-
-##new pr because accidently pushed to main 
-
