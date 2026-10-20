@@ -4,7 +4,7 @@ import os
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from tiger_models import UserBase, UserAuthSchema
-import app.tiger_gpa as tiger_gpa
+import tiger_gpa as tiger_gpa
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
