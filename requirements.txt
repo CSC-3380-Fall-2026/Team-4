@@ -1,4 +1,6 @@
-fastapi 
+fastapi[standard]
 uvicorn
 supabase
 python-dotenv
+requests
+beautifulsoup4
