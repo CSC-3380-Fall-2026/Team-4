@@ -1,6 +1,8 @@
 """this file will be for calculating finial and projected gpa"""
 from fastapi import APIRouter, HTTPException
 from tiger_models import Classes
+import math
+from pydantic import BaseModel
 
 router: APIRouter = APIRouter()
 # Initialize the router for this specific module
@@ -54,3 +56,71 @@ def calculateTotalCredits(classes: list[Classes]) -> int:
         total_credits += course.credit
 
     return total_credits
+
+class CumulativeGPARequest(BaseModel):
+    currentGPA: float
+    completedCredits: int
+    classes: list[Classes]
+
+@router.post("/calculateCumulativeGPA")
+def calculateCumlativeGPA(data: CumulativeGPARequest) -> float:
+
+        if not math.isfinite(data.currentGPA) or not 0.0 <= data.currentGPA <= 4.3:
+            raise HTTPException( status_code=400, detail= "Current GPA has to be between 0.0. and 4.3 to work.")
+
+        if data.completedCredits < 0:
+            raise HTTPException( status_code=400, detail= "Completed credits can't be negative.")
+
+        if data.completedCredits == 0 and data.currentGPA != 0.0:
+            raise HTTPException( status_code=400, detail= "Your Curret GPA must be 0.0 when no have been completed.")
+
+
+        semesterGPA: float = calculateGPA(data.classes)
+        semesterCredits: int = calculateTotalCredits(data.classes)
+
+        previousPoints: float = data.currentGPA * data.completedCredits
+        semesterPoints: float = semesterGPA * semesterCredits
+
+        totalCredits: int  = data.completedCredits + semesterCredits
+
+        cumulativeGPA: float = (previousPoints + semesterPoints) / totalCredits
+
+        return cumulativeGPA
+
+class RequiredGPARequest(BaseModel):
+    currentGPA: float
+    completedCredits: int
+    plannedCredits: int
+    targetGPA: float
+
+@router.post("/calculateRequiredGPA")
+def calculateRequiredGPA(data: RequiredGPARequest) -> float:
+
+    maxGPA: float = 4.3
+
+    if not math.isfinite(data.currentGPA) or not 0.0 <= data.currentGPA <= maxGPA:
+        raise HTTPException( status_code  = 400, detail = "Current GPA has to be between 0.0 and 4.3")
+
+    if not math.isfinite(data.targetGPA) or not 0.0 <= data.targetGPA <= maxGPA:
+        raise HTTPException( status_code=400, detail = "The Targer GPA has to be between 0.0 and 4.3.")
+
+    if data.completedCredits < 0:
+        raise HTTPException(status_code=400, detail = "completed credits must not be negative.")
+
+    if data.plannedCredits <= 0:
+        raise HTTPException( status_code=400, detail = "Planned credits have to be greater than zero.")
+
+    if data.completedCredits == 0 and data.currentGPA != 0.0:
+        raise HTTPException(status_code=400, detial = "Current GPA must be 0.0 when no credits have been completed yet.")
+
+    totalCredits: int = data.completedCredits + data.plannedCredits
+
+    requiredGPA: float = (data.targetGPA * totalCredits - data.currentGPA * data.completedCredits) / data.plannedCredits
+
+    if requiredGPA > maxGPA + 1e-9:
+
+        maxCumulativeGPA: float = (data.currentGPA * data.completedCredits + maxGPA * data.plannedCredits) / totalCredits
+
+        raise HTTPException(status_code=400, detail = (f"Target GPA is unreachable." f"The Highest possible of a cumulative GPA is " f"{maxCumulativeGPA:.2f}"))
+
+    return min(maxGPA, max(0.0, requiredGPA))
