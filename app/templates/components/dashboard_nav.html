@@ -1,0 +1,39 @@
+<nav class="flex flex-col h-screen w-64 bg-n-0 text-black p-5 justify-between border-r-2 border-neutral-100 font-[Lato]">
+    <div id="nav-buttons" class="flex flex-col gap-7 w-full h-fit">
+        <div id="title" class="flex flex-row gap-2 w-full h-fit justify-start items-center font-bold text-lg">
+            <div id="logo"class="h-8 w-8 rounded-full bg-purple-500"></div>
+            <p>Tiger Class Drive</p>
+        </div>
+        <div id="nav-tabs" class="flex flex-col gap w-full h-fit justify-start items-start text-sm text-neutral-500">
+            <div id="dashboard-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
+                {{ dashboard }}
+                <a>Dashboard</a>
+            </div>
+            <div id="schedule-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
+                {{ calendar }}
+                <a>Schedule</a>
+            </div>
+            <div id="planning-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
+                {{ bookmark }}
+                <a>Planning</a>
+            </div>
+            <div id="friends-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
+                {{ users }}
+                <a>Friends</a>
+            </div>
+            <div id="profile-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
+                {{ user }}
+                <a>Profile</a>
+            </div>
+        </div>
+    </div>
+    <div id="profile-footer" class="flex flex-row gap-2 w-full h-fit border-t-2 border-neutral-100 pt-4">
+        <div id="profile-image">
+            <div class="h-8 w-8 rounded-full bg-purple-500"></div>
+        </div>
+        <div id="profile-info">
+            <p id="profile-name" class="font-semibold text-sm">User</p>
+            <p id="profile-email" class="text-xs text-neutral-400">user@lsu.edu</p>
+        </div>
+    </div>
+</nav>

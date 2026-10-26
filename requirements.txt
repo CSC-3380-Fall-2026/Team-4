@@ -5,3 +5,4 @@ python-dotenv
 requests
 beautifulsoup4
 jinja2
+python-lucide
