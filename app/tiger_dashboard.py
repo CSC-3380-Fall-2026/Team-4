@@ -67,7 +67,7 @@ def page_context(request: Request) -> dict[str, object]:
         },
         {
             "label": "Planning",
-            "href": "/dashboard/planning",
+         "href": "/dashboard?panel=planning",
             "icon": "bookmark",
         },
         {
