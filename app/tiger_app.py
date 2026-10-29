@@ -10,18 +10,25 @@ from tiger_models import *
 import tiger_catalog
 import tiger_auth  # Import by using filename. 
 import tiger_gpa
-
+from pathlib import Path
+from fastapi.responses import RedirectResponse
+import tiger_dashboard
+import tiger_dashboard_planning
 
 app = FastAPI()
 
+APP_DIR: Path = Path(__file__).resolve().parent
+templates = Jinja2Templates(
+    directory=str(APP_DIR / "templates")
+)
+app.mount(
+    "/static",
+    StaticFiles(directory=str(APP_DIR / "static")),
+    name="static"
+)
 
-
-
-templates = Jinja2Templates(directory="templates")
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
+app.include_router(tiger_dashboard.router)
+app.include_router(tiger_dashboard_planning.router)
 app.include_router(tiger_auth.router)
 app.include_router(tiger_gpa.router)
 app.include_router(tiger_catalog.router)
@@ -29,22 +36,9 @@ app.include_router(tiger_catalog.router)
 @app.get("/health")
 def health():
     return {"healthy"}
-
 @app.get("/")
-async def root(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "tiger_home.html",
-        {
-            "name": "willyt",
-            "dashboard": Markup(dashboard),
-            "calendar": Markup(calendar),
-            "bookmark": Markup(bookmark),
-            "users": Markup(users),
-            "user": Markup(user),
-        },
-    )
-
+async def root() -> RedirectResponse:
+    return RedirectResponse(url="/dashboard", status_code=303)
 # Icons
 @app.get("/icons/{icon_name}")
 def get_icon(icon_name: str, size: int = 24, color: str = "currentColor"):
