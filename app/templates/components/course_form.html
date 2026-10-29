@@ -1,0 +1,28 @@
+<div id="course-form" class="fixed z-50 flex h-screen w-screen items-center justify-center backdrop-blur-md hidden">
+    <div id="course-form-content" role="dialog" aria-modal="true" aria-labelledby="course-form-title" class="flex flex-col h-fit w-full max-w-3xl bg-neutrals-0 border border-neutrals-100 rounded-lg">
+        <div id="course-form-header" class="flex flex-col w-full h-fit gap-3 p-6 pb-3 border-b-1 border-neutrals-100">
+            <label id="course-form-title" for="course-search" class="text-lg font-bold">Browse Courses</label>
+            <form id="search-bar" class="flex flex-row w-full h-fit gap-2 pl-4 pr-4 pt-3 pb-3 items-center border border-neutrals-100 rounded-md ">
+                <input id="course-search" type="search" placeholder="Search Courses..." class="w-full"></input>
+                <button class="cursor-pointer">{{ search }}</button>
+            </form>
+        </div>
+        <div id="course-form-items">
+            <div class="course-item flex flex-row justify-between items-center gap-15 pl-6 pr-6 pt-3 pb-3 border-b-1 border-neutrals-100">
+                <div class="course-info flex flex-col h-fit gap-2">
+                    <p class="text-md text-purple-400 font-semibold">Course</p>
+                    <div class="flex flex-row gap-2 text-sm text-neutrals-400">
+                        <span>Spring Semester 2027</span>
+                        <span>|</span>
+                        <span>Professor</span>
+                        <span>|</span>
+                        <span>0/40</span>
+                    </div>
+                    <p class="text-sm text-yellow-500">Section Details</p>
+                </div>
+                <button onclick="toggleCourseForm(false)" class="add-course-btn flex flex-row justify-center gap-2 items-center h-fit g-2 pl-3 pr-3 pt-2 pb-2 rounded-md bg-purple-400 text-neutrals-0 font-semibold cursor-pointer">{{ plus }} Add Course</button>
+            </div>
+        </div>
+        <div id="course-form-footer"></div>
+    </div>
+</div>

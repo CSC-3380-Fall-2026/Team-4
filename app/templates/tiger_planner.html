@@ -3,14 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="../static/tiger_theme.css" rel="stylesheet">
+    <link href="{{url_for('static',path='/css/app.css')}}" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <title>Tiger Class Drive</title>
+    <title>Planning</title>
 </head>
-<body>
+<body id="main-body" class="flex flex-row h-screen w-screen bg-neutrals-0 font-[Lato]">
+    {% include "components/course_form.html" %}
     {% include "components/dashboard_nav.html" %}
+    <div id="workspace" class="flex flex-col w-full h-fit grow min-w-200 ml-64">
+        <div id="top-bar" class="flex flex-row w-full h-fit justify-between items-center pl-6 pr-6 pt-4 pb-4 border-b-2 border-neutrals-100 font-bold">
+            <p>Planning</p>
+            <div id="notifications" class="h-6 w-6 rounded-full bg-neutrals-400"></div>
+        </div>
+        <div id="content" class="flex flex-col w-full h-fit p-6 gap-6 max-w-800">
+            <div id="completed-courses" class="flex flex-col w-full h-fit p-5 gap-4 bg-neutrals-0 border-2 border-neutrals-200 rounded-lg">
+                <div id="courses-header" class="flex flex-row w-full h-fit justify-between items-center">
+                    <div id="courses-title" class="flex flex-col w-fit h-full gap-0">
+                        <p class="text-lg font-bold">Completed Courses</p>
+                        <p class="text-sm text-neutrals-300">25 credits completed</p>
+                    </div>
+                    <button id="add-courses" onclick="toggleCourseForm(true)" class="w-fit h-fit pl-6 pr-6 pt-2 pb-2 bg-purple-400 text-white rounded-md font-semibold text-sm cursor-pointer">Add a Course</button>
+                </div>
+                <div id="course-table-container" class="border-1 rounded-md border-neutrals-100">
+                    <table id="course-table" class="border-collapse w-full h-fit bg-neutrals-0 rounded-md text-left">
+                        <thead class="w-full h-12 bg-neutrals-50 text-sm">
+                            <tr>
+                                <th class="h-fit w-500 pl-4 border-1 border-neutrals-100">Course</th>
+                                <th class="h-fit pl-4 border-1 border-neutrals-100">Credits</th>
+                                <th class="h-fit pl-4 border-1 border-neutrals-100">Grade</th>
+                                <th class="h-fit pl-4 border-1 border-neutrals-100">Schedule</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="w-full h-16">
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100 font-semibold">CSC 1350</td>
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">3 cr</td>
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">Fall 2025</td>
+                            </tr>
+                            <tr class="w-full h-16">
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100 font-semibold">MATH 1550</td>
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">5 cr</td>
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">Fall 2025</td>
+                            </tr>
+                            <tr class="w-full h-16">
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100 font-semibold">ENGL 1001</td>
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">3 cr</td>
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
+                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">Fall 2025</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="gpa-overview" class="flex flex-col w-full h-fit p-5 gap-4 bg-neutrals-0 border-2 border-neutrals-200 rounded-lg">
+                <div id="gpa-header">
+                    <p class="text-lg font-bold">GPA Overview</p>
+                </div>
+                <div id="gpa-metrics" class="flex flex-row w-full h-fit gap-3">
+                    <div id="cum-GPA" class="flex flex-col w-full h-fit gap-2 p-4 rounded-lg bg-neutrals-50 border-neutrals-100">
+                        <p class="text-sm text-neutrals-400 font-medium">Current cumulative GPA</p>
+                        <p class="text-4xl text-neutrals-900 font-bold">3.45</p>
+                    </div>
+                    <div id="cum-hours" class="flex flex-col w-full h-fit gap-2 p-4 rounded-lg bg-neutrals-50 border-neutrals-100">
+                        <p class="text-sm text-neutrals-400 font-medium">Completed credit hours</p>
+                        <p class="text-4xl text-neutrals-900 font-bold">45</p>
+                    </div>
+                </div>
+            </div>
+            <div id="planner" class="flex flex-row w-full h-fit gap-6">
+                <div id="sem-planner" class="flex flex-col w-full h-fit gap-5 p-5 rounded-lg bg-neutrals-0 border-2 border-neutrals-200">
+                    <div id="sem-planner-header" class="flex flex-row w-full h-fit justify-between items-center">
+                        <p class="text-lg font-bold">Semester Plan</p>
+                        <div id="schedule-picker" class="flex flex-row w-fit h-fit gap-3 items-center">
+                            <p class="text-md font-medium">Schedule:</p>
+                            <div id="schedule-dropdown">{% include "components/schedule_select.html" %}</div>
+                        </div>
+                    </div>
+                    <div id="sem-table-container" class="border-1 rounded-md border-neutrals-100">
+                        <table id="sem-table" class="border-collapse w-full h-fit bg-neutrals-0 rounded-md text-left">
+                            <thead class="w-full h-12 bg-neutrals-50 text-sm">
+                                <tr>
+                                    <th class="h-fit w-500 pl-4 border-1 border-neutrals-100">Course</th>
+                                    <th class="h-fit pl-4 border-1 border-neutrals-100">Credits</th>
+                                    <th class="h-fit pl-4 border-1 border-neutrals-100">Expected Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="w-full h-16">
+                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100 font-semibold">CSC 1350</td>
+                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">3 cr</td>
+                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
+                                </tr>
+                                <tr class="w-full h-16">
+                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100 font-semibold">MATH 1550</td>
+                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">5 cr</td>
+                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
+                                </tr>
+                                <tr class="w-full h-16">
+                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100 font-semibold">ENGL 1001</td>
+                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">3 cr</td>
+                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="sem-metrics" class="flex flex-row w-full h-fit gap-3">
+                        <div id="sem-GPA" class="flex flex-col w-full h-fit gap-2 p-4 rounded-lg bg-neutrals-50 border-neutrals-100">
+                            <p class="text-sm text-neutrals-400 font-medium">Semester GPA</p>
+                            <p class="text-3xl text-neutrals-900 font-bold">3.58</p>
+                        </div>
+                        <div id="new-cum-GPA" class="flex flex-col w-full h-fit gap-2 p-4 rounded-lg bg-neutrals-50 border-neutrals-100">
+                            <p class="text-sm text-neutrals-400 font-medium">New cumulative GPA</p>
+                            <p class="text-3xl text-neutrals-900 font-bold">3.49</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="gpa-calc" class="flex flex-col h-fit gap-5 p-5 rounded-lg bg-neutrals-0 border-2 border-neutrals-200">
+                    <div id="gpa-calc-header" class="flex flex-col w-full h-fit">
+                        <p class="font-bold">Target GPA Calculator</p>
+                        <p class="text-sm font-medium text-neutrals-300">Enter your target cumulative GPA and see the semester GPA required to reach it.</p>
+                    </div>
+                    <div id="gpa-calc-inputs" class="flex flex-col w-full h-fit gap-3">
+                        <div id="field-target-cum-GPA" class="flex flex-col w-fill h-fit gap-2">
+                            <label for="input-targ-cum-GPA" class="text-sm font-medium text-neutrals-400">Target cumulative GPA</label>
+                            <input id="input-targ-cum-GPA" type="text" class="bg-neutrals-50 border border-neutrals-100 text-md rounded-lg font-semibold block w-full px-3 py-2.5" placeholder="3.00" required/></input>
+                        </div>
+                        <div id="field-current-credits" class="flex flex-col w-fill h-fit gap-2"> 
+                            <label for="input-curr-credits" class="text-sm font-medium text-neutrals-400">Current credit load</label>
+                            <input id="input-curr-credits" type="text" class="bg-neutrals-50 border border-neutrals-100 text-md rounded-lg font-semibold block w-full px-3 py-2.5" placeholder="15" required/></input>
+                        </div>
+                    </div>
+                    <div id="gpa-calc-output" class="flex flex-col w-full h-fit gap-2 p-4 bg-purple-100 border-1 rounded-lg border-purple-900">
+                        <p class="text-sm font-medium text-purple-400">Semester GPA needed:</p>
+                        <p class="text-4xl font-extrabold text-purple-600">3.67</p>
+                        <p class="text-sm font-medium text-purple-400">Based on cumulative hours, cumulative GPA, and a target of 3.50.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleCourseForm(show) {
+            const courseForm = document.getElementById('course-form');
+            if (show) {
+                courseForm.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            } else {
+                courseForm.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+        }
+
+        document.getElementById('course-form').addEventListener('click', function(e) {
+            if (e.target === this) {
+                toggleCourseForm(false);
+            }
+        });
+    </script>
 </body>
 </html>
