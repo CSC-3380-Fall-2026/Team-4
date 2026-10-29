@@ -111,7 +111,7 @@ def calculateRequiredGPA(data: RequiredGPARequest) -> float:
         raise HTTPException( status_code=400, detail = "Planned credits have to be greater than zero.")
 
     if data.completedCredits == 0 and data.currentGPA != 0.0:
-        raise HTTPException(status_code=400, detial = "Current GPA must be 0.0 when no credits have been completed yet.")
+        raise HTTPException(status_code=400, detail = "Current GPA must be 0.0 when no credits have been completed yet.")
 
     totalCredits: int = data.completedCredits + data.plannedCredits
 
