@@ -13,7 +13,6 @@ import tiger_gpa
 from pathlib import Path
 from fastapi.responses import RedirectResponse
 import tiger_dashboard
-import tiger_dashboard_planning
 
 app = FastAPI()
 
@@ -28,7 +27,6 @@ app.mount(
 )
 
 app.include_router(tiger_dashboard.router)
-app.include_router(tiger_dashboard_planning.router)
 app.include_router(tiger_auth.router)
 app.include_router(tiger_gpa.router)
 app.include_router(tiger_catalog.router)
