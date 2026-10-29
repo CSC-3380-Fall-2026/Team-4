@@ -31,9 +31,4 @@ class UserAuthSchema(BaseModel):
     email: EmailStr
     password: str
 
-class Activites(BaseModel):
-    isMandatory: bool
-    time: datetime
-    name: str
-    weekdays: list ##list of strings such as ["M", "W", "F"]
-    notes: str ## any notes pertaining to the activity 
+#class Schedules()
