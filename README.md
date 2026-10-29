@@ -62,3 +62,23 @@ static void Main(){
 	Console.WriteLine("Hello, World!");
 }
 ```
+
+## Running the QA Tests
+
+This project uses pytest for automated testing.
+
+After setting up the virtual environment and installing the dependencies, run the entire test suite from the project's root folder with:
+
+```bash
+python -m pytest tests/ -v
+```
+
+The command displays the results of each test, including passes and failures.
+
+Shared test fixtures are defined in `tests/conftest.py`:
+- `test_catalog`: sample course data
+- `test_supabase_users`: fake users for testing
+- `test_client`: FastAPI test client
+
+Note: Some tests may fail until existing application bugs are fixed.
+  
