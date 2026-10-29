@@ -1,7 +1,7 @@
 """this file will be for starting the fasTAPI and connecting page routes and templates and static files."""
 """PLEASE set up a .VENV look under # How to Run Dev and Test Environment in the README.md"""
 from fastapi import FastAPI, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from lucide import lucide_icon
@@ -30,7 +30,8 @@ app.include_router(tiger_catalog.router)
 def health():
     return {"healthy"}
 
-@app.get("/")
+#Home
+@app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse(
         request,
@@ -42,6 +43,134 @@ async def root(request: Request):
             "bookmark": Markup(bookmark),
             "users": Markup(users),
             "user": Markup(user),
+            "search": Markup(search),
+            "plus": Markup(plus),
+        },
+    )
+
+#Login
+@app.get("/login", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "tiger_login.html",
+        {
+            "name": "willyt",
+            "dashboard": Markup(dashboard),
+            "calendar": Markup(calendar),
+            "bookmark": Markup(bookmark),
+            "users": Markup(users),
+            "user": Markup(user),
+            "search": Markup(search),
+            "plus": Markup(plus),
+        },
+    )
+
+#Signin
+@app.get("/signin", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "tiger_signin.html",
+        {
+            "name": "willyt",
+            "dashboard": Markup(dashboard),
+            "calendar": Markup(calendar),
+            "bookmark": Markup(bookmark),
+            "users": Markup(users),
+            "user": Markup(user),
+            "search": Markup(search),
+            "plus": Markup(plus),
+        },
+    )
+
+#Dashboard
+@app.get("/dashboard", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "tiger_dashboard.html",
+        {
+            "name": "willyt",
+            "dashboard": Markup(dashboard),
+            "calendar": Markup(calendar),
+            "bookmark": Markup(bookmark),
+            "users": Markup(users),
+            "user": Markup(user),
+            "search": Markup(search),
+            "plus": Markup(plus),
+        },
+    )
+
+#Schedule
+@app.get("/schedule", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "tiger_schedule.html",
+        {
+            "name": "willyt",
+            "dashboard": Markup(dashboard),
+            "calendar": Markup(calendar),
+            "bookmark": Markup(bookmark),
+            "users": Markup(users),
+            "user": Markup(user),
+            "search": Markup(search),
+            "plus": Markup(plus),
+        },
+    )
+
+#Planning
+@app.get("/planning", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "tiger_planner.html",
+        {
+            "name": "willyt",
+            "dashboard": Markup(dashboard),
+            "calendar": Markup(calendar),
+            "bookmark": Markup(bookmark),
+            "users": Markup(users),
+            "user": Markup(user),
+            "search": Markup(search),
+            "plus": Markup(plus),
+        },
+    )
+
+#Friends
+@app.get("/friends", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "tiger_friends.html",
+        {
+            "name": "willyt",
+            "dashboard": Markup(dashboard),
+            "calendar": Markup(calendar),
+            "bookmark": Markup(bookmark),
+            "users": Markup(users),
+            "user": Markup(user),
+            "search": Markup(search),
+            "plus": Markup(plus),
+        },
+    )
+
+#Profile
+@app.get("/profile", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "tiger_profile.html",
+        {
+            "name": "willyt",
+            "dashboard": Markup(dashboard),
+            "calendar": Markup(calendar),
+            "bookmark": Markup(bookmark),
+            "users": Markup(users),
+            "user": Markup(user),
+            "search": Markup(search),
+            "plus": Markup(plus),
         },
     )
 
@@ -56,3 +185,5 @@ calendar = lucide_icon("calendar", width=18, height=18, stroke="currentColor")
 bookmark = lucide_icon("bookmark", width=18, height=18, stroke="currentColor")
 users = lucide_icon("users", width=18, height=18, stroke="currentColor")
 user = lucide_icon("user", width=18, height=18, stroke="currentColor")
+search = lucide_icon("search", width=18, height=18, stroke="currentColor")
+plus = lucide_icon("plus", width=18, height=18, stroke="currentColor")
