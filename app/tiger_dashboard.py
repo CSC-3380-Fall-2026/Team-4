@@ -117,6 +117,10 @@ def dashboard(
             "Scheduels are not currently avaliable to be saved "
             "You will be able to calculate gpa now "
         )
+    elif panel == "planning": 
+        context["notice"] = (
+        "The GPA Planning form has not been connected yet."
+        )
     elif panel == "friends":
         context["notice"] = (
             "You are unable to make friend request "
