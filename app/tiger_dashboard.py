@@ -67,7 +67,7 @@ def page_context(request: Request) -> dict[str, object]:
         },
         {
             "label": "Planning",
-            "href": "/dashboard/planning",
+         "href": "/dashboard?panel=planning",
             "icon": "bookmark",
         },
         {
@@ -116,6 +116,10 @@ def dashboard(
         context["notice"] = (
             "Scheduels are not currently avaliable to be saved "
             "You will be able to calculate gpa now "
+        )
+    elif panel == "planning": 
+        context["notice"] = (
+        "The GPA Planning form has not been connected yet."
         )
     elif panel == "friends":
         context["notice"] = (

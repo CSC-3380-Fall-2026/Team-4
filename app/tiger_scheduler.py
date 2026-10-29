@@ -3,8 +3,7 @@ Build API routes and database functions that let signed-in students create, save
 Store the schedule name, semester, and selected class sections in Supabase. 
 Determine ownership from the signed-in account and prevent students from accessing or modifying another student's schedules
 """
-from fastapi import APIRouter
-from tiger_models import 
+from fastapi import APIRouter 
 
 # Initialize the router for this specific module
 router = APIRouter()
