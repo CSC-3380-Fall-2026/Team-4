@@ -1,0 +1,674 @@
+.tcd-dashboard {
+    --accent: #408bff;
+    --muted: #7c899d;
+    --border: #edf0f4;
+
+    margin: 0;
+    background: #fafbfc;
+    color: #101827;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.tcd-dashboard *,
+.tcd-dashboard *::before,
+.tcd-dashboard *::after {
+    box-sizing: border-box;
+}
+
+.tcd-dashboard a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.tcd-dashboard button,
+.tcd-dashboard input,
+.tcd-dashboard select {
+    font: inherit;
+}
+
+.tcd-dashboard button,
+.tcd-dashboard summary {
+    cursor: pointer;
+}
+
+.tcd-dashboard a:focus-visible,
+.tcd-dashboard button:focus-visible,
+.tcd-dashboard summary:focus-visible,
+.tcd-dashboard input:focus-visible,
+.tcd-dashboard select:focus-visible,
+.tcd-dashboard [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+}
+
+.tcd-dashboard .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.tcd-dashboard .skip-link {
+    position: fixed;
+    top: -80px;
+    left: 20px;
+    z-index: 20;
+    background: white;
+    padding: 10px 16px;
+}
+
+.tcd-dashboard .skip-link:focus {
+    top: 10px;
+}
+
+/* Sidebar and navigation. */
+.tcd-dashboard .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 257px;
+    background: white;
+    border-right: 1px solid var(--border);
+    padding: 20px 18px;
+}
+
+.tcd-dashboard .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 18px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.tcd-dashboard .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--accent);
+    color: white;
+    font-size: 16px;
+}
+
+.tcd-dashboard .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 32px;
+}
+
+.tcd-dashboard .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 44px;
+    padding: 11px 16px;
+    border-radius: 10px;
+    color: #536176;
+}
+
+.tcd-dashboard .nav-icon {
+    display: flex;
+    color: #7b8797;
+}
+
+.tcd-dashboard .nav-link.active {
+    background: #eef4ff;
+    color: var(--accent);
+}
+
+.tcd-dashboard .nav-link.active .nav-icon {
+    color: var(--accent);
+}
+
+.tcd-dashboard .nav-link:hover {
+    background: #f3f6fb;
+}
+
+/* Header. */
+.tcd-dashboard .page-frame {
+    margin-left: 257px;
+    min-height: 100vh;
+}
+
+.tcd-dashboard .topbar {
+    height: 70px;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border-bottom: 1px solid #f2f4f7;
+    background: white;
+}
+
+.tcd-dashboard .topbar h1 {
+    font-size: 20px;
+    margin: 0;
+    font-weight: 600;
+}
+
+.tcd-dashboard .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.tcd-dashboard .preview-badge {
+    border: 1px solid #e3edff;
+    border-radius: 20px;
+    padding: 6px 12px;
+    color: #397eff;
+    background: #f5f8ff;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.tcd-dashboard .header-popover {
+    position: relative;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.tcd-dashboard .header-popover summary {
+    list-style: none;
+    padding: 8px 0;
+}
+
+.tcd-dashboard .header-popover summary::-webkit-details-marker {
+    display: none;
+}
+
+.tcd-dashboard .popover-content {
+    position: absolute;
+    top: 42px;
+    right: 0;
+    z-index: 10;
+    width: 280px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 8px 25px #15274812;
+    color: #44516a;
+    font-size: 13px;
+}
+
+.tcd-dashboard .popover-content p {
+    margin: 8px 0;
+}
+
+.tcd-dashboard .popover-content a {
+    color: #2464ca;
+    text-decoration: underline;
+}
+
+.tcd-dashboard .notifications summary {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    color: #566276;
+}
+
+.tcd-dashboard .notification-dot {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 8px;
+    height: 8px;
+    background: #ff515c;
+    border-radius: 50%;
+}
+
+/* Main content and greeting. */
+.tcd-dashboard .main-content {
+    padding: 28px 24px 48px 32px;
+}
+
+.tcd-dashboard .welcome h2 {
+    font-size: 32px;
+    line-height: 1.25;
+    letter-spacing: -0.5px;
+    margin: 3px 0 7px;
+}
+
+.tcd-dashboard .welcome p {
+    margin: 0;
+    color: #7693c0;
+}
+
+.tcd-dashboard .welcome > a {
+    display: inline-block;
+    font-size: 15px;
+    margin-top: 1px;
+}
+
+.tcd-dashboard .welcome > a:hover {
+    color: #2464ca;
+    text-decoration: underline;
+}
+
+/* Dashboard cards. */
+.tcd-dashboard .dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 24px;
+    margin-top: 23px;
+    align-items: start;
+}
+
+.tcd-dashboard .panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+}
+
+.tcd-dashboard h3 {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Weekly calendar. */
+.tcd-dashboard .calendar-panel {
+    min-height: 505px;
+}
+
+.tcd-dashboard .panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.tcd-dashboard .legend {
+    list-style: none;
+    display: flex;
+    gap: 9px;
+    margin: 0;
+    padding: 0;
+    font-size: 10px;
+    color: #6687b6;
+}
+
+.tcd-dashboard .legend li {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.tcd-dashboard .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.tcd-dashboard .class-dot { background: #408bff; }
+.tcd-dashboard .work-dot { background: #f0c5a5; }
+.tcd-dashboard .clubs-dot { background: #afe5d9; }
+.tcd-dashboard .other-dot { background: #d3bdf5; }
+
+.tcd-dashboard .calendar-scroll {
+    overflow-x: auto;
+}
+
+.tcd-dashboard .weekly-calendar {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+}
+
+.tcd-dashboard .time-column {
+    width: 80px;
+}
+
+.tcd-dashboard .weekly-calendar thead th {
+    font-size: 12px;
+    font-weight: 400;
+    text-align: center;
+    padding: 0 5px 11px;
+}
+
+.tcd-dashboard .weekly-calendar thead th span:not(.sr-only) {
+    display: block;
+    padding: 5px 0;
+    border-radius: 8px;
+    background: #f8f9fb;
+}
+
+.tcd-dashboard .weekly-calendar tbody th {
+    font-size: 10px;
+    font-weight: 400;
+    color: #9bb0ce;
+    text-align: left;
+    height: 62px;
+    padding: 0;
+    white-space: nowrap;
+}
+
+/* Friends and upcoming events. */
+.tcd-dashboard .right-column {
+    display: grid;
+    gap: 26px;
+}
+
+.tcd-dashboard .friends-panel {
+    min-height: 286px;
+}
+
+.tcd-dashboard .friend-list {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+}
+
+.tcd-dashboard .friend-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 40px;
+}
+
+.tcd-dashboard .avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background: #f0f1f3;
+    border-radius: 50%;
+}
+
+.tcd-dashboard .friend-details {
+    display: grid;
+    gap: 1px;
+    flex: 1;
+    font-size: 14px;
+}
+
+.tcd-dashboard .friend-details small {
+    font-size: 10px;
+}
+
+.tcd-dashboard .free-status { color: #00bea8; }
+.tcd-dashboard .busy-status { color: #7294bd; }
+
+.tcd-dashboard .ping-button {
+    border: 0;
+    background: #f8f9fc;
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: #21406a;
+    font-size: 10px;
+}
+
+.tcd-dashboard .ping-button:hover {
+    background: #eaf1ff;
+}
+
+.tcd-dashboard .events-panel {
+    min-height: 94px;
+}
+
+.tcd-dashboard .empty-message {
+    color: #6c7b90;
+    font-size: 13px;
+    margin: 14px 0 0;
+}
+
+.tcd-dashboard .notice {
+    border: 1px solid #d8e7ff;
+    background: #eff6ff;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    color: #244b80;
+}
+
+.tcd-dashboard .notice a {
+    text-decoration: underline;
+    margin-left: 8px;
+}
+
+/* Course catalog. */
+.tcd-dashboard .catalog-panel {
+    margin-top: 28px;
+}
+
+.tcd-dashboard .catalog-search {
+    margin-bottom: 24px;
+}
+
+.tcd-dashboard .catalog-search label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.tcd-dashboard .catalog-search > label:not(:first-child) {
+    margin-top: 16px;
+}
+
+.tcd-dashboard .catalog-search > div {
+    display: flex;
+    gap: 10px;
+}
+
+.tcd-dashboard .catalog-search input {
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    width: min(400px, 75%);
+}
+
+.tcd-dashboard .catalog-search select {
+    max-width: 100%;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: white;
+}
+
+.tcd-dashboard .catalog-search button {
+    border: 0;
+    background: #286bce;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 8px;
+}
+
+.tcd-dashboard .catalog-scroll {
+    overflow-x: auto;
+}
+
+.tcd-dashboard .catalog-scroll table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.tcd-dashboard .catalog-scroll th,
+.tcd-dashboard .catalog-scroll td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Planning form. */
+.tcd-dashboard .planning-panel {
+    margin-top: 24px;
+}
+
+.tcd-dashboard .field-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin: 20px 0;
+}
+
+.tcd-dashboard .planning-form label {
+    display: block;
+    font-size: 13px;
+    color: #43516a;
+}
+
+.tcd-dashboard .planning-form input,
+.tcd-dashboard .planning-form select {
+    padding: 10px 12px;
+    border: 1px solid #ccd5e2;
+    border-radius: 8px;
+    width: 100%;
+    background: white;
+    color: #101827;
+    margin-top: 6px;
+}
+
+.tcd-dashboard .course-inputs {
+    width: 100%;
+    margin: 12px 0 22px;
+}
+
+.tcd-dashboard .planning-form button {
+    border: 0;
+    border-radius: 8px;
+    background: #286bce;
+    color: white;
+    padding: 12px 20px;
+}
+
+.tcd-dashboard .planning-help {
+    color: #62728a;
+    font-size: 13px;
+}
+
+.tcd-dashboard .planning-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.tcd-dashboard .planning-actions a {
+    color: #2464ca;
+    text-decoration: underline;
+}
+
+/* GPA result cards. */
+.tcd-dashboard .result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 24px;
+}
+
+.tcd-dashboard .gpa-value {
+    font-size: 30px;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+/* Smaller desktop and tablet layout. */
+@media (max-width: 1200px) {
+    .tcd-dashboard .dashboard-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tcd-dashboard .right-column {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+    }
+}
+
+/* Phone layout. */
+@media (max-width: 760px) {
+    .tcd-dashboard .sidebar {
+        position: static;
+        width: 100%;
+        padding: 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .tcd-dashboard .sidebar-nav {
+        margin-top: 16px;
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 6px;
+    }
+
+    .tcd-dashboard .nav-link {
+        flex-shrink: 0;
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    .tcd-dashboard .page-frame {
+        margin-left: 0;
+    }
+
+    .tcd-dashboard .topbar {
+        height: auto;
+        min-height: 68px;
+        padding: 14px 18px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .tcd-dashboard .header-actions {
+        gap: 12px;
+    }
+
+    .tcd-dashboard .main-content {
+        padding: 24px 16px;
+    }
+
+    .tcd-dashboard .welcome h2 {
+        font-size: 26px;
+    }
+
+    .tcd-dashboard .dashboard-grid {
+        margin-top: 24px;
+    }
+
+    .tcd-dashboard .panel {
+        padding: 20px;
+        border-radius: 16px;
+    }
+
+    .tcd-dashboard .panel-heading {
+        flex-wrap: wrap;
+    }
+
+    .tcd-dashboard .right-column,
+    .tcd-dashboard .field-grid,
+    .tcd-dashboard .result-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tcd-dashboard .right-column {
+        gap: 20px;
+    }
+
+    .tcd-dashboard .course-row {
+        border-top: 1px solid var(--border);
+        padding-top: 14px;
+    }
+
+    .tcd-dashboard .header-popover:not(.notifications) .popover-content {
+        left: -140px;
+        right: auto;
+        width: 260px;
+    }
+}
