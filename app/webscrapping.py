@@ -14,6 +14,7 @@ DEBUG = True
 CATEGORIES = [ "Core Coursework", "Technical Requirements", "Math Requirements", "Other Requirements"]
 STOP_HEADINGS = set(CATEGORIES + ["Concentrations"])
 
+CONCENTRATIONS = ["Cloud Computing & Networking","Cybersecurity", "Data Science & Analytics", "Software Engineering", "Second Discipline"]
 
 def fetch_page(url: str) -> str:
     print("we are fetching your webpage...")
@@ -159,7 +160,104 @@ def extract_all_courses(soup: BeautifulSoup) -> dict:
     return result 
 
 
-def save_json(data: dict) -> None:
+def extract_concentrations(soup: BeautifulSoup) -> dict[str, dict]:
+    results: dict[str, dict] = {}
+
+    for heading  in soup.find_all(["h2","h3", "h4"]):
+        name = " ".join(heading.get_text(" ", strip = True).replace ("\u200b", "").split())
+
+        if name not in CONCENTRATIONS:
+            continue
+        details: dict = {"required_courses": [], "approved_electives": [], "other_requirements": [], "notes": []}
+
+        section: str | None = None
+
+        for element in heading.next_elements:
+            if not isinstance(element, Tag):
+                continue
+
+            # Stop at the next concentration.
+            if (element.name == ("h2", "h3", "h4") and element is not heading and " ".join (element.get_text(" ", strip=True).replace ("\u200b", "").split()) in CONCENTRATIONS):
+                break
+
+            if element.name == "footer":
+                break
+
+            # Stop at the bottom of the page.
+            if element.name in ("a", "button"):
+                if element.get_text(" ", strip=True) == "Top":
+                    break
+
+            # Identify required courses or electives.
+            if element.name in ("h2", "h3", "h4"):
+                title = element.get_text(" ", strip=True)
+
+                section = {"Required Courses": "required_courses","Approved Electives": "approved_electives"}.get(title)
+
+            # Extract course information.
+            elif element.name == "table" and section is not None:
+                courses, requirements = extract_table_data(element, f"{name} - {section.replace('_', ' ')}")
+
+                details[section].extend(courses)
+                details["other_requirements"].extend(requirements)
+
+            # Extract additional written information.
+            elif element.name == "p":
+                if element.find_parent("table") is None:
+                    note = element.get_text(" ", strip=True)
+
+                    if note:
+                        details["notes"].append(note)
+
+
+        print("Concentration:", name)
+        print("Required courses:", len(details["required_courses"]))
+        print("Approved electives:", len(details["approved_electives"]))
+
+        # Validate course extraction.
+        if name != "Second Discipline":
+            if (not details["required_courses"] or not details["approved_electives"]):
+                raise ValueError(f"Incomplete course lists for {name}")
+
+        results[name] = details
+
+    if "Second Discipline" not in results:
+        page_text = " ".join(
+            soup.get_text(" ", strip=True).split()
+        )
+
+        requirement = re.search( r"Students\s+must\s+complete\s+a\s+total\s+of\s+" r"15\s+credit\s+hours\b.{0,300}?\.", page_text, re.IGNORECASE)
+
+        approval = re.search( r"This\s+concentration\s+must\s+be\s+approved\s+" r"by\s+a\s+departmental\s+advisor\.", page_text, re.IGNORECASE)
+
+        if requirement is None:
+            raise ValueError("Second Discipline requirement not found")
+
+        notes = [requirement.group(0)]
+
+        if approval:
+            notes.append(approval.group(0))
+
+        results["Second Discipline"] = {
+            "required_courses": [],
+            "approved_electives": [],
+            "other_requirements": [],
+            "notes": notes,
+            "required_credit_hours": 15
+        }
+
+        print("Concentration: Second Discipline")
+        print("Required credit hours: 15")
+
+    missing = set(CONCENTRATIONS) - set(results)
+
+    if missing:
+        raise ValueError( f"Missing Concentrations: {sorted(missing)}")
+
+    return results
+
+
+def save_json(data: dict, concentrations: dict) -> None:
 
     if not data:
         raise ValueError ("No course data was found :(")
@@ -177,7 +275,7 @@ def save_json(data: dict) -> None:
 
     dataset = {
         "source_url": URL,
-        "retrieved_at": datetime.now(timezone.utc).isoformat(), "categories": data 
+        "retrieved_at": datetime.now(timezone.utc).isoformat(), "categories": data, "concentrations": concentrations
     }
 
     with output.open("w", encoding = "utf-8") as file:
@@ -191,7 +289,11 @@ def main() -> None:
         html = fetch_page(URL)
         soup = inspect_html(html)
         data = extract_all_courses(soup)
-        save_json(data)
+
+        concentrations = extract_concentrations(soup)
+
+        save_json(data, concentrations)
+
         print("\nYour scraping has been completed")
 
     except requests.RequestException as error:
