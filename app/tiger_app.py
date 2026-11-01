@@ -1,18 +1,17 @@
 """this file will be for starting the fasTAPI and connecting page routes and templates and static files."""
 """PLEASE set up a .VENV look under # How to Run Dev and Test Environment in the README.md"""
-from fastapi import FastAPI, Request
-from fastapi.responses import Response
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from lucide import lucide_icon
-from markupsafe import Markup
-from tiger_models import *
+
+import tiger_auth  # Import by using filename.
 import tiger_catalog
-import tiger_auth  # Import by using filename. 
-import tiger_gpa
-from pathlib import Path
-from fastapi.responses import RedirectResponse
 import tiger_dashboard
+import tiger_gpa
 
 app = FastAPI()
 
@@ -37,6 +36,32 @@ def health():
 @app.get("/")
 async def root() -> RedirectResponse:
     return RedirectResponse(url="/dashboard", status_code=303)
+
+
+@app.get("/schedule")
+async def schedule() -> RedirectResponse:
+    return RedirectResponse(url="/dashboard?panel=schedule", status_code=303)
+
+
+@app.get("/planning")
+async def planning() -> RedirectResponse:
+    return RedirectResponse(url="/dashboard?panel=planning", status_code=303)
+
+
+@app.get("/friends")
+async def friends() -> RedirectResponse:
+    return RedirectResponse(url="/dashboard?panel=friends", status_code=303)
+
+
+@app.get("/profile")
+async def profile() -> RedirectResponse:
+    return RedirectResponse(url="/dashboard?panel=profile", status_code=303)
+
+
+@app.get("/catalog")
+async def catalog() -> RedirectResponse:
+    return RedirectResponse(url="/dashboard/catalog", status_code=303)
+
 # Icons
 @app.get("/icons/{icon_name}")
 def get_icon(icon_name: str, size: int = 24, color: str = "currentColor"):
