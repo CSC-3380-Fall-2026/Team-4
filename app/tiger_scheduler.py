@@ -1,7 +1,26 @@
-"""this file will be for finding shared free periods with time being around 30 mintues"""
-"""this file will be manage the friends and the friendship and sharing permission"""
-"""this file will be for managing schedules and calculating the schedule comparisio"""
-from fastapi import APIRouter
+""" 
+Build API routes and database functions that let signed-in students create, save, reopen, edit, and delete schedules.
+Store the schedule name, semester, and selected class sections in Supabase. 
+Determine ownership from the signed-in account and prevent students from accessing or modifying another student's schedules
+"""
+from fastapi import APIRouter 
 
 # Initialize the router for this specific module
 router = APIRouter()
+
+@router.post("/create-schedule")
+def create_schedule():
+
+    pass
+
+@router.post("/update-schedule")
+def update_schedule():
+    pass
+
+@router.get("/get-schedule")
+def get_schedule():
+    pass
+
+@router.delete('/delete-schedule')
+def delete_schedule():
+    pass

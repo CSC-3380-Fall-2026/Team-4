@@ -1,6 +1,6 @@
 {
     "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php",
-    "retrieved_at": "2026-10-02T23:39:46.051485+00:00",
+    "retrieved_at": "2026-10-29T03:42:25.186729+00:00",
     "categories": {
         "Core Coursework": {
             "courses": [
@@ -278,6 +278,1548 @@
                 "3",
                 "In addition to the above requirements, a total of three natural science courses and\n                                                two corresponding lab courses must be taken. One science course must be either BIOL\n                                                1001 (General Biology I) or BIOL 1201 (Biology for Science Majors I), as listed above.\n                                                A sequence of two science courses and their corresponding lab courses are also required.\n                                                This sequence must be from a choice of physics, chemistry, astronomy, or geology (e.g.,\n                                                you can take Physics I and Physics I Lab one semester, then take Physics II and Physics\n                                                II Lab another semester; you can take Chemistry I and Chemistry I Lab one semester,\n                                                then take Chemistry II and Chemistry II Lab another semester; etc.) Please note that\n                                                sequences or courses in geography or physical science will NOT count towards the science\n                                                requirement.",
                 "*One three-credit course must be either English (other than 1001 or 2000) or an honors\n                                                course. One three-credit course must be a Communications Studies course. The last\n                                                three-credit course can be any general education humanities course."
+            ]
+        }
+    },
+    "concentrations": {
+        "Cloud Computing & Networking": {
+            "required_courses": [
+                {
+                    "id": "csc-2610",
+                    "course_code": "CSC 2610",
+                    "course_name": "Cloud Fundamentals and Web Programming",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4562",
+                    "course_code": "CSC 4562",
+                    "course_name": "Mobile Security and Applied Cryptography",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Virtualization and Cloud Systems",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-2362",
+                    "course_code": "CSC 2362",
+                    "course_name": "Introduction to Cybersecurity and Cyber Defense",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3304",
+                    "course_code": "CSC 3304",
+                    "course_name": "Introduction to Systems Programming",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4360",
+                    "course_code": "CSC 4360",
+                    "course_name": "Malware Analysis and Reverse Engineering",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4362",
+                    "course_code": "CSC 4362",
+                    "course_name": "Software Vulnerabilities and Exploitation",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4562",
+                    "course_code": "CSC 4562",
+                    "course_name": "Mobile Security and Applied Cryptography",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-2730",
+                    "course_code": "CSC 2730",
+                    "course_name": "Data Science and Analytics",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3730",
+                    "course_code": "CSC 3730",
+                    "course_name": "Machine Learning and Data Analytics",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4343",
+                    "course_code": "CSC 4343",
+                    "course_name": "Applied Deep Learning",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4740",
+                    "course_code": "CSC 4740",
+                    "course_name": "Big Data Technologies",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3304",
+                    "course_code": "CSC 3304",
+                    "course_name": "Introduction to Systems Programming",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4332",
+                    "course_code": "CSC 4332",
+                    "course_name": "Software Quality & Testing",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4351",
+                    "course_code": "CSC 4351",
+                    "course_name": "Computer Construction",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "approved_electives": [
+                {
+                    "id": "csc-3304",
+                    "course_code": "CSC 3304",
+                    "course_name": "Introduction to Systems Programming",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4362",
+                    "course_code": "CSC 4362",
+                    "course_name": "Software Vulnerabilities and Exploitation",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4512",
+                    "course_code": "CSC 4512",
+                    "course_name": "Optimization: Modeling Approaches, Algorithms and Applications",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4585",
+                    "course_code": "CSC 4585",
+                    "course_name": "Multiprocessor Programming",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4762",
+                    "course_code": "CSC 4762",
+                    "course_name": "Blockchain and Cryptocurrency",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ee-4625",
+                    "course_code": "EE 4625",
+                    "course_name": "Digital Communication and Networking",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ee-4660",
+                    "course_code": "EE 4660",
+                    "course_name": "Random Processes I",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-4426",
+                    "course_code": "IE 4426",
+                    "course_name": "Distributed Information Systems Engineering",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4120",
+                    "course_code": "ISDS 4120",
+                    "course_name": "Enterprise Architecture",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4123",
+                    "course_code": "ISDS 4123",
+                    "course_name": "Computer and Networking Security",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4023",
+                    "course_code": "MATH 4023",
+                    "course_name": "Applied Algebra",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4025",
+                    "course_code": "MATH 4025",
+                    "course_name": "Optimization Theory and Applications",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4171",
+                    "course_code": "MATH 4171",
+                    "course_name": "Theory of Graphs",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4172",
+                    "course_code": "MATH 4172",
+                    "course_name": "Combinatorics",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4325",
+                    "course_code": "MATH 4325",
+                    "course_name": "Fourier Transforms",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3730",
+                    "course_code": "CSC 3730",
+                    "course_name": "Machine Learning and Data Analytics",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4243",
+                    "course_code": "CSC 4243",
+                    "course_name": "Interface Design and Technology",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Virtualization and Cloud Systems",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4762",
+                    "course_code": "CSC 4762",
+                    "course_name": "Blockchain and Cryptocurrency",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-4462",
+                    "course_code": "IE 4462",
+                    "course_name": "Safety Engineering",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-4466",
+                    "course_code": "IE 4466",
+                    "course_name": "Human Computer Interaction",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4512",
+                    "course_code": "CSC 4512",
+                    "course_name": "Optimization: Modeling Approaches, Algorithms and Applications",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Cloud Systems and Virtualization",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4762",
+                    "course_code": "CSC 4762",
+                    "course_name": "Blockchain and Cryptocurrency",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-3105",
+                    "course_code": "ISDS 3105",
+                    "course_name": "Internet Development Tools",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4118",
+                    "course_code": "ISDS 4118",
+                    "course_name": "Web Analytics",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4141",
+                    "course_code": "ISDS 4141",
+                    "course_name": "Introduction to Data Mining",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4024",
+                    "course_code": "MATH 4024",
+                    "course_name": "Mathematical Models",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4025",
+                    "course_code": "MATH 4025",
+                    "course_name": "Optimization Theory and Applications",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4243",
+                    "course_code": "CSC 4243",
+                    "course_name": "Interface Design and Technology",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4263",
+                    "course_code": "CSC 4263",
+                    "course_name": "Video Game Design",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4356",
+                    "course_code": "CSC 4356",
+                    "course_name": "Interactive Computer Graphics",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4357",
+                    "course_code": "CSC 4357",
+                    "course_name": "Applied Computer Graphics",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4360",
+                    "course_code": "CSC 4360",
+                    "course_name": "Malware Analysis and Reverse Engineering",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4362",
+                    "course_code": "CSC 4362",
+                    "course_name": "Software Vulnerabilities and Exploitation",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4370",
+                    "course_code": "CSC 4370",
+                    "course_name": "Software Modeling Techniques",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4585",
+                    "course_code": "CSC 4585",
+                    "course_name": "Multicore Programming",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Cloud Systems and Virtualization",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4740",
+                    "course_code": "CSC 4740",
+                    "course_name": "Big Data Technologies",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4890",
+                    "course_code": "CSC 4890",
+                    "course_name": "Introduction to Theory of Computation",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ee-4859",
+                    "course_code": "EE 4859",
+                    "course_name": "Digital Media Capstone",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-4461",
+                    "course_code": "IE 4461",
+                    "course_name": "Human Factors Engineering",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4111",
+                    "course_code": "ISDS 4111",
+                    "course_name": "Enterprise Systems",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4112",
+                    "course_code": "ISDS 4112",
+                    "course_name": "Data Warehousing",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4113",
+                    "course_code": "ISDS 4113",
+                    "course_name": "Management of Information Systems Projects",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4120",
+                    "course_code": "ISDS 4120",
+                    "course_name": "Enterprise Architecture",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4125",
+                    "course_code": "ISDS 4125",
+                    "course_name": "Analysis and Design of Information Systems",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4141",
+                    "course_code": "ISDS 4141",
+                    "course_name": "Introduction to Data Mining",
+                    "credits": 3,
+                    "category": "Cloud Computing & Networking - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "other_requirements": [],
+            "notes": [
+                "Cloud Computing & Networking focuses on cloud computing as a contemporary method of\n                        distributed computing. By separating services and components across various computers\n                        or platforms, cloud computing enables developers to access distinct resources and\n                        rapidly build customized, adaptable applications by integrating multiple subsystems.\n                        This approach allows software developers to leverage a distributed network of computers,\n                        collaborating in real-time to enhance efficiency and scalability.",
+                "With benefits such as limitless scalability, flexibility, enhanced reliability, and\n                        robust security through redundancy, cloud computing has become a cost-effective alternative\n                        to traditional approaches. Organizations and users can avoid the need for extensive\n                        hardware investment and associated depreciation costs, thus optimizing resource use\n                        and reducing infrastructure expenses.",
+                "Two, 3 hour approved elective courses, are required from the following options:",
+                "Cybersecurity focuses on safeguarding networks, devices, and data from unauthorized\n                        access or malicious activities while ensuring the confidentiality, integrity, and\n                        availability of information. As one of the most vital areas in computer science, cybersecurity\n                        is increasingly essential for protecting systems across the private sector, government,\n                        and military.",
+                "One, 3 hour approved elective course, is required from the following options:",
+                "In today’s digital age, vast amounts of data are generated, and extracting valuable\n                        insights from large datasets has become both essential and challenging. The Data Analysis\n                        & Analytics concentration focuses on managing data effectively by using software tools\n                        to record, organize, and analyze it. This discipline involves understanding data management\n                        constraints and gathering and defining requirements through elicitation. Data analysis\n                        has diverse applications across fields like mathematics, biology, statistics, data\n                        warehousing, artificial intelligence, and more. Many companies and organizations employ\n                        data scientists for purposes such as identifying consumer trends, deciphering codes,\n                        optimizing processes, and even analyzing sports outcomes.",
+                "\"Big data\" refers to extremely large datasets that require specialized tools for analysis,\n                        a significant aspect of data science and analytics. The Data Analysis & Analytics\n                        concentration also covers skills and techniques essential for big data.",
+                "One, 3 hour approved elective course, is required from the following options:",
+                "The Software Engineering concentration prepares students to systematically develop\n                        high-quality software by applying engineering principles to meet specific requirements,\n                        design standards, budgets, and deadlines. Courses within this concentration emphasize\n                        design and implementation, equipping students with skills to manage the full software\n                        lifecycle. Key sub-disciplines in software engineering include requirements engineering,\n                        software design, construction, testing, maintenance, configuration management, and\n                        quality management. Emerging opportunities in this field span mobile app and OS development,\n                        entertainment software design, digital media, and gaming, among others.",
+                "Students may choose a secondary discipline in any area or department, with popular\n                        choices including economics, mathematics, physics, biology, digital media, and Information\n                        Systems and Decision Sciences (ISDS). It is recommended that students select a secondary\n                        discipline that complements their computer science coursework for a well-rounded academic\n                        experience."
+            ]
+        },
+        "Cybersecurity": {
+            "required_courses": [
+                {
+                    "id": "csc-2362",
+                    "course_code": "CSC 2362",
+                    "course_name": "Introduction to Cybersecurity and Cyber Defense",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3304",
+                    "course_code": "CSC 3304",
+                    "course_name": "Introduction to Systems Programming",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4360",
+                    "course_code": "CSC 4360",
+                    "course_name": "Malware Analysis and Reverse Engineering",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4362",
+                    "course_code": "CSC 4362",
+                    "course_name": "Software Vulnerabilities and Exploitation",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4562",
+                    "course_code": "CSC 4562",
+                    "course_name": "Mobile Security and Applied Cryptography",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-2730",
+                    "course_code": "CSC 2730",
+                    "course_name": "Data Science and Analytics",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3730",
+                    "course_code": "CSC 3730",
+                    "course_name": "Machine Learning and Data Analytics",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4343",
+                    "course_code": "CSC 4343",
+                    "course_name": "Applied Deep Learning",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4740",
+                    "course_code": "CSC 4740",
+                    "course_name": "Big Data Technologies",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3304",
+                    "course_code": "CSC 3304",
+                    "course_name": "Introduction to Systems Programming",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4332",
+                    "course_code": "CSC 4332",
+                    "course_name": "Software Quality & Testing",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4351",
+                    "course_code": "CSC 4351",
+                    "course_name": "Computer Construction",
+                    "credits": 3,
+                    "category": "Cybersecurity - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "approved_electives": [
+                {
+                    "id": "csc-3730",
+                    "course_code": "CSC 3730",
+                    "course_name": "Machine Learning and Data Analytics",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4243",
+                    "course_code": "CSC 4243",
+                    "course_name": "Interface Design and Technology",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Virtualization and Cloud Systems",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4762",
+                    "course_code": "CSC 4762",
+                    "course_name": "Blockchain and Cryptocurrency",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-4462",
+                    "course_code": "IE 4462",
+                    "course_name": "Safety Engineering",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-4466",
+                    "course_code": "IE 4466",
+                    "course_name": "Human Computer Interaction",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4512",
+                    "course_code": "CSC 4512",
+                    "course_name": "Optimization: Modeling Approaches, Algorithms and Applications",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Cloud Systems and Virtualization",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4762",
+                    "course_code": "CSC 4762",
+                    "course_name": "Blockchain and Cryptocurrency",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-3105",
+                    "course_code": "ISDS 3105",
+                    "course_name": "Internet Development Tools",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4118",
+                    "course_code": "ISDS 4118",
+                    "course_name": "Web Analytics",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4141",
+                    "course_code": "ISDS 4141",
+                    "course_name": "Introduction to Data Mining",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4024",
+                    "course_code": "MATH 4024",
+                    "course_name": "Mathematical Models",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4025",
+                    "course_code": "MATH 4025",
+                    "course_name": "Optimization Theory and Applications",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4243",
+                    "course_code": "CSC 4243",
+                    "course_name": "Interface Design and Technology",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4263",
+                    "course_code": "CSC 4263",
+                    "course_name": "Video Game Design",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4356",
+                    "course_code": "CSC 4356",
+                    "course_name": "Interactive Computer Graphics",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4357",
+                    "course_code": "CSC 4357",
+                    "course_name": "Applied Computer Graphics",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4360",
+                    "course_code": "CSC 4360",
+                    "course_name": "Malware Analysis and Reverse Engineering",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4362",
+                    "course_code": "CSC 4362",
+                    "course_name": "Software Vulnerabilities and Exploitation",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4370",
+                    "course_code": "CSC 4370",
+                    "course_name": "Software Modeling Techniques",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4585",
+                    "course_code": "CSC 4585",
+                    "course_name": "Multicore Programming",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Cloud Systems and Virtualization",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4740",
+                    "course_code": "CSC 4740",
+                    "course_name": "Big Data Technologies",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4890",
+                    "course_code": "CSC 4890",
+                    "course_name": "Introduction to Theory of Computation",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ee-4859",
+                    "course_code": "EE 4859",
+                    "course_name": "Digital Media Capstone",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-4461",
+                    "course_code": "IE 4461",
+                    "course_name": "Human Factors Engineering",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4111",
+                    "course_code": "ISDS 4111",
+                    "course_name": "Enterprise Systems",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4112",
+                    "course_code": "ISDS 4112",
+                    "course_name": "Data Warehousing",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4113",
+                    "course_code": "ISDS 4113",
+                    "course_name": "Management of Information Systems Projects",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4120",
+                    "course_code": "ISDS 4120",
+                    "course_name": "Enterprise Architecture",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4125",
+                    "course_code": "ISDS 4125",
+                    "course_name": "Analysis and Design of Information Systems",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4141",
+                    "course_code": "ISDS 4141",
+                    "course_name": "Introduction to Data Mining",
+                    "credits": 3,
+                    "category": "Cybersecurity - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "other_requirements": [],
+            "notes": [
+                "Cybersecurity focuses on safeguarding networks, devices, and data from unauthorized\n                        access or malicious activities while ensuring the confidentiality, integrity, and\n                        availability of information. As one of the most vital areas in computer science, cybersecurity\n                        is increasingly essential for protecting systems across the private sector, government,\n                        and military.",
+                "One, 3 hour approved elective course, is required from the following options:",
+                "In today’s digital age, vast amounts of data are generated, and extracting valuable\n                        insights from large datasets has become both essential and challenging. The Data Analysis\n                        & Analytics concentration focuses on managing data effectively by using software tools\n                        to record, organize, and analyze it. This discipline involves understanding data management\n                        constraints and gathering and defining requirements through elicitation. Data analysis\n                        has diverse applications across fields like mathematics, biology, statistics, data\n                        warehousing, artificial intelligence, and more. Many companies and organizations employ\n                        data scientists for purposes such as identifying consumer trends, deciphering codes,\n                        optimizing processes, and even analyzing sports outcomes.",
+                "\"Big data\" refers to extremely large datasets that require specialized tools for analysis,\n                        a significant aspect of data science and analytics. The Data Analysis & Analytics\n                        concentration also covers skills and techniques essential for big data.",
+                "One, 3 hour approved elective course, is required from the following options:",
+                "The Software Engineering concentration prepares students to systematically develop\n                        high-quality software by applying engineering principles to meet specific requirements,\n                        design standards, budgets, and deadlines. Courses within this concentration emphasize\n                        design and implementation, equipping students with skills to manage the full software\n                        lifecycle. Key sub-disciplines in software engineering include requirements engineering,\n                        software design, construction, testing, maintenance, configuration management, and\n                        quality management. Emerging opportunities in this field span mobile app and OS development,\n                        entertainment software design, digital media, and gaming, among others.",
+                "Students may choose a secondary discipline in any area or department, with popular\n                        choices including economics, mathematics, physics, biology, digital media, and Information\n                        Systems and Decision Sciences (ISDS). It is recommended that students select a secondary\n                        discipline that complements their computer science coursework for a well-rounded academic\n                        experience."
+            ]
+        },
+        "Data Science & Analytics": {
+            "required_courses": [
+                {
+                    "id": "csc-2730",
+                    "course_code": "CSC 2730",
+                    "course_name": "Data Science and Analytics",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3730",
+                    "course_code": "CSC 3730",
+                    "course_name": "Machine Learning and Data Analytics",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4343",
+                    "course_code": "CSC 4343",
+                    "course_name": "Applied Deep Learning",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4740",
+                    "course_code": "CSC 4740",
+                    "course_name": "Big Data Technologies",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3304",
+                    "course_code": "CSC 3304",
+                    "course_name": "Introduction to Systems Programming",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4332",
+                    "course_code": "CSC 4332",
+                    "course_name": "Software Quality & Testing",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4351",
+                    "course_code": "CSC 4351",
+                    "course_name": "Computer Construction",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "approved_electives": [
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4512",
+                    "course_code": "CSC 4512",
+                    "course_name": "Optimization: Modeling Approaches, Algorithms and Applications",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Cloud Systems and Virtualization",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4762",
+                    "course_code": "CSC 4762",
+                    "course_name": "Blockchain and Cryptocurrency",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-3105",
+                    "course_code": "ISDS 3105",
+                    "course_name": "Internet Development Tools",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4118",
+                    "course_code": "ISDS 4118",
+                    "course_name": "Web Analytics",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4141",
+                    "course_code": "ISDS 4141",
+                    "course_name": "Introduction to Data Mining",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4024",
+                    "course_code": "MATH 4024",
+                    "course_name": "Mathematical Models",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-4025",
+                    "course_code": "MATH 4025",
+                    "course_name": "Optimization Theory and Applications",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4243",
+                    "course_code": "CSC 4243",
+                    "course_name": "Interface Design and Technology",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4263",
+                    "course_code": "CSC 4263",
+                    "course_name": "Video Game Design",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4356",
+                    "course_code": "CSC 4356",
+                    "course_name": "Interactive Computer Graphics",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4357",
+                    "course_code": "CSC 4357",
+                    "course_name": "Applied Computer Graphics",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4360",
+                    "course_code": "CSC 4360",
+                    "course_name": "Malware Analysis and Reverse Engineering",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4362",
+                    "course_code": "CSC 4362",
+                    "course_name": "Software Vulnerabilities and Exploitation",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4370",
+                    "course_code": "CSC 4370",
+                    "course_name": "Software Modeling Techniques",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4585",
+                    "course_code": "CSC 4585",
+                    "course_name": "Multicore Programming",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Cloud Systems and Virtualization",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4740",
+                    "course_code": "CSC 4740",
+                    "course_name": "Big Data Technologies",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4890",
+                    "course_code": "CSC 4890",
+                    "course_name": "Introduction to Theory of Computation",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ee-4859",
+                    "course_code": "EE 4859",
+                    "course_name": "Digital Media Capstone",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-4461",
+                    "course_code": "IE 4461",
+                    "course_name": "Human Factors Engineering",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4111",
+                    "course_code": "ISDS 4111",
+                    "course_name": "Enterprise Systems",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4112",
+                    "course_code": "ISDS 4112",
+                    "course_name": "Data Warehousing",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4113",
+                    "course_code": "ISDS 4113",
+                    "course_name": "Management of Information Systems Projects",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4120",
+                    "course_code": "ISDS 4120",
+                    "course_name": "Enterprise Architecture",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4125",
+                    "course_code": "ISDS 4125",
+                    "course_name": "Analysis and Design of Information Systems",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4141",
+                    "course_code": "ISDS 4141",
+                    "course_name": "Introduction to Data Mining",
+                    "credits": 3,
+                    "category": "Data Science & Analytics - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "other_requirements": [],
+            "notes": [
+                "In today’s digital age, vast amounts of data are generated, and extracting valuable\n                        insights from large datasets has become both essential and challenging. The Data Analysis\n                        & Analytics concentration focuses on managing data effectively by using software tools\n                        to record, organize, and analyze it. This discipline involves understanding data management\n                        constraints and gathering and defining requirements through elicitation. Data analysis\n                        has diverse applications across fields like mathematics, biology, statistics, data\n                        warehousing, artificial intelligence, and more. Many companies and organizations employ\n                        data scientists for purposes such as identifying consumer trends, deciphering codes,\n                        optimizing processes, and even analyzing sports outcomes.",
+                "\"Big data\" refers to extremely large datasets that require specialized tools for analysis,\n                        a significant aspect of data science and analytics. The Data Analysis & Analytics\n                        concentration also covers skills and techniques essential for big data.",
+                "One, 3 hour approved elective course, is required from the following options:",
+                "The Software Engineering concentration prepares students to systematically develop\n                        high-quality software by applying engineering principles to meet specific requirements,\n                        design standards, budgets, and deadlines. Courses within this concentration emphasize\n                        design and implementation, equipping students with skills to manage the full software\n                        lifecycle. Key sub-disciplines in software engineering include requirements engineering,\n                        software design, construction, testing, maintenance, configuration management, and\n                        quality management. Emerging opportunities in this field span mobile app and OS development,\n                        entertainment software design, digital media, and gaming, among others.",
+                "Students may choose a secondary discipline in any area or department, with popular\n                        choices including economics, mathematics, physics, biology, digital media, and Information\n                        Systems and Decision Sciences (ISDS). It is recommended that students select a secondary\n                        discipline that complements their computer science coursework for a well-rounded academic\n                        experience."
+            ]
+        },
+        "Software Engineering": {
+            "required_courses": [
+                {
+                    "id": "csc-3304",
+                    "course_code": "CSC 3304",
+                    "course_name": "Introduction to Systems Programming",
+                    "credits": 3,
+                    "category": "Software Engineering - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4332",
+                    "course_code": "CSC 4332",
+                    "course_name": "Software Quality & Testing",
+                    "credits": 3,
+                    "category": "Software Engineering - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4351",
+                    "course_code": "CSC 4351",
+                    "course_name": "Computer Construction",
+                    "credits": 3,
+                    "category": "Software Engineering - required courses",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "approved_electives": [
+                {
+                    "id": "csc-4243",
+                    "course_code": "CSC 4243",
+                    "course_name": "Interface Design and Technology",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4263",
+                    "course_code": "CSC 4263",
+                    "course_name": "Video Game Design",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4356",
+                    "course_code": "CSC 4356",
+                    "course_name": "Interactive Computer Graphics",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4357",
+                    "course_code": "CSC 4357",
+                    "course_name": "Applied Computer Graphics",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4360",
+                    "course_code": "CSC 4360",
+                    "course_name": "Malware Analysis and Reverse Engineering",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4362",
+                    "course_code": "CSC 4362",
+                    "course_name": "Software Vulnerabilities and Exploitation",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4370",
+                    "course_code": "CSC 4370",
+                    "course_name": "Software Modeling Techniques",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4444",
+                    "course_code": "CSC 4444",
+                    "course_name": "Artificial Intelligence",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4501",
+                    "course_code": "CSC 4501",
+                    "course_name": "Computer Networks",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4585",
+                    "course_code": "CSC 4585",
+                    "course_name": "Multicore Programming",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4610",
+                    "course_code": "CSC 4610",
+                    "course_name": "Cloud Systems and Virtualization",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4740",
+                    "course_code": "CSC 4740",
+                    "course_name": "Big Data Technologies",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4890",
+                    "course_code": "CSC 4890",
+                    "course_name": "Introduction to Theory of Computation",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ee-4859",
+                    "course_code": "EE 4859",
+                    "course_name": "Digital Media Capstone",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-4461",
+                    "course_code": "IE 4461",
+                    "course_name": "Human Factors Engineering",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4111",
+                    "course_code": "ISDS 4111",
+                    "course_name": "Enterprise Systems",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4112",
+                    "course_code": "ISDS 4112",
+                    "course_name": "Data Warehousing",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4113",
+                    "course_code": "ISDS 4113",
+                    "course_name": "Management of Information Systems Projects",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4120",
+                    "course_code": "ISDS 4120",
+                    "course_name": "Enterprise Architecture",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4125",
+                    "course_code": "ISDS 4125",
+                    "course_name": "Analysis and Design of Information Systems",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "isds-4141",
+                    "course_code": "ISDS 4141",
+                    "course_name": "Introduction to Data Mining",
+                    "credits": 3,
+                    "category": "Software Engineering - approved electives",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "other_requirements": [],
+            "notes": [
+                "The Software Engineering concentration prepares students to systematically develop\n                        high-quality software by applying engineering principles to meet specific requirements,\n                        design standards, budgets, and deadlines. Courses within this concentration emphasize\n                        design and implementation, equipping students with skills to manage the full software\n                        lifecycle. Key sub-disciplines in software engineering include requirements engineering,\n                        software design, construction, testing, maintenance, configuration management, and\n                        quality management. Emerging opportunities in this field span mobile app and OS development,\n                        entertainment software design, digital media, and gaming, among others.",
+                "Students may choose a secondary discipline in any area or department, with popular\n                        choices including economics, mathematics, physics, biology, digital media, and Information\n                        Systems and Decision Sciences (ISDS). It is recommended that students select a secondary\n                        discipline that complements their computer science coursework for a well-rounded academic\n                        experience."
+            ]
+        },
+        "Second Discipline": {
+            "required_courses": [],
+            "approved_electives": [],
+            "other_requirements": [],
+            "notes": [
+                "Students may choose a secondary discipline in any area or department, with popular\n                        choices including economics, mathematics, physics, biology, digital media, and Information\n                        Systems and Decision Sciences (ISDS). It is recommended that students select a secondary\n                        discipline that complements their computer science coursework for a well-rounded academic\n                        experience."
             ]
         }
     }
