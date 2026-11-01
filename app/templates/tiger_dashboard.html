@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {{ 'Planning' if planning_mode else
+           ('Course Catalog' if catalog_mode else 'Dashboard') }}
+        | Tiger Class Drive
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='/tiger_dashboard.css') }}"
+    >
+</head>
+
+<body class="tcd-dashboard">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <!-- Left sidebar. -->
+    <aside class="sidebar">
+        <a class="brand" href="/dashboard">
+            <span class="brand-mark" aria-hidden="true">T</span>
+            <span>Tiger Class Drive</span>
+        </a>
+
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            {% for link in links %}
+                {% set selected =
+                    (link.label == 'Dashboard'
+                     and not catalog_mode
+                     and not planning_mode)
+                    or
+                    (link.label == 'Planning' and planning_mode)
+                %}
+
+                <a
+                    href="{{ link.href }}"
+                    class="nav-link {{ 'active' if selected else '' }}"
+                    {% if selected %}aria-current="page"{% endif %}
+                >
+                    <span class="nav-icon" aria-hidden="true">
+                        {{ icons[link.icon] }}
+                    </span>
+                    <span>{{ link.label }}</span>
+                </a>
+            {% endfor %}
+        </nav>
+    </aside>
+
+    <div class="page-frame">
+        <!-- Top header. -->
+        <header class="topbar">
+            <h1>
+                {{ 'Planning' if planning_mode else
+                   ('Course Catalog' if catalog_mode else 'Dashboard') }}
+            </h1>
+
+            <div class="header-actions">
+                <span class="preview-badge">
+                    {{ 'Design preview · Sample data'
+                       if sample else 'Dashboard preview' }}
+                </span>
+
+                <details class="header-popover">
+                    <summary>Reset / Info</summary>
+
+                    <div class="popover-content">
+                        <strong>About this preview</strong>
+
+                        <p>
+                            Course search and GPA calculations are connected.
+                            Saved schedules and friend activity are not
+                            available yet.
+                        </p>
+
+                        <p>
+                            <a href="/dashboard?sample=true">
+                                Show screenshot sample
+                            </a>
+                        </p>
+
+                        <p>
+                            The sample's 14 free hours and friend statuses
+                            are demonstration data.
+                        </p>
+
+                        <a href="/dashboard">Reset dashboard view</a>
+                    </div>
+                </details>
+
+                <details class="header-popover notifications">
+                    <summary aria-label="Notifications">
+                        <span aria-hidden="true">{{ icons['bell'] }}</span>
+
+                        {% if sample %}
+                            <span
+                                class="notification-dot"
+                                aria-hidden="true"
+                            ></span>
+                        {% endif %}
+                    </summary>
+
+                    <div class="popover-content">
+                        <strong>Notifications</strong>
+                        <p>No notifications in this preview.</p>
+                    </div>
+                </details>
+            </div>
+        </header>
+
+        <main id="main-content" class="main-content">
+            {% if notice %}
+                <div class="notice" role="status">
+                    {{ notice }}
+                    <a href="/dashboard">Dismiss</a>
+                </div>
+            {% endif %}
+
+            <!-- Load the GPA form when Planning is selected. -->
+            {% if planning_mode %}
+
+                {% include 'components/dashboard_planning.html' %}
+
+            <!-- Course catalog page. -->
+            {% elif catalog_mode %}
+
+                <section class="welcome">
+                    <h2>Find your next course</h2>
+                    <p>Browse the project's curated course catalog.</p>
+                    <a href="/dashboard">← Back to dashboard</a>
+                </section>
+
+                <section class="panel catalog-panel" aria-label="Course catalog">
+                    <form
+                        method="get"
+                        action="/dashboard/catalog"
+                        class="catalog-search"
+                    >
+                        <label for="course-query">
+                            Search by course code or name
+                        </label>
+
+                        <div>
+                            <input
+                                id="course-query"
+                                name="query"
+                                value="{{ query }}"
+                                placeholder="For example, CSC 3380"
+                            >
+                            <button type="submit">Search</button>
+                        </div>
+
+                        <label for="course-category">Category</label>
+
+                        <select id="course-category" name="category">
+                            <option value="">All categories</option>
+
+                            {% for item in categories %}
+                                <option
+                                    value="{{ item }}"
+                                    {% if item == category %}selected{% endif %}
+                                >
+                                    {{ item }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+
+                    <div class="catalog-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Course</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Credits</th>
+                                    <th scope="col">Category</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for course in courses %}
+                                    <tr>
+                                        <td>{{ course.course_code }}</td>
+                                        <td>{{ course.course_name }}</td>
+                                        <td>{{ course.credits }}</td>
+                                        <td>{{ course.category }}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4">
+                                            No courses match your search.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            <!-- Main Dashboard page. -->
+            {% else %}
+
+                <section class="welcome">
+                    <h2>
+                        {{ "Hey, User — here's your week"
+                           if sample else "Here's your week" }}
+                    </h2>
+
+                    <p>
+                        {{ 'You share 14 mutual free hours with your close friends this week.'
+                           if sample else
+                           'Plan your courses and explore your GPA goals.' }}
+                    </p>
+
+                    <a href="{{ catalog_href }}">Browse course catalog →</a>
+                </section>
+
+                <div class="dashboard-grid">
+                    <!-- Weekly calendar. -->
+                    <section
+                        class="panel calendar-panel"
+                        aria-labelledby="schedule-heading"
+                    >
+                        <div class="panel-heading">
+                            <h3 id="schedule-heading">Weekly Schedule</h3>
+
+                            <ul class="legend" aria-label="Calendar categories">
+                                <li><span class="dot class-dot"></span>Class</li>
+                                <li><span class="dot work-dot"></span>Work</li>
+                                <li><span class="dot clubs-dot"></span>Clubs</li>
+                                <li><span class="dot other-dot"></span>Other</li>
+                            </ul>
+                        </div>
+
+                        <div
+                            class="calendar-scroll"
+                            tabindex="0"
+                            role="region"
+                            aria-label="Weekly calendar. Scroll horizontally on small screens."
+                        >
+                            <table
+                                class="weekly-calendar"
+                                aria-label="Weekly schedule, no events loaded"
+                            >
+                                <thead>
+                                    <tr>
+                                        <th class="time-column" scope="col">
+                                            <span class="sr-only">Time</span>
+                                        </th>
+
+                                        {% for day in days %}
+                                            <th scope="col">
+                                                <span>{{ day }}</span>
+                                            </th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {% for time in times %}
+                                        <tr>
+                                            <th scope="row">{{ time }}</th>
+
+                                            {% for day in days %}
+                                                <td></td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <div class="right-column">
+                        <!-- Friends panel. -->
+                        <section
+                            class="panel friends-panel"
+                            aria-labelledby="friends-heading"
+                        >
+                            <h3 id="friends-heading">Friends</h3>
+
+                            <ul class="friend-list">
+                                {% for friend in friends %}
+                                    <li class="friend-row">
+                                        <span
+                                            class="avatar"
+                                            aria-hidden="true"
+                                        ></span>
+
+                                        <div class="friend-details">
+                                            <span>{{ friend.name }}</span>
+
+                                            <small class="{{ 'free-status' if friend.available else 'busy-status' }}">
+                                                {{ friend.status }}
+                                            </small>
+                                        </div>
+
+                                        <form method="get" action="/dashboard">
+                                            <input
+                                                type="hidden"
+                                                name="sample"
+                                                value="true"
+                                            >
+
+                                            <button
+                                                class="ping-button"
+                                                name="preview_ping"
+                                                value="{{ friend.id }}"
+                                                aria-label="Preview ping to sample friend {{ friend.id }}"
+                                            >
+                                                {{ 'Previewed'
+                                                   if pinged == friend.id
+                                                   else 'Ping' }}
+                                            </button>
+                                        </form>
+                                    </li>
+                                {% else %}
+                                    <li class="empty-message">
+                                        No friends to show yet.
+                                        Shared availability is coming soon.
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+
+                        <!-- Upcoming events panel. -->
+                        <section
+                            class="panel events-panel"
+                            aria-labelledby="events-heading"
+                        >
+                            <h3 id="events-heading">Upcoming Events</h3>
+
+                            {% if not sample %}
+                                <p class="empty-message">
+                                    No saved events to display.
+                                </p>
+                            {% endif %}
+                        </section>
+                    </div>
+                </div>
+
+            {% endif %}
+        </main>
+    </div>
+</body>
+</html>
