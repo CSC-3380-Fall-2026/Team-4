@@ -23,12 +23,24 @@ Designs: [https://www.figma.com/proto/OGJkOTlSs3gKRG8gxCXiUi/Tiger-Class-Drive?n
 Styles Guide(s): [https://docs.google.com/document/d/1lb0NsES7KNL0gcBS0lKdo6mIHRc-wTw1EYfAR7Z1_LI/edit?usp=sharing]\
 Website: [https://team-4-fc15.onrender.com/dashboard]
 # How to Run Dev and Test Environment
-``` 
+```
 python -m venv .venv
 use the command based on os: 
 	Windows: .\.venv\Scripts\Activate.ps1
 	Linux: source .venv/bin/activate
 pip install -r requirements.txt
+```
+To build tailwind:
+```sh
+cd app/tailwindcss
+npm ci
+npm run build
+```
+Or for automatic rebuilds if working on styling:
+```sh
+cd app/tailwindcss
+npm ci
+npm run dev
 ```
 
 ## Dependencies
