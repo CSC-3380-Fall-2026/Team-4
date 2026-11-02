@@ -1,0 +1,48 @@
+<dialog id="add-event-dialog" class="m-auto w-full max-w-xl rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-6 font-[Lato] font-sans text-neutrals-900 shadow-xl backdrop:bg-transparent backdrop:backdrop-blur-md">
+    <form id="add-event-form" class="grid gap-4">
+        <h2 class="text-lg font-bold">Add Event</h2>
+        <label class="grid gap-2 text-sm font-semibold text-neutrals-400">
+            Event Title
+            <input class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 text-sm font-semibold text-neutrals-900" name="title" type="text" placeholder="e.g. CSC 3380" maxlength="100" required>
+        </label>
+        <fieldset class="grid gap-2">
+            <legend class="text-sm font-semibold text-neutrals-400">Time</legend>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="grid gap-2 text-xs font-medium text-neutrals-400">
+                    <input class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 text-sm font-semibold text-neutrals-900" name="start" type="time" required>
+                </label>
+                <label class="grid gap-2 text-xs font-medium text-neutrals-400">
+                    <input class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 pt-2 text-sm font-semibold text-neutrals-900" name="end" type="time" required>
+                </label>
+            </div>
+        </fieldset>
+        <fieldset class="grid gap-2">
+            <legend class="text-sm font-semibold text-neutrals-400">Repeats on</legend>
+            <div class="flex flex-wrap gap-3 pt-2">
+                {% for day in week_days %}
+                <label class="cursor-pointer">
+                    <input class="peer sr-only" name="days" type="checkbox" value="{{ day.name }}" aria-label="{{ day.name }}">
+                    <span class="flex size-10 items-center justify-center rounded-full bg-neutrals-100 text-sm peer-checked:bg-purple-100 peer-checked:text-purple-800 peer-focus-visible:ring-2 peer-focus-visible:ring-purple-500">{{ day.name[:1] }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <label class="grid gap-2 text-sm font-semibold text-neutrals-400">
+            Location (Optional)
+            <input class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 text-sm font-semibold text-neutrals-900" name="location" type="text" placeholder="e.g. Geoscience Complex, E0137" maxlength="120">
+        </label>
+        <label class="grid gap-2 text-sm font-semibold text-neutrals-400">
+            Guests (Optional, comma-separated)
+            <input class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 text-sm font-semibold text-neutrals-900" name="guests" type="text" placeholder="e.g. User, User, User">
+        </label>
+        <label class="flex flex-col justify-center gap-2 text-sm font-semibold text-neutrals-400">
+            Favorite
+            <input class="size-4 accent-purple-600" name="favorite" type="checkbox">
+        </label>
+        <p class="hidden text-sm text-red-700" data-form-error></p>
+        <div class="flex justify-end gap-3">
+            <button class="rounded-md border border-neutrals-200 px-4 py-2 font-semibold hover:bg-neutrals-50" type="button" data-dialog-cancel>Cancel</button>
+            <button class="rounded-md bg-purple-400 px-4 py-2 font-semibold text-white hover:bg-purple-500" type="submit">Create Event</button>
+        </div>
+    </form>
+</dialog>

@@ -1,9 +1,10 @@
-"""this file will be for starting the fasTAPI and connecting page routes and templates and static files."""
+"""Start FastAPI and connect page routes, templates, and static files."""
 """PLEASE set up a .VENV look under # How to Run Dev and Test Environment in the README.md"""
 from fastapi import FastAPI, Request
 from fastapi.responses import Response, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from datetime import datetime, timedelta
 from lucide import lucide_icon
 from markupsafe import Markup
 from tiger_models import *
@@ -33,146 +34,55 @@ def health():
 #Home
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "tiger_home.html",
-        {
-            "name": "willyt",
-            "dashboard": Markup(dashboard),
-            "calendar": Markup(calendar),
-            "bookmark": Markup(bookmark),
-            "users": Markup(users),
-            "user": Markup(user),
-            "search": Markup(search),
-            "plus": Markup(plus),
-        },
-    )
+    return render_page(request, "tiger_home.html")
 
 #Login
 @app.get("/login", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "tiger_login.html",
-        {
-            "name": "willyt",
-            "dashboard": Markup(dashboard),
-            "calendar": Markup(calendar),
-            "bookmark": Markup(bookmark),
-            "users": Markup(users),
-            "user": Markup(user),
-            "search": Markup(search),
-            "plus": Markup(plus),
-        },
-    )
+    return render_page(request, "tiger_login.html")
 
 #Signin
 @app.get("/signin", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "tiger_signin.html",
-        {
-            "name": "willyt",
-            "dashboard": Markup(dashboard),
-            "calendar": Markup(calendar),
-            "bookmark": Markup(bookmark),
-            "users": Markup(users),
-            "user": Markup(user),
-            "search": Markup(search),
-            "plus": Markup(plus),
-        },
-    )
+    return render_page(request, "tiger_signin.html")
 
 #Dashboard
 @app.get("/dashboard", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "tiger_dashboard.html",
-        {
-            "name": "willyt",
-            "dashboard": Markup(dashboard),
-            "calendar": Markup(calendar),
-            "bookmark": Markup(bookmark),
-            "users": Markup(users),
-            "user": Markup(user),
-            "search": Markup(search),
-            "plus": Markup(plus),
-        },
-    )
+    return render_page(request, "tiger_dashboard.html")
 
 #Schedule
 @app.get("/schedule", response_class=HTMLResponse)
-async def root(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "tiger_schedule.html",
-        {
-            "name": "willyt",
-            "dashboard": Markup(dashboard),
-            "calendar": Markup(calendar),
-            "bookmark": Markup(bookmark),
-            "users": Markup(users),
-            "user": Markup(user),
-            "search": Markup(search),
-            "plus": Markup(plus),
-        },
-    )
+async def get_calendar(request: Request):
+    today = datetime.today()
+    start_of_week = today - timedelta(days=today.weekday())
+
+    week_days = []
+    for i in range(7):
+        day = start_of_week + timedelta(days=i)
+        week_days.append({
+            "name": day.strftime("%A"),
+            "date_str": day.strftime("%b %d"),
+            "is_today": day.date() == today.date()
+        })
+
+    return render_page(request, "tiger_schedule.html", week_days=week_days)
+
 
 #Planning
 @app.get("/planning", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "tiger_planner.html",
-        {
-            "name": "willyt",
-            "dashboard": Markup(dashboard),
-            "calendar": Markup(calendar),
-            "bookmark": Markup(bookmark),
-            "users": Markup(users),
-            "user": Markup(user),
-            "search": Markup(search),
-            "plus": Markup(plus),
-        },
-    )
+    return render_page(request, "tiger_planner.html")
 
 #Friends
 @app.get("/friends", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "tiger_friends.html",
-        {
-            "name": "willyt",
-            "dashboard": Markup(dashboard),
-            "calendar": Markup(calendar),
-            "bookmark": Markup(bookmark),
-            "users": Markup(users),
-            "user": Markup(user),
-            "search": Markup(search),
-            "plus": Markup(plus),
-        },
-    )
+    return render_page(request, "tiger_friends.html")
 
 #Profile
 @app.get("/profile", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "tiger_profile.html",
-        {
-            "name": "willyt",
-            "dashboard": Markup(dashboard),
-            "calendar": Markup(calendar),
-            "bookmark": Markup(bookmark),
-            "users": Markup(users),
-            "user": Markup(user),
-            "search": Markup(search),
-            "plus": Markup(plus),
-        },
-    )
+    return render_page(request, "tiger_profile.html")
 
 # Icons
 @app.get("/icons/{icon_name}")
@@ -187,3 +97,21 @@ users = lucide_icon("users", width=18, height=18, stroke="currentColor")
 user = lucide_icon("user", width=18, height=18, stroke="currentColor")
 search = lucide_icon("search", width=18, height=18, stroke="currentColor")
 plus = lucide_icon("plus", width=18, height=18, stroke="currentColor")
+chevrondown = lucide_icon("plus", width=18, height=18, stroke="currentColor")
+
+
+def render_page(request: Request, template_name: str, **context: object) -> Response:
+    """Render a page with the shared user and navigation-icon template context."""
+    page_context = {
+        "name": "willyt",
+        "dashboard": Markup(dashboard),
+        "calendar": Markup(calendar),
+        "bookmark": Markup(bookmark),
+        "users": Markup(users),
+        "user": Markup(user),
+        "search": Markup(search),
+        "plus": Markup(plus),
+        "chevron-down": Markup(chevrondown),
+    }
+    page_context.update(context)
+    return templates.TemplateResponse(request, template_name, page_context)

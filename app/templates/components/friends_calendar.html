@@ -1,0 +1,22 @@
+<div class="flex flex-wrap gap-2.5 text-xs text-neutrals-400" aria-label="Calendar legend">
+    <span class="flex items-center gap-1"><span class="size-2 rounded-full bg-purple-500"></span>You</span>
+    <span class="flex items-center gap-1"><span class="size-2 rounded-full bg-yellow-500"></span><span id="friend-legend-name">Friend</span></span>
+    <span class="flex items-center gap-1"><span class="size-2 rounded-full bg-neutrals-400"></span>Shared</span>
+</div>
+<div class="calendar-scroll max-h-100 overflow-auto rounded-md bg-neutrals-0 px-2 pb-3" id="friends-calendar-scroll" aria-label="Weekly calendar; scroll to see the full day" tabindex="0">
+    <div id="friends-calendar" class="grid min-w-3xl grid-cols-calendar gap-x-1 bg-neutrals-0" aria-label="Weekly schedule comparison">
+        <div class="sticky top-0 z-20 col-span-full row-start-1 bg-neutrals-0" aria-hidden="true"></div>
+        {% set day_columns = ["col-start-2", "col-start-3", "col-start-4", "col-start-5", "col-start-6", "col-start-7", "col-start-8"] %}
+        {% for day_name in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] %}
+        <div class="calendar-day-heading sticky top-0 z-100 {{ day_columns[loop.index0] }} row-start-1 rounded-md bg-purple-50 px-1 py-1 text-center text-xs font-bold text-neutrals-700">{{ day_name[:3] }}</div>
+        {% endfor %}
+        <div class="col-start-1 row-start-2 grid grid-rows-calendar text-right text-xs text-neutrals-400" aria-label="Times">
+            {% for hour in range(0, 24, 3) %}
+            <span class="row-span-6 whitespace-nowrap pt-1 pr-1">{{ (hour % 12) or 12 }}:00 {{ 'AM' if hour < 12 else 'PM' }}</span>
+            {% endfor %}
+        </div>
+        {% for day_name in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] %}
+        <div class="friends-calendar-day relative {{ day_columns[loop.index0] }} row-start-2 grid grid-rows-calendar" data-weekday="{{ loop.index0 }}" aria-label="{{ day_name }}"></div>
+        {% endfor %}
+    </div>
+</div>

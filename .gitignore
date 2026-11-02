@@ -202,3 +202,4 @@ __marimo__/
 
 # Node
 node_modules/
+/app/static/css/app.css

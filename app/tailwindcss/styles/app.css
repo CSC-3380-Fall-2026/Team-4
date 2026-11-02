@@ -1,7 +1,16 @@
 @import "tailwindcss";
 @source "../../templates/";
+@source "../../static/js/";
 
 @theme {
+    --grid-template-columns-calendar: 3rem repeat(7, minmax(0, 1fr));
+    --grid-template-rows-calendar: repeat(48, 0.9375rem);
+    --width-schedule-title: 20%;
+    --width-schedule-days: 12%;
+    --width-schedule-time: 20%;
+    --width-schedule-location: 22%;
+    --width-schedule-guests: 18%;
+    --width-schedule-favorite: 8%;
     --color-blue-100: oklch(0.89828 0.04687 278.80);
     --color-blue-200: oklch(0.75692 0.10728 276.46);
     --color-blue-300: oklch(0.61225 0.15423 274.24);
@@ -69,4 +78,22 @@
     --color-red-700: oklch(0.38992 0.14733 27.56);
     --color-red-800: oklch(0.35163 0.13423 27.75);
     --color-red-900: oklch(0.28049 0.10793 27.90);
+    --color-pink-100: oklch(0.95000 0.02500 350.00);
+    --color-pink-200: oklch(0.90000 0.05500 350.00);
+    --color-pink-300: oklch(0.84000 0.09000 350.00);
+    --color-pink-400: oklch(0.75000 0.14000 350.00);
+    --color-pink-500: oklch(0.68000 0.17000 350.00);
+    --color-pink-600: oklch(0.60000 0.16000 350.00);
+    --color-pink-700: oklch(0.52000 0.14000 350.00);
+    --color-pink-800: oklch(0.43000 0.11000 350.00);
+    --color-pink-900: oklch(0.33000 0.08000 350.00);
+    --color-teal-100: oklch(0.95000 0.02500 185.00);
+    --color-teal-200: oklch(0.90000 0.05500 185.00);
+    --color-teal-300: oklch(0.84000 0.09000 185.00);
+    --color-teal-400: oklch(0.75000 0.14000 185.00);
+    --color-teal-500: oklch(0.68000 0.15000 185.00);
+    --color-teal-600: oklch(0.60000 0.13500 185.00);
+    --color-teal-700: oklch(0.52000 0.11500 185.00);
+    --color-teal-800: oklch(0.43000 0.09000 185.00);
+    --color-teal-900: oklch(0.33000 0.07000 185.00);
 }

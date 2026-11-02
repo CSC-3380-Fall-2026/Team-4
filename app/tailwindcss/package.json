@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "dev":"npx @tailwindcss/cli -i ./styles/app.css -o ../static/css/app.css --watch"
+    "build": "npx @tailwindcss/cli -i ./styles/app.css -o ../static/css/app.css",
+    "dev": "npx @tailwindcss/cli -i ./styles/app.css -o ../static/css/app.css --watch"
   },
   "allowScripts": {
     "@parcel/watcher@2.5.1": true
