@@ -1,22 +1,15 @@
 """this file will be for registering and loging in and out and also managing sessions"""
 """This file will be for check the account permissions and protect any submitted forms"""
-import os
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from tiger_models import UserBase, UserAuthSchema
-import tiger_gpa as tiger_gpa
-from dotenv import load_dotenv
-from supabase import create_client, Client
+import tiger_gpa
+from supabase import Client
+from tiger_db import get_database
 
-load_dotenv()
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise ValueError("SUPABASE_URL and SUPABASE_KEY not found")
 
 router = APIRouter()
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase: Client = get_database()
 security = HTTPBearer()
 
 

@@ -21,7 +21,7 @@
 
     <!-- Left sidebar. -->
     <aside class="sidebar">
-        <a class="brand" href="/dashboard">
+        <a class="brand" href="{{ url_for('dashboard') }}">
             <span class="brand-mark" aria-hidden="true">T</span>
             <span>Tiger Class Drive</span>
         </a>
@@ -77,7 +77,7 @@
                         </p>
 
                         <p>
-                            <a href="/dashboard?sample=true">
+                            <a href="{{ url_for('dashboard').include_query_params(sample='true') }}">
                                 Show screenshot sample
                             </a>
                         </p>
@@ -87,7 +87,7 @@
                             are demonstration data.
                         </p>
 
-                        <a href="/dashboard">Reset dashboard view</a>
+                        <a href="{{ url_for('dashboard') }}">Reset dashboard view</a>
                     </div>
                 </details>
 
@@ -115,7 +115,7 @@
             {% if notice %}
                 <div class="notice" role="status">
                     {{ notice }}
-                    <a href="/dashboard">Dismiss</a>
+                    <a href="{{ url_for('dashboard') }}">Dismiss</a>
                 </div>
             {% endif %}
 
@@ -130,7 +130,7 @@
                 <section class="welcome">
                     <h2>Find your next course</h2>
                     <p>Browse the project's curated course catalog.</p>
-                    <a href="/dashboard">← Back to dashboard</a>
+                    <a href="{{ url_for('dashboard') }}">← Back to dashboard</a>
                 </section>
 
                 <section class="panel catalog-panel" aria-label="Course catalog">
@@ -215,7 +215,7 @@
                            'Plan your courses and explore your GPA goals.' }}
                     </p>
 
-                    <a href="{{ catalog_href }}">Browse course catalog →</a>
+                    <a href="{{ url_for('dashboard_catalog') }}">Browse course catalog →</a>
                 </section>
 
                 <div class="dashboard-grid">

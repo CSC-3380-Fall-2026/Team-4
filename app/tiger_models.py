@@ -1,5 +1,5 @@
 """this file will be for defineing the typed classes for application data"""
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
 class UserBase(BaseModel):
@@ -31,4 +31,27 @@ class UserAuthSchema(BaseModel):
     email: EmailStr
     password: str
 
+class CumulativeGPARequest(BaseModel):
+    currentGPA: float
+    completedCredits: int
+    classes: list[Classes]
+
+class RequiredGPARequest(BaseModel):
+    currentGPA: float
+    completedCredits: int
+    plannedCredits: int
+    targetGPA: float
+
+class DashboardFriend:
+    def __init__(
+        self,
+        friend_id: int,
+        name: str,
+        status: str,
+        available: bool,
+    ) -> None:
+        self.id: int = friend_id
+        self.name: str = name
+        self.status: str = status
+        self.available: bool = available
 #class Schedules()
