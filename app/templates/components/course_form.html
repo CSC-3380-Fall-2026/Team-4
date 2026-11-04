@@ -1,0 +1,28 @@
+<div id="course-form" class="fixed z-50 flex h-screen w-screen items-center justify-center bg-neutrals-900/20 backdrop-blur-md hidden">
+    <div id="course-form-content" role="dialog" aria-modal="true" aria-labelledby="course-form-title" class="flex h-fit w-full max-w-3xl flex-col rounded-lg border border-neutrals-200 bg-neutrals-0 shadow-xl">
+        <div id="course-form-header" class="flex h-fit w-full flex-col gap-3 border-b border-neutrals-100 p-6 pb-3">
+            <label id="course-form-title" for="course-search" class="text-lg font-bold text-neutrals-900">Browse Courses</label>
+            <form id="search-bar" class="flex h-fit w-full flex-row items-center gap-2 rounded-md border border-neutrals-100 bg-neutrals-0 px-4 py-3 focus-within:border-purple-300 focus-within:ring-2 focus-within:ring-purple-100">
+                <input id="course-search" type="search" placeholder="Search Courses..." class="w-full bg-transparent outline-none"></input>
+                <button class="cursor-pointer text-neutrals-500 hover:text-purple-700" aria-label="Search courses">{{ search }}</button>
+            </form>
+        </div>
+        <div id="course-form-items">
+            <div class="course-item flex flex-row items-center justify-between gap-15 border-b border-neutrals-100 px-6 py-3 transition-colors hover:bg-yellow-50">
+                <div class="course-info flex flex-col h-fit gap-2">
+                    <p class="text-md font-semibold text-neutrals-900">Course</p>
+                    <div class="flex flex-row gap-2 text-sm text-neutrals-400">
+                        <span>Spring Semester 2027</span>
+                        <span>|</span>
+                        <span>Professor</span>
+                        <span>|</span>
+                        <span class="font-semibold text-purple-600">0/40</span>
+                    </div>
+                    <p class="text-sm text-yellow-700">Section Details</p>
+                </div>
+                <button onclick="toggleCourseForm(false)" class="add-course-btn flex h-fit cursor-pointer flex-row items-center justify-center gap-2 rounded-md bg-purple-500 px-3 py-2 font-semibold text-neutrals-0 transition-colors hover:bg-purple-600">{{ plus }} Add Course</button>
+            </div>
+        </div>
+        <div id="course-form-footer"></div>
+    </div>
+</div>
