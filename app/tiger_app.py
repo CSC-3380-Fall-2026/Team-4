@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from lucide import lucide_icon
 from markupsafe import Markup
 from tiger_models import *
+from pathlib import Path
 import tiger_catalog
 import tiger_auth  # Import by using filename. 
 import tiger_gpa
@@ -17,10 +18,16 @@ app = FastAPI()
 
 
 
+templates = Jinja2Templates(
+    directory=str(Path(__file__).resolve().parent / "templates")
+)
 
-templates = Jinja2Templates(directory="templates")
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app_dir: Path = Path(__file__).resolve().parent
+app.mount(
+    "/static",
+    StaticFiles(directory=str(app_dir / "static")),
+    name="static",
+)
 
 
 app.include_router(tiger_auth.router)
