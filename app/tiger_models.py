@@ -30,10 +30,17 @@ class Activites(BaseModel):
 class UserAuthSchema(BaseModel):
     email: EmailStr
     password: str
+class ScrapedCourse(BaseModel):
+    id: str
+    course_code: str
+    course_name: str
+    credits: int
+    category: str
+    source_url: str 
 
-class Activites(BaseModel):
-    isMandatory: bool
-    time: datetime
-    name: str
-    weekdays: list ##list of strings such as ["M", "W", "F"]
-    notes: str ## any notes pertaining to the activity 
+class ConcentrationRequirements(BaseModel):
+    required_courses: list[ScrapedCourse] = Field(default_factory=list)
+    approved_electives: list[ScrapedCourse] = Field(default_factory=list)
+    other_requirements: list[dict] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    required_credit_hours: int | None = None

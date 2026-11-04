@@ -7,16 +7,18 @@ import re
 from bs4 import BeautifulSoup
 from bs4.element import Tag, NavigableString 
 from pathlib import Path
-from datetime import datetime, timezone
+from tiger_models import ConcentrationRequirements, ScrapedCourse 
 
 URL = "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
-DEBUG = True 
+
+DEBUG = False
+
 CATEGORIES = [ "Core Coursework", "Technical Requirements", "Math Requirements", "Other Requirements"]
 STOP_HEADINGS = set(CATEGORIES + ["Concentrations"])
 
-CONCENTRATIONS = ["Cloud Computing & Networking","Cybersecurity", "Data Science & Analytics", "Software Engineering", "Second Discipline"]
 
 def fetch_page(url: str) -> str:
+    '''Here is where we fetched the HTML content from the specified webpage.'''
     print("we are fetching your webpage...")
     response = requests.get(url, timeout=15)
 
@@ -27,6 +29,7 @@ def fetch_page(url: str) -> str:
     return response.text 
 
 def inspect_html(html: str) -> BeautifulSoup:
+    """This is where I parsed the webpage HTML and inspected the table structure."""
     soup = BeautifulSoup(html, "html.parser")
     rows = soup.select("tr")
     print("\n Total table rows:", len(rows))
@@ -38,6 +41,8 @@ def inspect_html(html: str) -> BeautifulSoup:
     return soup
 
 def find_categories(soup: BeautifulSoup) -> dict[str, Tag]:
+    """This is where I located the degree requirement categories in the webpage HTML."""
+
     found: dict[str, Tag] = {}
     headings = soup.find_all(["h2", "h3", "h4"])
 
@@ -56,6 +61,8 @@ def find_categories(soup: BeautifulSoup) -> dict[str, Tag]:
     return found 
 
 def get_section_content(heading: Tag) -> tuple[list[Tag], list[str]]:
+    """I extracted the tables and text notes from a degree requirement section."""
+
     tables: list[Tag] = []
     notes: list[str] = []
     for element in heading.next_elements:
@@ -84,6 +91,8 @@ def get_section_content(heading: Tag) -> tuple[list[Tag], list[str]]:
     return tables, notes
 
 def extract_table_data(table: Tag, category: str) -> tuple[list[dict], list[dict]]:
+    """I extracted course information and additonal requirements from an HTML table."""
+
     courses: list[dict] = []
     requirements: list[dict] = []
     rows = table.select("tr")
@@ -109,6 +118,8 @@ def extract_table_data(table: Tag, category: str) -> tuple[list[dict], list[dict
             "category": category,
             "source_url": URL
         }
+
+            ScrapedCourse(**course)
             courses.append(course)
             if DEBUG:
                 print("Extracted:", course)
@@ -125,6 +136,8 @@ def extract_table_data(table: Tag, category: str) -> tuple[list[dict], list[dict
     return courses, requirements
 
 def extract_all_courses(soup: BeautifulSoup) -> dict:
+    """I extracted and organized all the general degree course requirements for our webscrapper."""
+
     headings = find_categories(soup)
     result: dict = {}
     for category in CATEGORIES:
@@ -159,15 +172,37 @@ def extract_all_courses(soup: BeautifulSoup) -> dict:
         print("Text fragments:", len(notes))
     return result 
 
+def find_concentration_headings(soup: BeautifulSoup) -> list[Tag]:
+    """I located concentation headings from the webpage HTML."""
+
+    headings: list[Tag] = []
+
+    section = soup.find("h2", string=lambda text: (text is not None and text.strip() == "Concentrations"))
+
+    if not isinstance(section, Tag):
+        raise ValueError("Concentration section has not been found")
+
+    for heading in section.find_all_next(["h2", "h3"]):
+        title = heading.get_text(" ", strip=True)
+
+        if heading.name == "h2":
+            if title not in ("Required Courses", "Approved Electives"):
+                break
+
+        if heading.name == "h3":
+            headings.append(heading)
+    if not headings:
+        raise ValueError("No concentrations headings were found")
+
+    return headings
 
 def extract_concentrations(soup: BeautifulSoup) -> dict[str, dict]:
+    """Extracted required courses, electives, and credit requirements for all the concentrations."""
+
     results: dict[str, dict] = {}
 
-    for heading  in soup.find_all(["h2","h3", "h4"]):
-        name = " ".join(heading.get_text(" ", strip = True).replace ("\u200b", "").split())
-
-        if name not in CONCENTRATIONS:
-            continue
+    for heading in find_concentration_headings(soup):
+        name = heading.get_text(" ", strip=True)
         details: dict = {"required_courses": [], "approved_electives": [], "other_requirements": [], "notes": []}
 
         section: str | None = None
@@ -175,33 +210,25 @@ def extract_concentrations(soup: BeautifulSoup) -> dict[str, dict]:
         for element in heading.next_elements:
             if not isinstance(element, Tag):
                 continue
-
-            # Stop at the next concentration.
-            if (element.name == ("h2", "h3", "h4") and element is not heading and " ".join (element.get_text(" ", strip=True).replace ("\u200b", "").split()) in CONCENTRATIONS):
+            if element.name == "h3" and element is not heading:
                 break
 
             if element.name == "footer":
                 break
-
-            # Stop at the bottom of the page.
             if element.name in ("a", "button"):
                 if element.get_text(" ", strip=True) == "Top":
                     break
-
-            # Identify required courses or electives.
             if element.name in ("h2", "h3", "h4"):
                 title = element.get_text(" ", strip=True)
 
                 section = {"Required Courses": "required_courses","Approved Electives": "approved_electives"}.get(title)
 
-            # Extract course information.
             elif element.name == "table" and section is not None:
                 courses, requirements = extract_table_data(element, f"{name} - {section.replace('_', ' ')}")
 
                 details[section].extend(courses)
                 details["other_requirements"].extend(requirements)
 
-            # Extract additional written information.
             elif element.name == "p":
                 if element.find_parent("table") is None:
                     note = element.get_text(" ", strip=True)
@@ -209,47 +236,41 @@ def extract_concentrations(soup: BeautifulSoup) -> dict[str, dict]:
                     if note:
                         details["notes"].append(note)
 
+        if not details["required_courses"] and not details["approved_electives"]:
+            page_text = " ".join(soup.get_text(" ", strip=True).split())
+
+            section_name = " ".join(name.split())
+            before, separator, section_text = page_text.rpartition(section_name)
+
+            if not separator:
+                raise ValueError(f"Section text not found for {name}")
+
+            match = re.search(r"Students\s+must\s+complete\s+a\s+total\s+of\s+"r"(\d+)\s+credit\s+hours\b[^.]*\.",section_text,re.IGNORECASE)
+
+            if not match:
+                raise ValueError(f"Credit requirement not found for {name}")
+
+            details["required_credit_hours"] = int(match.group(1))
+            details["notes"].append(match.group(0))
+
 
         print("Concentration:", name)
         print("Required courses:", len(details["required_courses"]))
         print("Approved electives:", len(details["approved_electives"]))
 
-        # Validate course extraction.
-        if name != "Second Discipline":
-            if (not details["required_courses"] or not details["approved_electives"]):
+        if "required_credit_hours" in details:
+                if details["required_credit_hours"] <= 0:
+                    raise ValueError(f"Invalid credit requirement for {name}")
+        else:
+            if not details["required_courses"] or not details["approved_electives"]:
                 raise ValueError(f"Incomplete course lists for {name}")
 
+        ConcentrationRequirements(**details)
         results[name] = details
 
-    if "Second Discipline" not in results:
-        page_text = " ".join(
-            soup.get_text(" ", strip=True).split()
-        )
+    expected = {heading.get_text(" ", strip=True) for heading in find_concentration_headings(soup)}
 
-        requirement = re.search( r"Students\s+must\s+complete\s+a\s+total\s+of\s+" r"15\s+credit\s+hours\b.{0,300}?\.", page_text, re.IGNORECASE)
-
-        approval = re.search( r"This\s+concentration\s+must\s+be\s+approved\s+" r"by\s+a\s+departmental\s+advisor\.", page_text, re.IGNORECASE)
-
-        if requirement is None:
-            raise ValueError("Second Discipline requirement not found")
-
-        notes = [requirement.group(0)]
-
-        if approval:
-            notes.append(approval.group(0))
-
-        results["Second Discipline"] = {
-            "required_courses": [],
-            "approved_electives": [],
-            "other_requirements": [],
-            "notes": notes,
-            "required_credit_hours": 15
-        }
-
-        print("Concentration: Second Discipline")
-        print("Required credit hours: 15")
-
-    missing = set(CONCENTRATIONS) - set(results)
+    missing = expected - set(results)
 
     if missing:
         raise ValueError( f"Missing Concentrations: {sorted(missing)}")
@@ -258,6 +279,7 @@ def extract_concentrations(soup: BeautifulSoup) -> dict[str, dict]:
 
 
 def save_json(data: dict, concentrations: dict) -> None:
+    """I saved extracted course and concentration requirements to a JSON file."""
 
     if not data:
         raise ValueError ("No course data was found :(")
@@ -271,20 +293,22 @@ def save_json(data: dict, concentrations: dict) -> None:
 
     output = root / "data" / "course_requirements.json"
 
-    output.parent.mkdir(parents = True, exist_ok = True)
+    output.parent.mkdir(parents=True, exist_ok=True)
 
     dataset = {
-        "source_url": URL,
-        "retrieved_at": datetime.now(timezone.utc).isoformat(), "categories": data, "concentrations": concentrations
+        "source_url": URL, "categories": data, "concentrations": concentrations
     }
 
-    with output.open("w", encoding = "utf-8") as file:
-        json.dump(dataset, file, indent = 4, ensure_ascii = False)
+    with output.open("w", encoding="utf-8") as file:
+
+        json.dump(dataset, file, indent=4, ensure_ascii=False)
 
     print("\nSaved JSON to:", output)
 
 
 def main() -> None:
+    """I run the web scraper and save the extracted degree requirements."""
+
     try:
         html = fetch_page(URL)
         soup = inspect_html(html)
@@ -302,6 +326,5 @@ def main() -> None:
     except ValueError as error:
         print("There was an extraction:", error)
         
-
 if __name__ == "__main__":
     main()
