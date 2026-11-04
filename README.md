@@ -21,14 +21,26 @@ The project is called Tiger-Class-Drive it is a proprietary website that will be
 Kanban Board: [https://github.com/orgs/CSC-3380-Fall-2026/projects/6/views/1]\
 Designs: [https://www.figma.com/proto/OGJkOTlSs3gKRG8gxCXiUi/Tiger-Class-Drive?node-id=2-7&t=Zzvs7lXQcMQjwnWF-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=2%3A7&show-proto-sidebar=1]\
 Styles Guide(s): [https://docs.google.com/document/d/1lb0NsES7KNL0gcBS0lKdo6mIHRc-wTw1EYfAR7Z1_LI/edit?usp=sharing]\
-
+Website: [https://team-4-fc15.onrender.com/dashboard]
 # How to Run Dev and Test Environment
-``` 
+```
 python -m venv .venv
 use the command based on os: 
 	Windows: .\.venv\Scripts\Activate.ps1
 	Linux: source .venv/bin/activate
 pip install -r requirements.txt
+```
+To build tailwind:
+```sh
+cd app/tailwindcss
+npm ci
+npm run build
+```
+Or for automatic rebuilds if working on styling:
+```sh
+cd app/tailwindcss
+npm ci
+npm run dev
 ```
 
 ## Dependencies
@@ -62,3 +74,23 @@ static void Main(){
 	Console.WriteLine("Hello, World!");
 }
 ```
+
+## Running the QA Tests
+
+This project uses pytest for automated testing.
+
+After setting up the virtual environment and installing the dependencies, run the entire test suite from the project's root folder with:
+
+```bash
+python -m pytest tests/ -v
+```
+
+The command displays the results of each test, including passes and failures.
+
+Shared test fixtures are defined in `tests/conftest.py`:
+- `test_catalog`: sample course data
+- `test_supabase_users`: fake users for testing
+- `test_client`: FastAPI test client
+
+Note: Some tests may fail until existing application bugs are fixed.
+  

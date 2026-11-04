@@ -6,4 +6,4 @@ requests
 beautifulsoup4
 jinja2
 python-lucide
-datetime
+pytest

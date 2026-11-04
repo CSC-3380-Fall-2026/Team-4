@@ -16,5 +16,4 @@ def test_gpa_rejects_empty_course_list():
         calculateGPA([])
 
     assert error.value.status_code == 400
-    assert error.value.detail == "Enter a minimum of one course."
-
+    assert error.value.detail == "Enter at least one course."
