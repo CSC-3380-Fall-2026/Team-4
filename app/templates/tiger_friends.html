@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{{ url_for('static', path='/css/app.css') }}" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+    <title>Friends</title>
+</head>
+<body class="flex min-h-screen w-screen flex-row bg-neutrals-0 font-[Lato]">
+    {% include "components/dashboard_nav.html" %}
+    <div id="workspace" class="ml-64 flex min-h-screen w-full min-w-200 grow flex-col">
+        <div id="top-bar" class="flex h-fit w-full flex-row items-center justify-between border-b-2 border-neutrals-100 px-6 py-4 font-bold">
+            <p>Friends</p>
+            <div id="notifications" class="h-6 w-6 rounded-full bg-neutrals-400" aria-label="Notifications"></div>
+        </div>
+        <main id="content" class="flex w-full max-w-800 flex-col gap-4 bg-neutrals-50 p-6">
+            <section class="grid gap-3 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-4" aria-labelledby="find-friends-title">
+                <h1 id="find-friends-title" class="text-lg font-bold text-neutrals-900">Find Friends</h1>
+                <form id="find-friend-form" class="flex flex-col gap-3 sm:flex-row">
+                    <label class="relative min-w-0 grow">
+                        <span class="sr-only">Username</span>
+                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutrals-400" aria-hidden="true">⌕</span>
+                        <input id="friend-username" class="w-full rounded-md border border-neutrals-100 bg-neutrals-50 py-2.5 pl-9 pr-3 text-sm text-neutrals-900 outline-none placeholder:text-neutrals-400 focus:border-purple-300 focus:ring-2 focus:ring-purple-100" name="username" type="text" placeholder="Enter exact username..." autocomplete="off" required>
+                    </label>
+                    <button class="rounded-md bg-purple-400 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-500 focus-visible:outline-2 focus-visible:outline-purple-500" type="submit">Add Friend</button>
+                </form>
+                <p id="friend-search-message" class="hidden text-sm" role="status" aria-live="polite"></p>
+            </section>
+
+            <div class="grid items-start gap-4 lg:grid-cols-2">
+                <section class="grid gap-3 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-4" aria-labelledby="pending-requests-title">
+                    <div class="flex items-center justify-between gap-3">
+                        <h2 id="pending-requests-title" class="text-lg font-bold text-neutrals-900">Pending Requests</h2>
+                        <span id="pending-request-count" class="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700"></span>
+                    </div>
+                    <ul id="pending-requests" class="grid gap-2" aria-label="Pending friend requests"></ul>
+                    <p id="no-pending-requests" class="hidden rounded-md bg-neutrals-50 p-3 text-sm text-neutrals-400">You’re all caught up.</p>
+                </section>
+
+                <section class="grid gap-3 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-4" aria-labelledby="your-friends-title">
+                    <h2 id="your-friends-title" class="text-lg font-bold text-neutrals-900">Your Friends</h2>
+                    <ul id="friends-list" class="grid gap-2" aria-label="Your friends"></ul>
+                    <p id="no-friends" class="hidden rounded-md bg-neutrals-50 p-3 text-sm text-neutrals-400">Add a friend to start comparing schedules.</p>
+                </section>
+            </div>
+
+            <section class="grid gap-3 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-4" aria-labelledby="shared-schedules-title">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 id="shared-schedules-title" class="text-lg font-bold text-neutrals-900">Shared Schedules</h2>
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <label class="sr-only" for="shared-schedule-picker">Schedule to share</label>
+                        <select id="shared-schedule-picker" class="cursor-pointer rounded-md border border-neutrals-100 bg-neutrals-50 px-3 py-2 text-sm font-semibold text-neutrals-800 focus:border-purple-300 focus:outline-none font-sans font-[Lato]">
+                        </select>
+                        <label class="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-neutrals-700">
+                            Public Sharing
+                            <input id="public-sharing-toggle" type="checkbox" class="peer sr-only" aria-label="Enable public schedule sharing">
+                            <span class="relative h-6 w-11 rounded-full bg-neutrals-200 transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:bg-purple-400 peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-purple-500"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="border-t border-neutrals-100 pt-3">
+                    <p class="mb-2 text-sm font-medium text-neutrals-500">Friends who can view your schedule:</p>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div id="schedule-viewers" class="flex min-h-8 flex-wrap gap-2"></div>
+                        <div class="flex items-center gap-2">
+                            <label class="sr-only" for="add-schedule-viewer">Select a friend to share with</label>
+                            <select id="add-schedule-viewer" class="max-w-48 rounded-md border border-neutrals-100 bg-neutrals-50 px-2 py-1.5 text-xs text-neutrals-700 font-sans font-[Lato]">
+                                <option value="">Share with friend...</option>
+                            </select>
+                            <button id="add-schedule-viewer-button" class="rounded-md border border-neutrals-200 px-2.5 py-1.5 text-xs font-semibold text-neutrals-700 transition-colors hover:bg-yellow-50 disabled:cursor-not-allowed disabled:opacity-50" type="button">Add</button>
+                        </div>
+                    </div>
+                    <p id="no-schedule-viewers" class="hidden text-sm text-neutrals-400">No friends selected to view this schedule.</p>
+                </div>
+                <p id="sharing-status" class="text-xs text-neutrals-400" role="status" aria-live="polite"></p>
+            </section>
+
+            <section id="schedule-comparison" class="flex h-fit w-full flex-col gap-4 overflow-hidden rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5 text-neutrals-1000" aria-labelledby="compare-schedules-title">
+                <div class="flex min-h-8 flex-wrap items-center justify-between gap-4">
+                    <h2 id="compare-schedules-title" class="text-lg font-bold text-neutrals-900">Compare Schedules</h2>
+                    <label class="flex items-center gap-2 text-sm font-medium text-neutrals-700">
+                        Compare with:
+                        <select id="compare-friend-picker" class="cursor-pointer rounded-md border border-neutrals-100 bg-neutrals-50 px-3 py-2 font-semibold text-neutrals-800 focus:border-purple-300 focus:outline-none font-sans font-[Lato]"></select>
+                    </label>
+                </div>
+                {% include "components/friends_calendar.html" %}
+                <section class="grid gap-3 rounded-lg border border-neutrals-200 p-3" aria-labelledby="shared-free-time-title">
+                    <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                        <h3 id="shared-free-time-title" class="text-base font-bold text-neutrals-900">Shared Free Time</h3>
+                        <div class="flex flex-wrap items-center gap-2 text-sm text-neutrals-700">
+                            <span>Free time hours:</span>
+                            <label class="sr-only" for="free-time-start">Start time</label>
+                            <input id="free-time-start" class="rounded-md border border-neutrals-100 bg-neutrals-50 px-2 py-1.5 text-sm text-neutrals-700 font-sans font-[Lato]" type="time" value="08:00" step="300" aria-label="Free time start">
+                            <span>to</span>
+                            <label class="sr-only" for="free-time-end">End time</label>
+                            <input id="free-time-end" class="rounded-md border border-neutrals-100 bg-neutrals-50 px-2 py-1.5 text-sm text-neutrals-700 font-sans font-[Lato]" type="time" value="17:00" step="300" aria-label="Free time end">
+                            <label class="sr-only" for="minimum-free-duration">Minimum duration</label>
+                            <span>Min Duration:</span>
+                            <select id="minimum-free-duration" class="cursor-pointer rounded-md border border-neutrals-100 bg-neutrals-50 px-2 py-1.5 text-sm text-neutrals-700 font-sans font-[Lato]" aria-label="Minimum free-time duration">
+                                <option value="30">30 min</option>
+                                <option value="60">1 hour</option>
+                                <option value="90">1 hour 30 min</option>
+                                <option value="120">2 hours</option>
+                                <option value="180">3 hours</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="mb-2 text-sm font-semibold text-neutrals-800">Free Periods</h4>
+                        <div id="free-periods" class="rounded-md border border-dashed border-neutrals-200 bg-neutrals-50 p-4 text-sm text-neutrals-400" role="status">
+                            Shared free-time results will appear here.
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </main>
+    </div>
+    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=4" defer></script>
+    <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=1" defer></script>
+    <script src="{{ url_for('static', path='/js/friends.js') }}?v=13" defer></script>
+</body>
+</html>
