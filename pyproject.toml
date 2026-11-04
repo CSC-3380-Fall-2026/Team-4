@@ -1,2 +1,2 @@
 [tool.vercel]
-entrypoint = "app.tiger_app:app"
+entrypoint = "vercel_entry:app"
