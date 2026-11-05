@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from tiger_models import Classes
 import math
 from pydantic import BaseModel
+from grade_scale import GRADE_POINTS 
 
 router: APIRouter = APIRouter()
 # Initialize the router for this specific module
@@ -13,9 +14,7 @@ def calculateGPA(classes: list[Classes]) -> float:  ##takes dictionary of classe
             status_code=400,
             detail="Enter at least one course."  # This will explain the problem
         )  # Store the gradepoints for valid grades like A  = 4.3 and other items.
-    valid_grades: list[float] = [
-        4.3, 4.0, 3.7, 3.5, 3.3, 3.0, 2.8, 2.5, 2.3, 2.0, 1.9, 1.5, 1.3, 1.0, 0.9, 0.5, 0.3, 0.0
-    ]
+    
     total_credit_hours: int = 0
     total_quality_points: float = 0.0
     # fresh totals for the calculations
@@ -25,15 +24,15 @@ def calculateGPA(classes: list[Classes]) -> float:  ##takes dictionary of classe
                 status_code=400,
                 detail="The amount of course credits must be greater than 0, "
             )
-        if course.grade not in valid_grades:
+        if course.grade not in GRADE_POINTS:
             raise HTTPException(
                 status_code=400,
                 #this will reject grades that are not in the accepted grade point list.
-                detail=" Enter only valid grade points like 4.0 for an A 3.0 for a B ...."
+                detail= f"Invalid LSU letter grade: {course.grade}"
             )
         # this will multiply the credits by grade points and add the course credit
         total_credit_hours += course.credit
-        total_quality_points += course.grade * course.credit
+        total_quality_points += GRADE_POINTS[course.grade] * course.credit
         
     # this will divide the quality points by the credits
     return total_quality_points / total_credit_hours

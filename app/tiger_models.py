@@ -13,7 +13,7 @@ class Classes(BaseModel): ##most likely be put into a list
     department: str
     number: int
     name: str
-    grade: float
+    grade: str 
     credit: int
     semester: str
     time: datetime
