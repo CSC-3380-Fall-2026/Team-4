@@ -1,0 +1,26 @@
+<div id="schedule-calendar" class="flex h-fit w-full flex-col gap-4 overflow-hidden rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5 text-neutrals-1000" aria-labelledby="calendar-title">
+    <header class="flex min-h-8 items-center justify-between gap-4">
+        <h1 id="calendar-title" class="text-lg font-bold">Schedule</h1>
+        <ul id="schedule-categories" class="m-0 flex list-none flex-wrap justify-end gap-2.5 p-0 text-xs text-neutrals-400" aria-label="Schedule categories">
+        </ul>
+    </header>
+    <div class="calendar-scroll max-h-100 overflow-auto rounded-md bg-neutrals-0 px-2 pb-3" aria-label="Weekly calendar; scroll to see the full day" tabindex="0">
+        <div class="grid min-w-3xl grid-cols-calendar gap-x-1 bg-neutrals-0">
+            {% set calendar_day_column_classes = ["col-start-2", "col-start-3", "col-start-4", "col-start-5", "col-start-6", "col-start-7", "col-start-8"] %}
+            <div class="sticky top-0 z-20 col-span-full row-start-1 bg-neutrals-0" aria-hidden="true"></div>
+            {% for day in week_days %}
+            <div class="calendar-day-heading sticky top-0 z-100 {{ calendar_day_column_classes[loop.index0] }} row-start-1 bg-purple-50 px-1 py-1 text-center text-xs font-bold text-neutrals-700 rounded-md">{{ day.name[:3] }}</div>
+            {% endfor %}
+
+            <div class="col-start-1 row-start-2 grid grid-rows-calendar text-right text-xs text-neutrals-400" aria-label="Times">
+                {% for hour in range(0, 24, 3) %}
+                <span class="row-span-6 whitespace-nowrap pt-1 pr-1">{{ (hour % 12) or 12 }}:00 {{ 'AM' if hour < 12 else 'PM' }}</span>
+                {% endfor %}
+            </div>
+            {% for day in week_days %}
+            <div class="calendar-day relative {{ calendar_day_column_classes[loop.index0] }} row-start-2 grid grid-rows-calendar" data-day-name="{{ day.name }}" aria-label="{{ day.name }}">
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
