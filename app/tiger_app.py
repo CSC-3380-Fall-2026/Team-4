@@ -8,12 +8,13 @@ from lucide import lucide_icon
 from markupsafe import Markup
 from tiger_models import *
 import tiger_catalog
+
 import tiger_auth  # Import by using filename. 
 import tiger_gpa
 from pathlib import Path
 from fastapi.responses import RedirectResponse
 import tiger_dashboard
-
+import tiger_prerequisites
 app = FastAPI()
 
 APP_DIR: Path = Path(__file__).resolve().parent
@@ -30,6 +31,7 @@ app.include_router(tiger_dashboard.router)
 app.include_router(tiger_auth.router)
 app.include_router(tiger_gpa.router)
 app.include_router(tiger_catalog.router)
+app.include_router(tiger_prerequisites.router)
 
 @app.get("/health")
 def health():

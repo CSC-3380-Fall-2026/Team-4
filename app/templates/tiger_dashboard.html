@@ -198,6 +198,68 @@
                             </tbody>
                         </table>
                     </div>
+<h3>Check Course Prerequisites</h3>
+<label for="prereq-course">Course to check:</label>
+<input id="prereq-course" placeholder="CSC 4330">
+
+<label for="completed-courses">Completed courses and grades:</label>
+<textarea id="completed-courses" rows="4"
+placeholder="CSC 3102: B"></textarea>
+
+<button type="button" onclick="checkCoursePrerequisites()">
+    Check Prerequisites
+</button>
+
+<div id="prereq-result" role="status"></div>
+
+<script>
+async function checkCoursePrerequisites() {
+    const course = document.getElementById("prereq-course").value.trim().toUpperCase();
+    const completed = {};
+    const result = document.getElementById("prereq-result");
+
+    for (const line of document.getElementById("completed-courses").value.split("\n")) {
+        if (!line.trim()) continue;
+        const parts = line.split(":");
+        if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+            result.textContent = "Enter each course as CSC 3102: B";
+            return;
+        }
+        completed[parts[0].trim().toUpperCase()] = parts[1].trim().toUpperCase();
+    }
+
+    if (!course) {
+        result.textContent = "Please enter a course code.";
+        return;
+    }
+
+    result.textContent = "Checking...";
+
+    try {
+        const response = await fetch("/courses/check-prerequisites", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({course_code: course, completed: completed})
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            result.textContent = data.detail || "Unable to check prerequisites.";
+            return;
+        }
+
+        result.textContent =
+            "Satisfied: " + (data.satisfied.join(", ") || "None") + "\n" +
+            "Missing: " + (data.missing.join(", ") || "None") + "\n" +
+            "Cannot verify: " + (data.cannot_evaluate.join(", ") || "None") + "\n" +
+            (data.eligible ? "Requirements satisfied." : "Eligibility not confirmed.");
+        result.style.whiteSpace = "pre-line";
+    } catch (error) {
+        result.textContent = "Could not connect to the prerequisite checker.";
+    }
+}
+</script>
+
                 </section>
 
             <!-- Main Dashboard page. -->
