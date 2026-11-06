@@ -1,5 +1,6 @@
 fastapi[standard]
 uvicorn
+pydantic[email]
 supabase
 python-dotenv
 requests
@@ -7,3 +8,4 @@ beautifulsoup4
 jinja2
 python-lucide
 pytest
+httpx
