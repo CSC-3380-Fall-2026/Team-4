@@ -1,9 +1,17 @@
 (() => {
     // Keep friend requests, sharing controls, and schedule comparison local to this page.
-    const { scheduleState, sampleUsers, getUserById } = window.SchedulePrototype;
+    const { scheduleState, getUserById, loadScheduleData } = window.SchedulePrototype;
+    const searchMessage = document.querySelector("#friend-search-message");
+    loadScheduleData().then(initializeFriends).catch((error) => {
+        searchMessage.textContent = error.message;
+        searchMessage.className = "text-sm text-red-600";
+    });
+
+    function initializeFriends() {
+    const sampleUsers = scheduleState.sampleUsers;
     const currentUser = getUserById(scheduleState.currentUserId);
     const schedules = currentUser.schedules;
-    const usersById = new Map(sampleUsers.map((user) => [user.id, user]));
+    const usersByUsername = new Map(sampleUsers.map((user) => [user.username, user]));
     let nextUserNumber = sampleUsers.length + 1;
 
     const state = {
@@ -36,7 +44,6 @@
     const noFriends = document.querySelector("#no-friends");
     const friendForm = document.querySelector("#find-friend-form");
     const usernameInput = document.querySelector("#friend-username");
-    const searchMessage = document.querySelector("#friend-search-message");
     const sharedSchedulePicker = document.querySelector("#shared-schedule-picker");
     const publicSharingToggle = document.querySelector("#public-sharing-toggle");
     const scheduleViewers = document.querySelector("#schedule-viewers");
@@ -55,7 +62,10 @@
     };
 
     const displayName = (username) => {
-        const label = usersById.get(username)?.displayName ?? userLabels.get(username);
+        const knownUsername = usersByUsername.get(username)?.username;
+        const label = knownUsername
+            ? knownUsername === "user" ? "user" : knownUsername.replace(/^user/, "User ")
+            : userLabels.get(username);
         if (label) {
             return label;
         }
@@ -93,17 +103,16 @@
             const actions = makeElement("div", "flex shrink-0 gap-2");
             actions.append(
                 makeButton("Accept", "rounded-md bg-purple-400 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-purple-500", () => {
-                    const directoryEntry = usersById.get(request.username);
+                    const directoryEntry = usersByUsername.get(request.username);
                     if (!directoryEntry) {
                         const newUser = {
-                            id: request.username,
-                            displayName: displayName(request.username),
+                            username: request.username,
                             major: request.major,
                             status: "Free now",
                             schedules: [],
                         };
                         sampleUsers.push(newUser);
-                        usersById.set(newUser.id, newUser);
+                        usersByUsername.set(request.username, newUser);
                     }
                     state.friends.push({
                         username: request.username,
@@ -126,7 +135,7 @@
         noFriends.classList.toggle("hidden", state.friends.length > 0);
 
         state.friends.forEach((friend) => {
-            const user = usersById.get(friend.username);
+            const user = usersByUsername.get(friend.username);
             const status = friend.status ?? user?.status ?? "Free now";
             const item = makeElement("li", "flex items-center justify-between gap-3 rounded-md border border-neutrals-100 bg-neutrals-0 px-3 py-2");
             const identity = makeElement("div", "flex min-w-0 items-center gap-3");
@@ -241,7 +250,7 @@
     const { renderCalendar, scrollCalendarToFirstEvent } = window.FriendsCalendar.createRenderer({
         state,
         schedules,
-        usersById,
+        usersByUsername,
         displayName,
         makeElement,
     });
@@ -309,4 +318,5 @@
     });
     renderAll();
     scrollCalendarToFirstEvent();
+    }
 })();
