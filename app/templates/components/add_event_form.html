@@ -1,8 +1,26 @@
-<dialog id="add-event-dialog" class="m-auto w-full max-w-xl rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-6 font-[Lato] font-sans text-neutrals-900 shadow-xl backdrop:bg-transparent backdrop:backdrop-blur-md">
-    <form id="add-event-form" class="grid gap-4">
+<dialog id="add-event-dialog" style="height: min(90vh, 45rem); max-height: 90vh; box-sizing: border-box" class="m-auto w-full max-w-3xl overflow-hidden rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-6 font-[Lato] font-sans text-neutrals-900 shadow-xl backdrop:bg-transparent backdrop:backdrop-blur-md">
+    <form id="add-event-form" class="flex h-full min-h-0 flex-col gap-4">
         <h2 class="text-lg font-bold">Add Event</h2>
+        <label class="flex cursor-pointer items-center justify-between rounded-lg border border-neutrals-100 bg-white px-3 py-2.5 text-sm font-semibold text-neutrals-400">
+            <span>Course</span>
+            <input class="peer sr-only" name="entry-mode" type="checkbox" value="course" aria-label="Course mode">
+            <span class="relative h-5 w-10 rounded-full bg-neutrals-200 transition-colors peer-checked:bg-purple-500 after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-purple-500" aria-hidden="true"></span>
+        </label>
+        <section id="course-browser" class="hidden min-h-0 flex-1 flex flex-col overflow-hidden rounded-lg border border-neutrals-200" aria-label="Browse courses">
+            <div class="flex h-fit w-full flex-col gap-3 border-b border-neutrals-100 p-6 pb-3">
+                <label for="course-search" class="text-lg font-bold text-neutrals-900">Browse Courses</label>
+                <div class="flex h-fit w-full flex-row items-center gap-2 rounded-md border border-neutrals-100 bg-neutrals-0 px-4 py-3 focus-within:border-purple-300 focus-within:ring-2 focus-within:ring-purple-100">
+                    <input id="course-search" type="search" placeholder="Search Courses..." class="w-full bg-transparent outline-none">
+                    <button id="course-search-button" type="button" class="cursor-pointer text-neutrals-500 hover:text-purple-700" aria-label="Search courses">{{ search }}</button>
+                </div>
+            </div>
+            <div id="course-browser-items" class="min-h-0 flex-1 overflow-y-scroll"></div>
+            <p id="course-search-empty" class="hidden px-6 py-5 text-sm text-neutrals-500">No courses match your search.</p>
+            <template id="course-add-icon">{{ plus }}</template>
+        </section>
+        <div id="event-fields" class="grid gap-4">
         <label class="grid gap-2 text-sm font-semibold text-neutrals-400">
-            Event Title
+            Title
             <input class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 text-sm font-semibold text-neutrals-900" name="title" type="text" placeholder="e.g. CSC 3380" maxlength="100" required>
         </label>
         <fieldset class="grid gap-2">
@@ -35,14 +53,16 @@
             Guests (Optional, comma-separated)
             <input class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 text-sm font-semibold text-neutrals-900" name="guests" type="text" placeholder="e.g. User, User, User">
         </label>
-        <label class="flex flex-col justify-center gap-2 text-sm font-semibold text-neutrals-400">
+        <label class="flex cursor-pointer items-center justify-between bg-white py-2.5 text-sm font-semibold text-neutrals-400">
             Favorite
-            <input class="size-4 accent-purple-600" name="favorite" type="checkbox">
+            <input class="peer sr-only" name="favorite" type="checkbox" aria-label="Favorite">
+            <span class="relative h-5 w-10 rounded-full bg-neutrals-200 transition-colors peer-checked:bg-purple-500 after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-purple-500" aria-hidden="true"></span>
         </label>
+        </div>
         <p class="hidden text-sm text-red-700" data-form-error></p>
-        <div class="flex justify-end gap-3">
+        <div class="sticky bottom-0 mt-auto flex justify-end gap-3 bg-neutrals-0 py-2">
             <button class="rounded-md border border-neutrals-200 px-4 py-2 font-semibold hover:bg-neutrals-50" type="button" data-dialog-cancel>Cancel</button>
-            <button class="rounded-md bg-purple-400 px-4 py-2 font-semibold text-white hover:bg-purple-500" type="submit">Create Event</button>
+            <button id="create-event-button" class="rounded-md bg-purple-400 px-4 py-2 font-semibold text-white hover:bg-purple-500" type="submit">Create Event</button>
         </div>
     </form>
 </dialog>

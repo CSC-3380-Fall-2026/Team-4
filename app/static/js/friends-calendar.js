@@ -1,6 +1,6 @@
 (() => {
     // Build calendar rendering around the shared Friends page state and helpers
-    const createRenderer = ({ state, schedules, usersById, displayName, makeElement }) => {
+    const createRenderer = ({ state, schedules, usersByUsername, displayName, makeElement }) => {
         const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         const calendar = document.querySelector("#friends-calendar");
         const calendarScroll = document.querySelector("#friends-calendar-scroll");
@@ -17,7 +17,7 @@
         };
 
         const combinedEvents = () => {
-            const friendUser = usersById.get(state.selectedFriend);
+            const friendUser = usersByUsername.get(state.selectedFriend);
             if (!friendUser) {
                 return [];
             }

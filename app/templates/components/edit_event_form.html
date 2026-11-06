@@ -35,9 +35,10 @@
             Guests (Optional, comma-separated)
             <input class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 text-sm font-semibold text-neutrals-900" name="guests" type="text" placeholder="e.g. User, User, User">
         </label>
-        <label class="flex flex-col justify-center gap-2 text-sm font-semibold text-neutrals-400">
+        <label class="flex cursor-pointer items-center justify-between rounded-lg border-0 bg-white px-3 py-2.5 text-sm font-semibold text-neutrals-400">
             Favorite
-            <input class="size-4 accent-purple-600" name="favorite" type="checkbox">
+            <input class="peer sr-only" name="favorite" type="checkbox" aria-label="Favorite">
+            <span class="relative h-5 w-10 rounded-full bg-neutrals-200 transition-colors peer-checked:bg-purple-500 after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-purple-500" aria-hidden="true"></span>
         </label>
         <p class="hidden text-sm text-red-700" data-form-error></p>
         <div class="flex items-center justify-between gap-3">

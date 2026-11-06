@@ -19,6 +19,7 @@
         <div id="content" class="flex w-full max-w-800 flex-col gap-6 bg-neutrals-50 p-6">
             {% include "components/schedule_calendar.html" %}
             <section id="schedule-event-management" class="flex h-fit w-full flex-col gap-4 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
+                <p id="schedule-page-error" class="hidden text-sm text-red-700" role="alert"></p>
                 <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex flex-col gap-0">
                         <p class="text-lg font-bold">Schedule Events</p>
@@ -118,12 +119,12 @@
             </div>
         </div>
     </div>
-    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=4" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
     <script src="{{ url_for('static', path='/js/schedule-ui.js') }}?v=1" defer></script>
     <script src="{{ url_for('static', path='/js/schedule-calendar.js') }}?v=4" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-events.js') }}?v=1" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-management.js') }}?v=1" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-comparison.js') }}?v=1" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule.js') }}?v=8" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-events.js') }}?v=4" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-management.js') }}?v=2" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-comparison.js') }}?v=2" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule.js') }}?v=9" defer></script>
 </body>
 </html>
