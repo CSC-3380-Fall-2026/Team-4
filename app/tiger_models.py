@@ -13,6 +13,7 @@ from pydantic import (
     model_validator,
 )
 
+##Constants for schedule model
 Weekday = Literal[
     "Monday",
     "Tuesday",
@@ -29,7 +30,7 @@ def to_camel_case(value: str) -> str:
     first, *rest = value.split("_")
     return first + "".join(part.capitalize() for part in rest)
 
-
+#Base class for schedule-related classes
 class ScheduleModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel_case, populate_by_name=True)
 
@@ -38,7 +39,7 @@ class UserAuthSchema(BaseModel):
     email: EmailStr
     password: str
 
-
+#Schedule event data model with validation
 class ScheduleEventData(ScheduleModel):
     title: str = Field(min_length=1, max_length=100)
     days: list[Weekday] = Field(min_length=1)
@@ -94,11 +95,11 @@ class ScheduleEventData(ScheduleModel):
             guests = guests.split(",")
         return [guest.strip() for guest in guests if guest.strip()]
 
-
+#Schedule event model with unique ID
 class ScheduleEvent(ScheduleEventData):
     id: str = Field(default_factory=lambda: str(uuid4()))
 
-
+#Schedule class event with additional fields for department, number, grade, semester, and category
 class Classes(ScheduleEvent):
     department: str
     number: int
@@ -114,23 +115,19 @@ class Classes(ScheduleEvent):
         duration_minutes = (end_hour * 60 + end_minute) - (start_hour * 60 + start_minute)
         return (duration_minutes + 59) // 60
 
-
-class Activites(ScheduleEvent):
-    notes: str = ""
-
-
+#Additional class for course presets displayed in the course form
 class CoursePreset(Classes):
     course_id: str
     professor: str
     enrollment: str
     section_details: str
 
-
+#Schedule class for storing schedule data
 class Schedule(ScheduleModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str = Field(min_length=1, max_length=60)
     color: ScheduleColor
-    events: list[Classes | Activites] = Field(default_factory=list)
+    events: list[Classes | ScheduleEvent] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod
@@ -140,7 +137,7 @@ class Schedule(ScheduleModel):
             raise ValueError("Schedule title cannot be blank.")
         return value
 
-
+#Schedule definition class for creating or updating schedules
 class ScheduleDefinition(ScheduleModel):
     name: str = Field(min_length=1, max_length=60)
     color: ScheduleColor
@@ -153,7 +150,7 @@ class ScheduleDefinition(ScheduleModel):
             raise ValueError("Schedule title cannot be blank.")
         return value
 
-
+#Course selection class for storing selected courses in a schedule
 class CourseSelection(ScheduleModel):
     course_id: str
 
@@ -166,12 +163,12 @@ class UserBase(ScheduleModel):
     courses: list
     schedules: list[Schedule] = Field(default_factory=list)
 
-
+#Schedule metrics class for storing total hours and busy days in a schedule
 class ScheduleMetrics(ScheduleModel):
     total_hours: int
     days_busy: str
 
-
+#Schedule page data class for storing current user ID, list of users, and schedule metrics
 class SchedulePageData(ScheduleModel):
     current_user_id: int
     users: list[UserBase]

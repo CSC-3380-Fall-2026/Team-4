@@ -6,12 +6,12 @@ from fastapi import APIRouter, HTTPException, Request, Response, status
 
 from tiger_catalog import load_courses
 from tiger_models import (
-    Activites,
     Classes,
     CoursePreset,
     CourseSelection,
     Schedule,
     ScheduleDefinition,
+    ScheduleEvent,
     ScheduleEventData,
     ScheduleMetrics,
     SchedulePageData,
@@ -24,7 +24,7 @@ SESSION_MAX_AGE = 60 * 60 * 24 * 30
 # Keep storage in these two helpers so the in-memory prototype can later use Supabase.
 _session_data: dict[str, SchedulePageData] = {}
 
-
+##Build data for testing and prototyping
 def _event(
     event_id: str,
     title: str,
@@ -34,8 +34,8 @@ def _event(
     location: str = "",
     guests: list[str] | None = None,
     favorite: bool = False,
-) -> Activites:
-    return Activites(
+) -> ScheduleEvent:
+    return ScheduleEvent(
         id=event_id,
         title=title,
         days=days,
@@ -80,7 +80,7 @@ def _schedule(
     schedule_id: str,
     name: str,
     color: str,
-    events: list[Classes | Activites],
+    events: list[Classes | ScheduleEvent],
 ) -> Schedule:
     return Schedule(id=schedule_id, name=name, color=color, events=events)
 
@@ -95,7 +95,7 @@ def _user(user_id: int, username: str, schedules: list[Schedule]) -> UserBase:
         schedules=schedules,
     )
 
-
+##Build course from json data
 def _course_presets() -> list[CoursePreset]:
     presets = []
     day_patterns = [
@@ -137,7 +137,7 @@ def _course_presets() -> list[CoursePreset]:
 
     return presets
 
-
+##Default data for testing and prototyping
 def _default_data() -> SchedulePageData:
     user_schedules = [
         _schedule("fall_2026", "Fall 2026", "blue", [
@@ -207,7 +207,7 @@ def _default_data() -> SchedulePageData:
 
 _DEFAULT_DATA = _default_data()
 
-
+#Gets the session data from the request and if it does not exist it will create a new session and return the default data.
 def _get_session_data(request: Request, response: Response) -> SchedulePageData:
     session_id = request.cookies.get(SESSION_COOKIE)
     if not session_id:
@@ -225,10 +225,9 @@ def _get_session_data(request: Request, response: Response) -> SchedulePageData:
         _session_data[session_id] = deepcopy(_DEFAULT_DATA)
     return _session_data[session_id]
 
-
+##Save data to session data by session id
 def _save_session_data(request: Request, data: SchedulePageData) -> None:
     _session_data[request.state.schedule_session_id] = data
-
 
 def _find_current_user(data: SchedulePageData) -> UserBase:
     user = next((item for item in data.users if item.id == data.current_user_id), None)
@@ -346,7 +345,7 @@ def delete_schedule(schedule_id: str, request: Request, response: Response) -> R
 
 @router.post(
     "/schedules/{schedule_id}/events",
-    response_model=Activites,
+    response_model=ScheduleEvent,
     status_code=status.HTTP_201_CREATED,
 )
 def create_event(
@@ -354,10 +353,10 @@ def create_event(
     event: ScheduleEventData,
     request: Request,
     response: Response,
-) -> Activites:
+) -> ScheduleEvent:
     data = _get_session_data(request, response)
     schedule = _find_schedule(data, schedule_id)
-    created = Activites(**event.model_dump())
+    created = ScheduleEvent(**event.model_dump())
     schedule.events.append(created)
     _save_session_data(request, data)
     return created
@@ -392,7 +391,7 @@ def add_course_to_schedule(
 
 @router.put(
     "/schedules/{schedule_id}/events/{event_id}",
-    response_model=Classes | Activites,
+    response_model=Classes | ScheduleEvent,
 )
 def update_event(
     schedule_id: str,
@@ -400,7 +399,7 @@ def update_event(
     event: ScheduleEventData,
     request: Request,
     response: Response,
-) -> Classes | Activites:
+) -> Classes | ScheduleEvent:
     data = _get_session_data(request, response)
     schedule = _find_schedule(data, schedule_id)
     event_index = _find_event(schedule, event_id)
