@@ -3,7 +3,7 @@
 Project Manager: [Achilles Caceres ] ([PapaEmeritusCoder])\
 Communications Lead: [Connor Brito] ([LostCalm2])\
 Git Master:   ([Nihal Mohapatro] )     ([Blaze34536])\
-Design Lead: ([William Bradford ])    ([GitHub Name])\
+Design Lead: ([William Bradford ])    ([wiIIyt])\
 Quality Assurance Tester: ([Ahnaf Chowdhury ])   ([GitHub Name])\
 
 # About Our Software
