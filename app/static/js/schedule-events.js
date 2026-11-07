@@ -1,12 +1,12 @@
 (() => {
 // Render schedule event rows and handle local event form interactions.
 const {
-    createId,
+    apiRequest,
     formatTime,
+    loadScheduleData,
     getSelectedSchedule,
     scheduleColors,
     scheduleState,
-    toMinutes,
     clearError,
     createElement,
     showError,
@@ -16,8 +16,26 @@ const eventRows = document.querySelector("#schedule-event-rows");
 const eventDialog = document.querySelector("#add-event-dialog");
 const eventForm = document.querySelector("#add-event-form");
 const addEventButton = document.querySelector("#add-event-button");
+const courseBrowser = eventForm.querySelector("#course-browser");
+const courseBrowserItems = eventForm.querySelector("#course-browser-items");
+const courseSearch = eventForm.querySelector("#course-search");
+const courseSearchButton = eventForm.querySelector("#course-search-button");
+const courseSearchEmpty = eventForm.querySelector("#course-search-empty");
+const courseAddIcon = eventForm.querySelector("#course-add-icon");
+const eventFields = eventForm.querySelector("#event-fields");
+const createEventButton = eventForm.querySelector("#create-event-button");
 const editEventDialog = document.querySelector("#edit-event-dialog");
 const editEventForm = document.querySelector("#edit-event-form");
+const dayAbbreviations = {
+    Monday: "M",
+    Tuesday: "Tu",
+    Wednesday: "W",
+    Thursday: "Th",
+    Friday: "F",
+    Saturday: "Sa",
+    Sunday: "Su",
+};
+let renderCoursePresets = () => {};
 
 const createEventRow = (schedule, event) => {
     const color = scheduleColors[schedule.color];
@@ -72,48 +90,134 @@ const renderEventRows = () => {
     selectedSchedule.events.forEach((event) => eventRows.append(createEventRow(selectedSchedule, event)));
 };
 
-const validateEventForm = (form, formData, errorElement) => {
-    // Check cross-field rules that native form validation cannot express.
-    if (formData.getAll("days").length === 0) {
-        showError(errorElement, "Select at least one day.");
-        return false;
-    }
-    if (toMinutes(formData.get("end")) <= toMinutes(formData.get("start"))) {
-        showError(errorElement, "End time must be after start time.");
-        return false;
-    }
+const validateEventForm = (form) => {
     return form.reportValidity();
 };
 
-const getEventFormData = (formData) => ({
+const getEventFormPayload = (formData) => ({
     title: String(formData.get("title")).trim(),
     days: formData.getAll("days"),
     start: String(formData.get("start")),
     end: String(formData.get("end")),
     location: String(formData.get("location") || "").trim(),
-    guests: String(formData.get("guests") || "").split(",").map((guest) => guest.trim()).filter(Boolean),
+    guests: String(formData.get("guests") || ""),
     favorite: formData.has("favorite"),
 });
 
+const setEventFormMode = (mode) => {
+    const isCourse = mode === "course";
+    eventForm.dataset.mode = mode;
+    courseBrowser.classList.toggle("hidden", !isCourse);
+    eventFields.classList.toggle("hidden", isCourse);
+    createEventButton.classList.toggle("hidden", isCourse);
+    courseSearch.value = "";
+    renderCoursePresets("");
+};
+
 const initializeEventForms = (renderSchedule) => {
+    let courseSearchSequence = 0;
+    renderCoursePresets = async (query) => {
+        const requestSequence = ++courseSearchSequence;
+        const errorElement = eventForm.querySelector("[data-form-error]");
+        clearError(errorElement);
+        courseBrowserItems.replaceChildren();
+        try {
+            const courses = await apiRequest(
+                `/api/course-presets?query=${encodeURIComponent(query.trim())}`,
+            );
+            if (requestSequence !== courseSearchSequence) {
+                return;
+            }
+            courses.forEach((course) => {
+            const row = createElement("div", "course-item flex flex-row items-center justify-between gap-15 border-b border-neutrals-100 px-6 py-3 transition-colors hover:bg-yellow-50");
+            const info = createElement("div", "course-info flex h-fit min-w-0 flex-col gap-2");
+            info.append(createElement("p", "text-md font-semibold text-neutrals-900", course.title));
+            const details = createElement("div", "flex flex-row flex-wrap gap-2 text-sm text-neutrals-400");
+            details.append(
+                createElement("span", "", course.semester),
+                createElement("span", "", "|"),
+                createElement("span", "", course.professor),
+                createElement("span", "", "|"),
+                createElement("span", "font-semibold text-purple-600", course.enrollment),
+            );
+            const meetingDetails = createElement("div", "flex flex-row flex-wrap gap-2 text-sm text-yellow-700");
+            meetingDetails.append(
+                createElement("span", "", course.days.map((day) => dayAbbreviations[day]).join("")),
+                createElement("span", "", "|"),
+                createElement("span", "", `${formatTime(course.start)} - ${formatTime(course.end)}`),
+            );
+            info.append(details, meetingDetails);
+            const addButton = createElement("button", "add-course-btn flex h-fit shrink-0 cursor-pointer flex-row items-center justify-center gap-2 rounded-md bg-purple-500 px-3 py-2 font-semibold text-neutrals-0 transition-colors hover:bg-purple-600");
+            addButton.type = "button";
+            addButton.append(
+                courseAddIcon.content.firstElementChild.cloneNode(true),
+                document.createTextNode(" Add Course"),
+            );
+            addButton.addEventListener("click", async () => {
+                try {
+                    await apiRequest(`/api/schedules/${encodeURIComponent(scheduleState.selectedScheduleId)}/courses`, {
+                        method: "POST",
+                        body: JSON.stringify({ courseId: course.courseId }),
+                    });
+                    await loadScheduleData();
+                    eventDialog.close();
+                    renderSchedule();
+                } catch (error) {
+                    showError(errorElement, error.message);
+                }
+            });
+            row.append(info, addButton);
+            courseBrowserItems.append(row);
+            });
+            courseSearchEmpty.classList.toggle("hidden", courses.length > 0);
+        } catch (error) {
+            if (requestSequence !== courseSearchSequence) {
+                return;
+            }
+            showError(errorElement, error.message);
+            courseSearchEmpty.classList.remove("hidden");
+        }
+    };
+
+    courseSearch.addEventListener("input", () => {
+        renderCoursePresets(courseSearch.value);
+    });
+    courseSearchButton.addEventListener("click", () => {
+        renderCoursePresets(courseSearch.value);
+    });
+
+    const courseModeToggle = eventForm.querySelector('input[name="entry-mode"]');
+    courseModeToggle.addEventListener("change", () => {
+        setEventFormMode(courseModeToggle.checked ? "course" : "event");
+    });
+
     addEventButton.addEventListener("click", () => {
         eventForm.reset();
+        setEventFormMode("event");
         clearError(eventForm.querySelector("[data-form-error]"));
         eventDialog.showModal();
     });
 
-    eventForm.addEventListener("submit", (submitEvent) => {
+    eventForm.addEventListener("submit", async (submitEvent) => {
         submitEvent.preventDefault();
         const errorElement = eventForm.querySelector("[data-form-error]");
         clearError(errorElement);
         const formData = new FormData(eventForm);
-        if (!validateEventForm(eventForm, formData, errorElement)) {
+        if (!validateEventForm(eventForm)) {
             return;
         }
-        // Event changes are held in the shared JavaScript sample state, not sent to a backend.
-        getSelectedSchedule().events.push({ id: createId("event"), ...getEventFormData(formData) });
-        eventDialog.close();
-        renderSchedule();
+        try {
+            const schedule = getSelectedSchedule();
+            await apiRequest(`/api/schedules/${encodeURIComponent(schedule.id)}/events`, {
+                method: "POST",
+                body: JSON.stringify(getEventFormPayload(formData)),
+            });
+            await loadScheduleData();
+            eventDialog.close();
+            renderSchedule();
+        } catch (error) {
+            showError(errorElement, error.message);
+        }
     });
 
     eventRows.addEventListener("click", (clickEvent) => {
@@ -139,37 +243,44 @@ const initializeEventForms = (renderSchedule) => {
         editEventDialog.showModal();
     });
 
-    editEventForm.addEventListener("submit", (submitEvent) => {
+    editEventForm.addEventListener("submit", async (submitEvent) => {
         submitEvent.preventDefault();
         const errorElement = editEventForm.querySelector("[data-form-error]");
         clearError(errorElement);
         const formData = new FormData(editEventForm);
-        if (!validateEventForm(editEventForm, formData, errorElement)) {
+        if (!validateEventForm(editEventForm)) {
             return;
         }
-        const selectedSchedule = getSelectedSchedule();
-        const eventIndex = selectedSchedule.events.findIndex((event) => event.id === scheduleState.editingEventId);
-        if (eventIndex === -1) {
-            showError(errorElement, "This event is no longer available.");
-            return;
+        try {
+            const schedule = getSelectedSchedule();
+            await apiRequest(`/api/schedules/${encodeURIComponent(schedule.id)}/events/${encodeURIComponent(scheduleState.editingEventId)}`, {
+                method: "PUT",
+                body: JSON.stringify(getEventFormPayload(formData)),
+            });
+            await loadScheduleData();
+            editEventDialog.close();
+            renderSchedule();
+        } catch (error) {
+            showError(errorElement, error.message);
         }
-        selectedSchedule.events[eventIndex] = { id: scheduleState.editingEventId, ...getEventFormData(formData) };
-        editEventDialog.close();
-        renderSchedule();
     });
 
-    editEventForm.querySelector("[data-remove-event]").addEventListener("click", () => {
+    editEventForm.querySelector("[data-remove-event]").addEventListener("click", async () => {
         const selectedSchedule = getSelectedSchedule();
-        const eventIndex = selectedSchedule.events.findIndex((event) => event.id === scheduleState.editingEventId);
-        if (eventIndex === -1) {
+        const event = selectedSchedule.events.find((item) => item.id === scheduleState.editingEventId);
+        if (!event || !window.confirm(`Remove "${event.title}"?`)) {
             return;
         }
-        if (!window.confirm(`Remove "${selectedSchedule.events[eventIndex].title}"?`)) {
-            return;
+        try {
+            await apiRequest(`/api/schedules/${encodeURIComponent(selectedSchedule.id)}/events/${encodeURIComponent(event.id)}`, {
+                method: "DELETE",
+            });
+            await loadScheduleData();
+            editEventDialog.close();
+            renderSchedule();
+        } catch (error) {
+            showError(editEventForm.querySelector("[data-form-error]"), error.message);
         }
-        selectedSchedule.events.splice(eventIndex, 1);
-        editEventDialog.close();
-        renderSchedule();
     });
 };
 

@@ -10,6 +10,7 @@ from markupsafe import Markup
 from tiger_models import *
 from pathlib import Path
 import tiger_catalog
+import tiger_scheduler
 
 import tiger_auth  # Import by using filename. 
 import tiger_gpa
@@ -36,6 +37,7 @@ app.include_router(tiger_auth.router)
 app.include_router(tiger_gpa.router)
 app.include_router(tiger_catalog.router)
 app.include_router(tiger_prerequisites.router)
+app.include_router(tiger_scheduler.router)
 
 @app.get("/health")
 def health():
