@@ -34,6 +34,10 @@ def test_cumulative_gpa_320_example():
         time="2026-11-06T10:00:00",
         weekdays=["M"],
         category="core",
+        title="Computer Science",
+        days=["Monday"],
+        start="10:00",
+        end="13:00",
     )
     request = CumulativeGPARequest(
         currentGPA=3.0,
