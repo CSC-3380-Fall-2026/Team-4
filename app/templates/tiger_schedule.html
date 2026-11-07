@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Schedules</title>
+    <link rel="stylesheet" href="/static/tiger_theme.css">
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/profile-page">Profile</a>
+        <a href="#" id="logout">Log out</a>
+    </nav>
+    <h1>Saved Schedules</h1>
+    <ul id="list"></ul>
+    <h2 id="form-title">New schedule</h2>
+    <form id="schedule-form">
+        <label>Name <input id="name" required></label>
+        <label>Semester <input id="semester" placeholder="Fall 2026" required></label>
+        <label>Sections (JSON list)
+            <textarea id="sections" rows="6">[]</textarea>
+        </label>
+        <label>Recurring commitments (JSON list)
+            <textarea id="commitments" rows="4">[]</textarea>
+        </label>
+        <button type="submit">Save</button>
+        <button type="button" id="reset">New</button>
+    </form>
+    <p id="message"></p>
+    <script>
+        const token = localStorage.getItem("token");
+        if (!token) window.location = "/signin";
+        const auth = {"Authorization": "Bearer " + token};
+        const msg = document.getElementById("message");
+        let editingId = null;
+
+        function unauthorized(res) {
+            if (res.status !== 401) return false;
+            localStorage.removeItem("token");
+            window.location = "/signin";
+            return true;
+        }
+
+        function resetForm() {
+            editingId = null;
+            document.getElementById("form-title").textContent = "New schedule";
+            document.getElementById("schedule-form").reset();
+            document.getElementById("sections").value = "[]";
+            document.getElementById("commitments").value = "[]";
+        }
+
+        async function refresh() {
+            const res = await fetch("/schedules", {headers: auth});
+            if (unauthorized(res)) return;
+            const list = document.getElementById("list");
+            list.innerHTML = "";
+            for (const s of await res.json()) {
+                const li = document.createElement("li");
+                li.textContent = s.name + " (" + s.semester + ") ";
+                const open = document.createElement("button");
+                open.textContent = "Open";
+                open.onclick = () => openSchedule(s.id);
+                const del = document.createElement("button");
+                del.textContent = "Delete";
+                del.onclick = () => removeSchedule(s.id);
+                li.append(open, del);
+                list.append(li);
+            }
+        }
+
+        async function openSchedule(id) {
+            const res = await fetch("/schedules/" + id, {headers: auth});
+            if (unauthorized(res) || !res.ok) return;
+            const s = await res.json();
+            editingId = s.id;
+            document.getElementById("form-title").textContent = "Edit schedule";
+            document.getElementById("name").value = s.name;
+            document.getElementById("semester").value = s.semester;
+            document.getElementById("sections").value = JSON.stringify(s.sections, null, 2);
+            document.getElementById("commitments").value = JSON.stringify(s.commitments, null, 2);
+        }
+
+        async function removeSchedule(id) {
+            const res = await fetch("/schedules/" + id, {method: "DELETE", headers: auth});
+            if (unauthorized(res)) return;
+            if (editingId === id) resetForm();
+            refresh();
+        }
+
+        document.getElementById("schedule-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            let body;
+            try {
+                body = {
+                    name: document.getElementById("name").value,
+                    semester: document.getElementById("semester").value,
+                    sections: JSON.parse(document.getElementById("sections").value),
+                    commitments: JSON.parse(document.getElementById("commitments").value)
+                };
+            } catch (err) { msg.textContent = "Sections and commitments must be valid JSON."; return; }
+            const res = await fetch(editingId ? "/schedules/" + editingId : "/schedules", {
+                method: editingId ? "PUT" : "POST",
+                headers: {...auth, "Content-Type": "application/json"},
+                body: JSON.stringify(body)
+            });
+            if (unauthorized(res)) return;
+            msg.textContent = res.ok ? "Saved." : "Could not save schedule.";
+            if (res.ok) { if (!editingId) resetForm(); refresh(); }
+        });
+
+        document.getElementById("reset").addEventListener("click", resetForm);
+        document.getElementById("logout").addEventListener("click", async (e) => {
+            e.preventDefault();
+            await fetch("/logout", {method: "POST", headers: auth});
+            localStorage.removeItem("token");
+            window.location = "/signin";
+        });
+
+        refresh();
+    </script>
+</body>
+</html>

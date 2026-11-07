@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="/static/tiger_theme.css">
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/schedule-page">Schedules</a>
+        <a href="#" id="logout">Log out</a>
+    </nav>
+    <h1>Profile</h1>
+    <form id="profile-form">
+        <p id="email"></p>
+        <label>Username <input id="username"></label>
+        <label>GPA <input id="gpa" type="number" step="0.01" min="0" max="4.3"></label>
+        <label>Completed courses (one per line, e.g. CSC 3380)
+            <textarea id="courses" rows="6"></textarea>
+        </label>
+        <button type="submit">Save</button>
+    </form>
+    <p id="message"></p>
+    <script>
+        const token = localStorage.getItem("token");
+        if (!token) window.location = "/signin";
+        const auth = {"Authorization": "Bearer " + token};
+        const msg = document.getElementById("message");
+
+        async function load() {
+            const res = await fetch("/profile", {headers: auth});
+            if (res.status === 401) { localStorage.removeItem("token"); window.location = "/signin"; return; }
+            const p = await res.json();
+            document.getElementById("email").textContent = p.email;
+            document.getElementById("username").value = p.username || "";
+            document.getElementById("gpa").value = p.gpa ?? "";
+            document.getElementById("courses").value = (p.courses || []).join("\n");
+        }
+
+        document.getElementById("profile-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const gpa = document.getElementById("gpa").value;
+            const res = await fetch("/profile", {
+                method: "PUT",
+                headers: {...auth, "Content-Type": "application/json"},
+                body: JSON.stringify({
+                    username: document.getElementById("username").value || null,
+                    gpa: gpa === "" ? null : parseFloat(gpa),
+                    courses: document.getElementById("courses").value
+                        .split("\n").map(s => s.trim()).filter(Boolean)
+                })
+            });
+            msg.textContent = res.ok ? "Saved." : "Could not save profile.";
+        });
+
+        document.getElementById("logout").addEventListener("click", async (e) => {
+            e.preventDefault();
+            await fetch("/logout", {method: "POST", headers: auth});
+            localStorage.removeItem("token");
+            window.location = "/signin";
+        });
+
+        load();
+    </script>
+</body>
+</html>

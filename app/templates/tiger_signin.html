@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In</title>
+    <link rel="stylesheet" href="/static/tiger_theme.css">
+</head>
+<body>
+    <nav><a href="/">Home</a></nav>
+    <h1>Tiger Class Drive</h1>
+    <form id="auth-form">
+        <label>Email <input type="email" id="email" required></label>
+        <label>Password <input type="password" id="password" required minlength="6"></label>
+        <button type="submit" data-action="login">Log in</button>
+        <button type="submit" data-action="signup">Create account</button>
+    </form>
+    <p id="message"></p>
+    <script>
+        let action = "login";
+        document.querySelectorAll("button").forEach(b =>
+            b.addEventListener("click", () => action = b.dataset.action));
+        document.getElementById("auth-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById("message");
+            const res = await fetch("/" + action, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    email: document.getElementById("email").value,
+                    password: document.getElementById("password").value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { msg.textContent = data.detail || "Something went wrong"; return; }
+            if (data.access_token) {
+                localStorage.setItem("token", data.access_token);
+                window.location = "/profile-page";
+            } else {
+                msg.textContent = "Account created. Confirm your email, then log in.";
+            }
+        });
+    </script>
+</body>
+</html>
