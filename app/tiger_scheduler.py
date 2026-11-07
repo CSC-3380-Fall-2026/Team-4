@@ -15,6 +15,10 @@ from tiger_models import (
     ScheduleEventData,
     ScheduleMetrics,
     SchedulePageData,
+    SharedFreeTimeDay,
+    SharedFreeTimePeriod,
+    SharedFreeTimeRequest,
+    SharedFreeTimeResponse,
     UserBase,
 )
 
@@ -252,6 +256,30 @@ def _find_event(schedule: Schedule, event_id: str) -> int:
         raise HTTPException(status_code=404, detail="Event not found.")
     return index
 
+#Check for confliction schedule conflicts, raise error if so
+def _ensure_no_schedule_conflicts(
+    schedule: Schedule,
+    proposed_event: ScheduleEventData,
+    exclude_event_id: str | None = None,
+) -> None:
+    conflicting_names = [
+        event.title
+        for event in schedule.events
+        if event.id != exclude_event_id
+        and set(proposed_event.days).intersection(event.days)
+        and proposed_event.start < event.end
+        and event.start < proposed_event.end
+    ]
+    if conflicting_names:
+        event_names = list(dict.fromkeys([proposed_event.title, *conflicting_names]))
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "schedule_conflict",
+                "event_names": event_names,
+            },
+        )
+
 
 def calculate_schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
     weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -279,9 +307,103 @@ def get_schedule_page_data(data: SchedulePageData) -> SchedulePageData:
     return result
 
 
+def _time_to_minutes(value: str) -> int:
+    hours, minutes = map(int, value.split(":"))
+    return hours * 60 + minutes
+
+
+def _minutes_to_time(value: int) -> str:
+    return f"{value // 60:02}:{value % 60:02}"
+
+#Calculates free time shared between two users between their two schedules given a time range and minimum duration, Returns a list of days with available free time periods
+def calculate_shared_free_time(
+    current_user: UserBase,
+    friend: UserBase,
+    start_time: str,
+    end_time: str,
+    minimum_duration: int,
+) -> SharedFreeTimeResponse:
+    range_start = _time_to_minutes(start_time)
+    range_end = _time_to_minutes(end_time)
+    events = [
+        event
+        for user in (current_user, friend)
+        for schedule in user.schedules
+        for event in schedule.events
+    ]
+    weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    available_days = []
+
+    for day in weekdays:
+        busy_intervals = sorted(
+            (
+                max(_time_to_minutes(event.start), range_start),
+                min(_time_to_minutes(event.end), range_end),
+            )
+            for event in events
+            if day in event.days
+            and _time_to_minutes(event.end) > range_start
+            and _time_to_minutes(event.start) < range_end
+        )
+        merged_intervals: list[tuple[int, int]] = []
+        for interval_start, interval_end in busy_intervals:
+            if merged_intervals and interval_start <= merged_intervals[-1][1]:
+                previous_start, previous_end = merged_intervals[-1]
+                merged_intervals[-1] = (previous_start, max(previous_end, interval_end))
+            else:
+                merged_intervals.append((interval_start, interval_end))
+
+        periods: list[SharedFreeTimePeriod] = []
+        cursor = range_start
+        for interval_start, interval_end in merged_intervals:
+            if interval_start - cursor >= minimum_duration:
+                periods.append(
+                    SharedFreeTimePeriod(
+                        start=_minutes_to_time(cursor),
+                        end=_minutes_to_time(interval_start),
+                    ),
+                )
+            cursor = max(cursor, interval_end)
+        if range_end - cursor >= minimum_duration:
+            periods.append(
+                SharedFreeTimePeriod(
+                    start=_minutes_to_time(cursor),
+                    end=_minutes_to_time(range_end),
+                ),
+            )
+        if periods:
+            available_days.append(SharedFreeTimeDay(day=day, periods=periods))
+
+    return SharedFreeTimeResponse(days=available_days)
+
+
 @router.get("/schedule-data", response_model=SchedulePageData)
 def get_schedule_data(request: Request, response: Response) -> SchedulePageData:
     return get_schedule_page_data(_get_session_data(request, response))
+
+
+@router.post("/shared-free-time", response_model=SharedFreeTimeResponse)
+def get_shared_free_time(
+    query: SharedFreeTimeRequest,
+    request: Request,
+    response: Response,
+) -> SharedFreeTimeResponse:
+    data = _get_session_data(request, response)
+    current_user = _find_current_user(data)
+    friend = next(
+        (user for user in data.users if user.username == query.friend_username),
+        None,
+    )
+    if friend is None or friend.id == current_user.id:
+        raise HTTPException(status_code=404, detail="Friend not found.")
+
+    return calculate_shared_free_time(
+        current_user,
+        friend,
+        query.start_time,
+        query.end_time,
+        query.minimum_duration,
+    )
 
 
 @router.get("/course-presets", response_model=list[CoursePreset])
@@ -357,6 +479,7 @@ def create_event(
     data = _get_session_data(request, response)
     schedule = _find_schedule(data, schedule_id)
     created = ScheduleEvent(**event.model_dump())
+    _ensure_no_schedule_conflicts(schedule, created)
     schedule.events.append(created)
     _save_session_data(request, data)
     return created
@@ -384,6 +507,7 @@ def add_course_to_schedule(
     event = Classes(**course.model_dump(
         exclude={"id", "course_id", "professor", "enrollment", "section_details", "credit"},
     ))
+    _ensure_no_schedule_conflicts(schedule, event)
     schedule.events.append(event)
     _save_session_data(request, data)
     return event
@@ -411,6 +535,7 @@ def update_event(
             "id": event_id,
         },
     )
+    _ensure_no_schedule_conflicts(schedule, updated, exclude_event_id=event_id)
     schedule.events[event_index] = updated
     _save_session_data(request, data)
     return updated

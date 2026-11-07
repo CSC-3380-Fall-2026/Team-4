@@ -8,7 +8,10 @@ const {
     scheduleColors,
     scheduleState,
     clearError,
+    clearScheduleNotice,
     createElement,
+    showScheduleConflict,
+    showScheduleSuccess,
     showError,
 } = window.SchedulePrototype;
 
@@ -26,6 +29,7 @@ const eventFields = eventForm.querySelector("#event-fields");
 const createEventButton = eventForm.querySelector("#create-event-button");
 const editEventDialog = document.querySelector("#edit-event-dialog");
 const editEventForm = document.querySelector("#edit-event-form");
+const scheduleNotice = document.querySelector("#schedule-notice");
 const dayAbbreviations = {
     Monday: "M",
     Tuesday: "Tu",
@@ -36,6 +40,14 @@ const dayAbbreviations = {
     Sunday: "Su",
 };
 let renderCoursePresets = () => {};
+
+const showEventError = (element, error) => {
+    if (error.code === "schedule_conflict" && Array.isArray(error.eventNames)) {
+        showScheduleConflict(scheduleNotice, error.eventNames);
+        return;
+    }
+    showError(element, error.message);
+};
 
 const createEventRow = (schedule, event) => {
     const color = scheduleColors[schedule.color];
@@ -155,15 +167,16 @@ const initializeEventForms = (renderSchedule) => {
             );
             addButton.addEventListener("click", async () => {
                 try {
-                    await apiRequest(`/api/schedules/${encodeURIComponent(scheduleState.selectedScheduleId)}/courses`, {
+                    const createdEvent = await apiRequest(`/api/schedules/${encodeURIComponent(scheduleState.selectedScheduleId)}/courses`, {
                         method: "POST",
                         body: JSON.stringify({ courseId: course.courseId }),
                     });
                     await loadScheduleData();
                     eventDialog.close();
                     renderSchedule();
+                    showScheduleSuccess(scheduleNotice, createdEvent.title);
                 } catch (error) {
-                    showError(errorElement, error.message);
+                    showEventError(errorElement, error);
                 }
             });
             row.append(info, addButton);
@@ -192,6 +205,7 @@ const initializeEventForms = (renderSchedule) => {
     });
 
     addEventButton.addEventListener("click", () => {
+        clearScheduleNotice(scheduleNotice);
         eventForm.reset();
         setEventFormMode("event");
         clearError(eventForm.querySelector("[data-form-error]"));
@@ -208,15 +222,16 @@ const initializeEventForms = (renderSchedule) => {
         }
         try {
             const schedule = getSelectedSchedule();
-            await apiRequest(`/api/schedules/${encodeURIComponent(schedule.id)}/events`, {
+            const createdEvent = await apiRequest(`/api/schedules/${encodeURIComponent(schedule.id)}/events`, {
                 method: "POST",
                 body: JSON.stringify(getEventFormPayload(formData)),
             });
             await loadScheduleData();
             eventDialog.close();
             renderSchedule();
+            showScheduleSuccess(scheduleNotice, createdEvent.title);
         } catch (error) {
-            showError(errorElement, error.message);
+            showEventError(errorElement, error);
         }
     });
 
@@ -239,6 +254,7 @@ const initializeEventForms = (renderSchedule) => {
         editEventForm.querySelectorAll('input[name="days"]').forEach((input) => {
             input.checked = event.days.includes(input.value);
         });
+        clearScheduleNotice(scheduleNotice);
         clearError(editEventForm.querySelector("[data-form-error]"));
         editEventDialog.showModal();
     });
@@ -261,7 +277,7 @@ const initializeEventForms = (renderSchedule) => {
             editEventDialog.close();
             renderSchedule();
         } catch (error) {
-            showError(errorElement, error.message);
+            showEventError(errorElement, error);
         }
     });
 
@@ -279,7 +295,7 @@ const initializeEventForms = (renderSchedule) => {
             editEventDialog.close();
             renderSchedule();
         } catch (error) {
-            showError(editEventForm.querySelector("[data-form-error]"), error.message);
+            showEventError(editEventForm.querySelector("[data-form-error]"), error);
         }
     });
 };
