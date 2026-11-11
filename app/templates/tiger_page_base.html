@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <title>{{ page_title }} | Tiger Class Drive</title>
+
+        <link href="{{ url_for('static', path='/css/ap.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', path='/tiger_pages.css') }}" rel="stylesheet">
+
+        <link rel=""preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+        <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+        </head>
+        <body class="tiger-pages">
+            {% include "components/dashboard_nav.html" %}
+
+            <main id="workspace">
+                <header id="top-bar">
+                    <h1>{{ page_title }}</h1>
+                </header>
+
+                <div id="content">
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+        </body>
+        </html>
+        

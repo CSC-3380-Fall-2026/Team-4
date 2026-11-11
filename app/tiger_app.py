@@ -1,7 +1,7 @@
 """Start FastAPI and connect page routes, templates, and static files."""
 """PLEASE set up a .VENV look under # How to Run Dev and Test Environment in the README.md"""
-from fastapi import FastAPI, Request
-from fastapi.responses import Response, HTMLResponse
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import Response, HTMLResponse, RedirectResponse 
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from datetime import datetime, timedelta
@@ -86,6 +86,40 @@ async def get_calendar(request: Request):
 async def root(request: Request):
     return render_page(request, "tiger_planner.html")
 
+#Catalog
+@app.get("/catalog", response_class=HTMLResponse)
+def catalog_page(request: Request, query: str ="", category: str = "",) -> Response: 
+    """Display courses matching the submitted search and category."""
+
+    query = query.strip()
+    category = category.strip()
+
+    courses: list[dict[str, object]]= []
+    categories: list[str] = []
+    error: str = ""
+    status_code: int = 200
+
+    try:
+        categories = sorted({course["category"] for course in tiger_catalog.load_courses()})
+
+        if len(query) > 100:
+            error = "Keep the search to 100 characters or fewer please."
+            status_code = 400
+
+        elif category and category not in categories:
+            error = "Choose a category from the dropdown."
+            category = ""
+            status_code = 400
+
+        else:
+            courses = tiger_catalog.search_courses(query=query, category=category)
+
+    except HTTPException:
+        error = ("Sorry, the course catalog could not be loaded." "Please try again later :).")
+        status_code = 500
+    return render_page(request, "tiger_catalog.html", courses=courses, categories=categories, query=query, category=category, error = error, status_code=status_code,)
+
+
 #Friends
 @app.get("/friends", response_class=HTMLResponse)
 async def root(request: Request):
@@ -93,8 +127,30 @@ async def root(request: Request):
 
 #Profile
 @app.get("/profile", response_class=HTMLResponse)
-async def root(request: Request):
-    return render_page(request, "tiger_profile.html")
+async def root(request: Request) -> Response:
+    """Display the vertified student's profile without allowing edits."""
+
+    profile: dict[str, object] | None = None
+    profile_error: bool = False
+
+    try:
+        profile = tiger_auth.load_profile(request)
+
+    except HTTPException:
+        profile_error = True
+
+    if profile is None and not profile_error:
+        response: Response = RedirectResponse (url = "/login", status_code=303,)
+
+    else:
+
+        response = render_page(request, "tiger_profile.html", profile=profile, profile_error = profile_error)
+
+        response.status_code = 503 if profile_error else 200
+
+        response.header["Cache-Control"] = "no-store"
+
+        return response 
 
 # Icons
 @app.get("/icons/{icon_name}")

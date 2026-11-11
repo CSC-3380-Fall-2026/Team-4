@@ -1,0 +1,9 @@
+{% macro show_message(kind, title, text, link_url="", link_text="") %}
+<section class="page-message message-{{ kind }}" {%if kind == "error"%}role="alert" {% elif kind == "success" %}role="status" {% endif %}>
+    <strong>{{ title }}</strong>
+    <p>{{ text }}</p>
+    {% if link_url and link_text %}
+        <a href="{{ link_url }}"">{{ link_text }}</a>
+    {% endif %}
+</section>
+{% endmacro %}
