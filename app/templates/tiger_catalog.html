@@ -1,0 +1,95 @@
+{% extends "tiger_page_base.html" %}
+{% from "components/page_message.html" import show_message %}
+{% set page_title = "Course Catalog" %}
+
+{% block content %}
+<section class="page-card">
+    <h2>Find a course</h2>
+
+    <form action="/catalog" method="get" class="catalog-form">
+        <div class="form-field">
+            <label for="query">Course code or name</label>
+            <input
+                id="query"
+                name="query"
+                type="search"
+                maxlength="100"
+                value="{{ query }}"
+                placeholder="Example: CSC 1350"
+            >
+        </div>
+
+        <div class="form-field">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+                <option value="">All categories</option>
+
+                {% for item in categories %}
+                    <option value="{{ item }}"
+                        {% if item == category %}selected{% endif %}>
+                        {{ item }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="page-button">Search</button>
+        <a href="/catalog" class="page-link">Clear filters</a>
+    </form>
+</section>
+
+{% if error %}
+    {{ show_message(
+        "error",
+        "Search could not be completed",
+        error,
+        "/catalog",
+        "Try again"
+    ) }}
+{% elif not courses %}
+    {{ show_message(
+        "empty",
+        "No matching courses.",
+        "Try a different course code or name, or clear the category filter.",
+        "/catalog",
+        "Clear filters"
+    ) }}
+{% else %}
+    {% if query or category %}
+        {{ show_message(
+            "success",
+            "Search complete",
+            (courses | length) ~ " course(s) match your search."
+        ) }}
+    {% endif %}
+
+    <section class="page-card">
+        <h2>Course results</h2>
+
+        <div class="table-scroll"
+            role="region"
+            aria-label="Course results"
+            tabindex="0">
+
+            <table class="page-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Code</th>
+                        <th scope="col">Course</th>
+                        <th scope="col">Credits</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in courses %}
+                        <tr>
+                            <td>{{ course.course_code }}</td>
+                            <td>{{ course.course_name }}</td>
+                            <td>{{ course.credits }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endif %}
+{% endblock %}
