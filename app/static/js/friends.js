@@ -1,6 +1,6 @@
 (() => {
     // Keep friend requests, sharing controls, and schedule comparison local to this page.
-    const { scheduleState, getUserById, loadScheduleData } = window.SchedulePrototype;
+    const { apiRequest, scheduleState, getUserById, loadScheduleData } = window.SchedulePrototype;
     const searchMessage = document.querySelector("#friend-search-message");
     loadScheduleData().then(initializeFriends).catch((error) => {
         searchMessage.textContent = error.message;
@@ -52,6 +52,11 @@
     const noScheduleViewers = document.querySelector("#no-schedule-viewers");
     const sharingStatus = document.querySelector("#sharing-status");
     const compareFriendPicker = document.querySelector("#compare-friend-picker");
+    const freeTimeStart = document.querySelector("#free-time-start");
+    const freeTimeEnd = document.querySelector("#free-time-end");
+    const minimumFreeDuration = document.querySelector("#minimum-free-duration");
+    const freePeriods = document.querySelector("#free-periods");
+    let freeTimeRequestSequence = 0;
     const makeElement = (tag, classes, text) => {
         const element = document.createElement(tag);
         element.className = classes;
@@ -59,6 +64,86 @@
             element.textContent = text;
         }
         return element;
+    };
+
+    const formatTime = (time) => {
+        const [hours, minutes] = time.split(":").map(Number);
+        const period = hours < 12 ? "AM" : "PM";
+        return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")} ${period}`;
+    };
+
+    const formatDuration = (start, end) => {
+        const toMinutes = (time) => {
+            const [hours, minutes] = time.split(":").map(Number);
+            return hours * 60 + minutes;
+        };
+        const duration = toMinutes(end) - toMinutes(start);
+        const hours = Math.floor(duration / 60);
+        const minutes = duration % 60;
+        if (hours === 0) {
+            return `${minutes} min`;
+        }
+        return minutes === 0 ? `${hours} hr` : `${hours} hr ${minutes} min`;
+    };
+    
+    const renderFreePeriods = async () => {
+        const requestSequence = ++freeTimeRequestSequence;
+        if (!state.selectedFriend) {
+            freePeriods.replaceChildren();
+            freePeriods.className = "rounded-md border border-dashed border-neutrals-200 bg-neutrals-50 p-4 text-sm text-neutrals-400";
+            freePeriods.textContent = "Add a friend to compare shared free time.";
+            return;
+        }
+
+        try {
+            const result = await apiRequest("/api/shared-free-time", {
+                method: "POST",
+                body: JSON.stringify({
+                    friendUsername: state.selectedFriend,
+                    startTime: freeTimeStart.value,
+                    endTime: freeTimeEnd.value,
+                    minimumDuration: Number(minimumFreeDuration.value),
+                }),
+            });
+            if (requestSequence !== freeTimeRequestSequence) {
+                return;
+            }
+            if (result.days.length === 0) {
+                freePeriods.replaceChildren();
+                freePeriods.className = "rounded-md border border-dashed border-neutrals-200 bg-neutrals-50 p-4 text-sm text-neutrals-400";
+                freePeriods.textContent = `No shared free periods of at least ${minimumFreeDuration.value} minutes within the selected hours.`;
+                return;
+            }
+
+            const list = makeElement("div", "grid gap-2");
+            result.days.forEach(({ day, periods }) => {
+                const daySection = makeElement("section", "grid gap-1");
+                daySection.append(makeElement("h5", "text-xs font-bold text-neutrals-700", day));
+                const periodList = makeElement("ul", "flex flex-wrap gap-1.5");
+                periods.forEach(({ start, end }) => {
+                    const period = makeElement(
+                        "li",
+                        "inline-flex items-center gap-1.5 rounded-md border border-neutrals-100 bg-neutrals-0 px-2 py-1",
+                    );
+                    period.append(
+                        makeElement("span", "size-1.5 shrink-0 rounded-full bg-purple-500"),
+                        makeElement("span", "text-xs font-bold text-neutrals-900", `${formatTime(start)} - ${formatTime(end)}`),
+                        makeElement("span", "text-xs text-neutrals-400", formatDuration(start, end)),
+                    );
+                    periodList.append(period);
+                });
+                daySection.append(periodList);
+                list.append(daySection);
+            });
+            freePeriods.className = "grid gap-2 rounded-md border border-neutrals-200 bg-neutrals-0 p-2.5";
+            freePeriods.replaceChildren(list);
+        } catch (error) {
+            if (requestSequence !== freeTimeRequestSequence) {
+                return;
+            }
+            freePeriods.className = "rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-600";
+            freePeriods.textContent = error.message;
+        }
     };
 
     const displayName = (username) => {
@@ -262,6 +347,7 @@
         renderViewers();
         renderComparePicker();
         renderCalendar();
+        renderFreePeriods();
     };
 
     friendForm.addEventListener("submit", (submitEvent) => {
@@ -315,7 +401,13 @@
     compareFriendPicker.addEventListener("change", () => {
         state.selectedFriend = compareFriendPicker.value;
         renderCalendar();
+        renderFreePeriods();
     });
+    [freeTimeStart, freeTimeEnd].forEach((input) => {
+        input.addEventListener("input", renderFreePeriods);
+        input.addEventListener("change", renderFreePeriods);
+    });
+    minimumFreeDuration.addEventListener("change", renderFreePeriods);
     renderAll();
     scrollCalendarToFirstEvent();
     }
