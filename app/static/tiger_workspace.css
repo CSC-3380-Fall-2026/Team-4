@@ -11,7 +11,7 @@
 .tiger-workspace h1, .tiger-workspace h2, .tiger-workspace p { margin: 0; }
 .tiger-workspace h1 { font-size: 1.125rem; font-weight: 700; }
 .tiger-workspace h2 { font-size: 1.1rem; font-weight: 700; }
-.tiger-workspace button, .tiger-workspace input, .tiger-workspace select { font: inherit; }
+.tiger-workspace button, .tiger-workspace input, .tiger-workspace select, .tiger-workspace textarea { font: inherit; }
 .dashboard-nav {
     position: fixed;
     top: 0;
@@ -74,7 +74,7 @@
 .field-grid, .profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 .form-field { display: grid; gap: 0.45rem; min-width: 0; }
 .form-field label { font-size: 0.875rem; font-weight: 700; }
-.form-field input, .form-field select, .page-table input, .page-table select { min-width: 0; width: 100%; min-height: 2.65rem; border: 1px solid var(--color-neutrals-200, #c8c2ce); border-radius: 0.4rem; padding: 0.6rem; background: white; }
+.form-field input, .form-field select, .form-field textarea, .page-table input, .page-table select { min-width: 0; width: 100%; min-height: 2.65rem; border: 1px solid var(--color-neutrals-200, #c8c2ce); border-radius: 0.4rem; padding: 0.6rem; background: white; }
 .form-field input::placeholder, .page-table input::placeholder { color: #807586; }
 .field-help { color: var(--color-neutrals-400, #706477); font-size: 0.8rem; }
 .planner-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr); gap: 1.25rem; align-items: start; }
@@ -131,3 +131,5 @@
     .account-panel { padding: 1.25rem; margin: 0; }
     .page-footer { padding: 1rem; }
 }
+
+#prerequisite-checker form, #prereq-result { display: grid; gap: 1rem; }

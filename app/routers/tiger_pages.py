@@ -10,6 +10,8 @@ from lucide import lucide_icon
 
 import tiger_auth
 import tiger_catalog
+from grade_scale import GRADE_POINTS
+from tiger_prerequisites import CourseResult, check_prerequisites
 from models.tiger_dashboard import DashboardData
 from tiger_dashboard import dashboard_data
 from tiger_views import render_page
@@ -31,17 +33,37 @@ def home_page(request: Request) -> RedirectResponse:
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-def dashboard_page(request: Request) -> HTMLResponse:
+def dashboard_page(
+    request: Request, course_code: str = "", completed: str = ""
+) -> HTMLResponse:
     """Display selected schedule, GPA forecast, and upcoming event sections.
 
     Args:
         request: Browser request used by the configured data provider.
+        course_code: Optional course to check for prerequisites.
+        completed: Completed courses, one COURSE: GRADE entry per line.
 
     Returns:
         William's layout populated with actual supplied values or empty states.
     """
     data: DashboardData = dashboard_data(request)
-    return render_page(request, "tiger_dashboard.html", data=data)
+    course_result: CourseResult | None = None
+    course_error: str = ""
+    if course_code or completed:
+        try:
+            course_result = check_courses(course_code, completed)
+        except ValueError as error:
+            course_error = str(error)
+    return render_page(
+        request,
+        "tiger_dashboard.html",
+        data=data,
+        course_code=course_code,
+        completed=completed,
+        course_result=course_result,
+        course_error=course_error,
+        status_code=400 if course_error else 200,
+    )
 
 
 @router.get("/schedule", response_class=HTMLResponse)
@@ -60,7 +82,7 @@ def schedule_page(request: Request) -> HTMLResponse:
     for index in range(7):
         day: datetime = week_start + timedelta(days=index)
         week_days.append(
-            {"name": day.strftime("%a"), "date": day.strftime("%b %d")}
+            {"name": day.strftime("%A"), "date": day.strftime("%b %d")}
         )
     return render_page(
         request,
@@ -72,13 +94,13 @@ def schedule_page(request: Request) -> HTMLResponse:
 
 @router.get("/friends", response_class=HTMLResponse)
 def friends_page(request: Request) -> HTMLResponse:
-    """Open the Friends layout without presenting sample accounts as real users.
+    """Open the existing Friends interface with shared navigation.
 
     Args:
         request: Browser request for the Friends page.
 
     Returns:
-        Navigation and clear empty states for features awaiting the friend backend.
+        The Friends page and its existing schedule-sharing controls.
     """
     return render_page(request, "tiger_friends.html")
 
@@ -191,3 +213,38 @@ def get_icon(icon_name: str, size: int = 24) -> Response:
         lucide_icon(icon_name, width=size, height=size),
         media_type="image/svg+xml",
     )
+
+
+def check_courses(course_code: str, completed: str) -> CourseResult:
+    """Validate course entries and reuse the prerequisite checker.
+
+    Args:
+        course_code: Course code the student wants to check.
+        completed: Completed courses in COURSE: GRADE format, one per line.
+
+    Returns:
+        Satisfied, missing, and unverified prerequisites for the course.
+
+    Raises:
+        ValueError: If a course, grade, or input format is invalid.
+    """
+    if len(course_code) > 100 or len(completed) > 5000:
+        raise ValueError("Keep the course list to 5,000 characters or fewer.")
+    course_code = " ".join(course_code.upper().split())
+    if not course_code:
+        raise ValueError("Enter the course you want to check.")
+    grades: dict[str, str] = {}
+    for line in completed.splitlines():
+        if not line.strip():
+            continue
+        code, separator, grade = line.partition(":")
+        code = " ".join(code.upper().split())
+        grade = grade.strip().upper()
+        if not separator or not code or grade not in GRADE_POINTS:
+            raise ValueError(
+                "Use one course and valid grade per line, like CSC 3102: B."
+            )
+        if code in grades:
+            raise ValueError(f"Enter {code} only once.")
+        grades[code] = grade
+    return check_prerequisites(course_code, grades)

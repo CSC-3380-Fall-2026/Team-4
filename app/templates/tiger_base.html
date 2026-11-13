@@ -11,16 +11,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
-<body id="main-body" class="tiger-workspace">
+<body id="main-body" class="{% block body_class %}tiger-workspace{% endblock %}">
     <a class="skip-link" href="#content">Skip to page content</a>
     {% include "components/dashboard_nav.html" %}
     <main id="workspace">
         <header id="top-bar">
-            <h1>{{ page_title }}</h1>
+            <h1 class="text-lg font-bold">{{ page_title }}</h1>
             <a class="text-link" href="/catalog">Browse courses</a>
         </header>
         <div id="content">{% block content %}{% endblock %}</div>
         <footer class="page-footer">Tiger Class Drive · Team 4</footer>
     </main>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

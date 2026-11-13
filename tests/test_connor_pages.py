@@ -337,7 +337,7 @@ def test_cookie(client: TestClient) -> None:
 
 
 def test_supplied(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Render supplied schedule data and only future events in time order.
+    """Render supplied dashboard data and future events in time order.
 
     Args:
         client: Isolated test browser.
@@ -369,11 +369,10 @@ def test_supplied(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
         Mock(return_value=records),
         raising=False,
     )
-    for path in ("/dashboard", "/schedule"):
-        page: str = client.get(path).text
-        assert "Spring plan" in page
-        assert "Past meeting" not in page
-        assert page.index("Next meeting") < page.index("Later meeting")
+    page: str = client.get("/dashboard").text
+    assert "Spring plan" in page
+    assert "Past meeting" not in page
+    assert page.index("Next meeting") < page.index("Later meeting")
     assert len(records.events) == 3
 
 

@@ -1,14 +1,114 @@
 {% extends "tiger_base.html" %}
-{% from "components/page_message.html" import show_message %}
 {% set page_title = "Schedule" %}
+{% block body_class %}bg-neutrals-0 font-[Lato]{% endblock %}
 {% block content %}
-<div class="page-intro"><p class="eyebrow">YOUR WEEK</p><h2>{{ data.selected.name if data.selected else 'My schedule' }}</h2><p>{{ data.selected.semester if data.selected else 'Keep classes and commitments in one place.' }}</p></div>
-<section class="page-card"><div class="section-heading"><h2>Weekly schedule</h2><a class="text-link" href="/catalog">Browse courses</a></div>
-    <div class="week-strip" aria-label="Current week">{% for day in week_days %}<div><strong>{{ day.name }}</strong><span>{{ day.date }}</span></div>{% endfor %}</div>
-    {% if not data.selected %}{{ show_message("empty", "No saved schedule is available", "You can browse courses and plan your GPA now. Saved schedules will appear here when available.", "/planning", "Open Planning") }}{% else %}<p>{{ data.selected.course_count }} courses · {{ data.selected.credit_hours }} credit hours</p>{% endif %}
-</section>
-<section class="page-card"><h2>Upcoming events</h2>
-{% if data.events %}<ol class="event-list">{% for event in data.events %}<li><strong>{{ event.title }}</strong><time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%b %d · %I:%M %p %Z') }}</time>{% if event.location %}<span>{{ event.location }}</span>{% endif %}</li>{% endfor %}</ol>
-{% else %}{{ show_message("empty", "No upcoming events", "Events from your selected schedule will appear here.") }}{% endif %}
-</section>
+            {% include "components/schedule_calendar.html" %}
+            <section id="schedule-event-management" class="flex h-fit w-full flex-col gap-4 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
+                <p id="schedule-page-error" class="hidden text-sm text-red-700" role="alert"></p>
+                <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex flex-col gap-0">
+                        <p class="text-lg font-bold">Schedule Events</p>
+                        <p class="text-sm text-neutrals-300">Manage events in the selected schedule.</p>
+                    </div>
+                    <div id="schedule-form" class="flex w-full flex-row flex-wrap items-center justify-between gap-3 font-[Lato] sm:w-auto sm:justify-end">
+                        <div id="schedule-select" class="flex flex-row items-center gap-3">
+                            <div class="relative h-11">
+                                <select id="schedule-picker" class="h-full w-64 cursor-pointer appearance-none rounded-lg border py-2.5 pl-3 pr-10 font-[Lato] font-sans font-semibold">
+                                </select>
+                                <svg class="schedule-picker-chevron pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-neutrals-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6"/>
+                                </svg>
+                            </div>
+                            <button id="schedule-edit" type="button" class="h-12 rounded-md border border-neutrals-200 bg-white px-3 py-2 font-semibold text-neutrals-900 hover:bg-neutrals-50" aria-label="Edit selected schedule">
+                                Edit Schedule
+                            </button>
+                            <button id="schedule-add" type="button" class="h-11 rounded-md bg-purple-400 px-4 py-2 font-semibold text-white hover:bg-purple-500" aria-label="Add schedule">
+                                {{ plus }}
+                            </button>
+                        </div>
+                    </div>
+                    <div id="schedule-switch" class="flex items-center">
+                        <label class="inline-flex cursor-pointer items-center justify-center gap-3">
+                            <input id="schedule-calendar-toggle" type="checkbox" class="peer sr-only" checked aria-label="Show selected schedule on calendar">
+                            <span class="select-none text-sm font-semibold text-neutrals-700">Show on Calendar</span>
+                            <div class="relative h-7 w-13 rounded-full bg-neutrals-200 transition-colors peer-checked:bg-purple-400 peer-checked:after:translate-x-full peer-focus-visible:outline-2 peer-focus-visible:outline-purple-500 after:absolute after:start-0.5 after:top-0.5 after:size-6 after:rounded-full after:bg-white after:transition-transform after:content-['']"></div>
+                        </label>
+                    </div>
+                </div>
+                <div id="schedule-table" class="shrink-0 overflow-x-auto rounded-md border border-neutrals-100 bg-neutrals-0">
+                <table class="w-full table-fixed border-collapse text-left text-sm text-neutrals-900 overflow-hidden">
+                    <colgroup>
+                        <col class="w-schedule-title">
+                        <col class="w-schedule-days">
+                        <col class="w-schedule-time">
+                        <col class="w-schedule-location">
+                        <col class="w-schedule-guests">
+                        <col class="w-schedule-favorite">
+                    </colgroup>
+                    <thead class="bg-purple-50 text-xs font-semibold text-neutrals-700">
+                        <tr>
+                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Event Title</th>
+                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Days</th>
+                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Time</th>
+                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Location (Optional)</th>
+                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Guests</th>
+                            <th class="border-b border-neutrals-100 px-4 py-3 text-center">Favorite</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedule-event-rows">
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="p-0" colspan="6">
+                                <button id="add-event-button" type="button" class="flex w-full cursor-pointer items-center justify-center py-3 text-purple-600 hover:bg-purple-50" aria-label="Add event">
+                                    {{ plus }}
+                                    <span class="sr-only">Add event</span>
+                                </button>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                </div>
+            </section>
+            {% include "components/add_event_form.html" %}
+            {% include "components/edit_event_form.html" %}
+            {% include "components/add_schedule_form.html" %}
+            {% include "components/edit_schedule_form.html" %}
+            <div id="schedule-comparison" class="flex h-fit w-full flex-col gap-4 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
+                <p id="schedule-comparison-header" class="text-lg font-bold text-neutrals-900">Compare Schedules</p>
+                <div id="schedule-metrics" class="grid gap-3 md:grid-cols-2">
+                    {% for side in ["A", "B"] %}
+                    {% set side_metrics_id = "schedule-" ~ side ~ "-metrics" %}
+                    <div id="schedule-{{ side }}" class="grid gap-3 rounded-lg border border-neutrals-100 bg-neutrals-50 p-4">
+                        <div class="relative w-fit rounded-lg border border-neutrals-100 bg-neutrals-0 px-3 py-2">
+                            <label class="sr-only" for="schedule-selector-{{ side }}">Schedule {{ side }}</label>
+                            <select id="schedule-selector-{{ side }}" class="cursor-pointer appearance-none bg-transparent pr-6 text-sm font-semibold text-neutrals-900 focus:outline-none font-[Lato] font-sans">
+                            </select>
+                            <svg class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-neutrals-900" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="m6 9 6 6 6-6"/>
+                            </svg>
+                        </div>
+                        <div id="{{ side_metrics_id }}" class="grid grid-cols-2 gap-3">
+                            <div id="total-hours-{{ side }}" class="grid gap-2 rounded-lg border border-neutrals-100 bg-neutrals-0 p-4">
+                                <p class="text-sm font-medium text-neutrals-400">Total hours</p>
+                                <p data-comparison-metric="total-hours" class="text-3xl font-bold text-purple-800">0</p>
+                            </div>
+                            <div id="days-busy-{{ side }}" class="grid gap-2 rounded-lg border border-neutrals-100 bg-neutrals-0 p-4">
+                                <p class="text-sm font-medium text-neutrals-400">Days Busy</p>
+                                <p data-comparison-metric="days-busy" class="text-lg font-bold text-purple-800">—</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+{% endblock %}
+{% block scripts %}
+    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-ui.js') }}?v=1" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-calendar.js') }}?v=4" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-events.js') }}?v=4" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-management.js') }}?v=2" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-comparison.js') }}?v=2" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule.js') }}?v=9" defer></script>
 {% endblock %}

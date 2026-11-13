@@ -54,4 +54,41 @@
     <div><h2>What could your next semester look like?</h2><p>Try different grades and see how they change your GPA.</p></div>
     <a class="page-button" href="/planning">Plan my semester</a>
 </section>
+<section id="prerequisite-checker" class="page-card" aria-labelledby="prerequisite-title">
+    <h2 id="prerequisite-title">Check course prerequisites</h2>
+    <p class="muted">Enter a course and the courses you have completed. This does not change your academic record.</p>
+    <form method="get" action="/dashboard#prerequisite-checker">
+        <div class="field-grid">
+            <div class="form-field">
+                <label for="prereq-course">Course to check</label>
+                <input id="prereq-course" name="course_code" value="{{ course_code }}" placeholder="CSC 4330" maxlength="100" required>
+            </div>
+            <div class="form-field">
+                <label for="completed-courses">Completed courses and grades</label>
+                <textarea id="completed-courses" name="completed" rows="4" maxlength="5000" placeholder="CSC 3102: B" aria-describedby="prerequisite-help">{{ completed }}</textarea>
+                <p id="prerequisite-help" class="field-help">Use one course per line, such as CSC 3102: B.</p>
+            </div>
+        </div>
+        <button class="page-button" type="submit">Check prerequisites</button>
+    </form>
+    <div id="prereq-result" role="status">
+        {% if course_error %}
+            {{ show_message("error", "Check your course entries", course_error) }}
+        {% elif course_result %}
+            {% if course_result.eligible %}
+                {{ show_message("success", "Prerequisites satisfied", "The listed prerequisites are satisfied for " ~ course_result.course_code ~ ".") }}
+            {% else %}
+                {{ show_message("empty", "Prerequisites need attention", "Review the missing or unverified requirements below.") }}
+            {% endif %}
+            {% for label, items in [("Satisfied", course_result.satisfied), ("Missing", course_result.missing), ("Needs verification", course_result.cannot_evaluate)] %}
+                {% if items %}
+                    <div class="page-message">
+                        <strong>{{ label }}</strong>
+                        <ul>{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</section>
 {% endblock %}

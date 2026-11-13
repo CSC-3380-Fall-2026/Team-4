@@ -50,6 +50,8 @@ def render_page(
     page_context: dict[str, object] = {
         "nav_links": NAV_LINKS,
         "icons": icons,
+        "search": icons["search"],
+        "plus": Markup(lucide_icon("plus", width=18, height=18)),
         "csrf_token": token,
         "profile": None,
         "account_active": bool(request.cookies.get("tiger_access")),
