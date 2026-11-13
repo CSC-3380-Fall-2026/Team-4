@@ -12,6 +12,10 @@ dependencies = [
     "jinja2",
     "python-lucide",
     "pytest",
+    "python-multipart",
+    "itsdangerous",
+    "httpx",
+    "tzdata",
 ]
 [tool.vercel]
 entrypoint = "vercel_entry:app"

@@ -1,3 +1,5 @@
+For Connor's page, Planning, dashboard, and Vercel integration, start with [the task walkthrough](docs/connor_tasks.md).
+
 # [ Tiger-Class-Drive] : [Team 4]
 # Members
 Project Manager: [Achilles Caceres ] ([PapaEmeritusCoder])\

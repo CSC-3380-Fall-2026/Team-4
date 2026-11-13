@@ -1,15 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{url_for('static',path='/css/app.css')}}" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <title>Home</title>
-</head>
-<body class="flex flex-row h-screen w-screen bg-neutrals-0 font-[Lato]">
-    {% include "components/dashboard_nav.html" %}
-</body>
-</html>
+{% extends "tiger_base.html" %}
+{% set page_title = "Home" %}
+{% block content %}<section class="page-card"><h2>Tiger Class Drive</h2><p>Your workspace for courses, schedules, and GPA planning.</p><a class="page-button" href="/dashboard">Open Dashboard</a></section>{% endblock %}

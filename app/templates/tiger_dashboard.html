@@ -1,21 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{url_for('static',path='/css/app.css')}}" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <title>Dashboard</title>
-</head>
-<body class="flex flex-row h-screen w-screen bg-neutrals-0 font-[Lato]">
-    {% include "components/dashboard_nav.html" %}
-    <div id="workspace" class="flex flex-col w-full h-fit grow min-w-200 ml-64">
-        <div id="top-bar" class="flex flex-row w-full h-fit justify-between items-center pl-6 pr-6 pt-4 pb-4 border-b-2 border-neutrals-100 font-bold">
-            <p>Dashboard</p>
-            <div id="notifications" class="h-6 w-6 rounded-full bg-neutrals-400"></div>
-        </div>
-    </div>
-</body>
-</html>
+{% extends "tiger_base.html" %}
+{% from "components/page_message.html" import show_message %}
+{% set page_title = "Dashboard" %}
+{% block content %}
+<div class="page-intro">
+    <p class="eyebrow">YOUR WORKSPACE</p>
+    <h2>Your semester at a glance</h2>
+    <p>Check your schedule, explore your GPA goals, and see what's next.</p>
+</div>
+<div class="dashboard-grid">
+    <section id="selected-schedule" class="page-card">
+        <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.calendar }}</span><h2>Selected schedule</h2></div>
+        {% if data.selected %}
+            <p class="summary-name">{{ data.selected.name }}</p>
+            <p class="muted">{{ data.selected.semester }}</p>
+            <dl class="metric-pair">
+                <div><dt>Courses</dt><dd>{{ data.selected.course_count }}</dd></div>
+                <div><dt>Credit hours</dt><dd>{{ data.selected.credit_hours }}</dd></div>
+            </dl>
+        {% else %}
+            {{ show_message("empty", "No schedule selected", "Your selected schedule will appear here when one is available.") }}
+        {% endif %}
+        <a class="card-link" href="/schedule">Open Schedule <span aria-hidden="true">→</span></a>
+    </section>
+    <section id="gpa-summary" class="page-card">
+        <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.bookmark }}</span><h2>GPA summary</h2></div>
+        {% if data.forecast %}
+            <p class="muted">GPA forecast</p>
+            <dl class="metric-pair">
+                <div><dt>Semester GPA</dt><dd id="dashboard-semester">{{ "%.2f" | format(data.forecast.semester_gpa) }}</dd></div>
+                <div><dt>Cumulative GPA</dt><dd id="dashboard-cumulative">{{ "%.2f" | format(data.forecast.cumulative_gpa) }}</dd></div>
+            </dl>
+            <p class="muted">{{ data.forecast.planned_credits }} planned credit hours</p>
+        {% else %}
+            {{ show_message("empty", "No GPA forecast yet", "Enter your current GPA and expected grades in Planning to calculate a forecast.") }}
+        {% endif %}
+        <a class="card-link" href="/planning">Open Planning <span aria-hidden="true">→</span></a>
+    </section>
+    <section id="upcoming-events" class="page-card">
+        <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.calendar }}</span><h2>Upcoming events</h2></div>
+        {% if data.events %}
+            <ol class="event-list">
+                {% for event in data.events %}
+                    <li><strong>{{ event.title }}</strong><time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%b %d · %I:%M %p %Z') }}</time>{% if event.location %}<span>{{ event.location }}</span>{% endif %}</li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            {{ show_message("empty", "No upcoming events", "When your schedule has upcoming events, they will appear here.") }}
+        {% endif %}
+        <a class="card-link" href="/schedule">View your schedule <span aria-hidden="true">→</span></a>
+    </section>
+</div>
+<section class="planning-banner">
+    <div><h2>What could your next semester look like?</h2><p>Try different grades and see how they change your GPA.</p></div>
+    <a class="page-button" href="/planning">Plan my semester</a>
+</section>
+{% endblock %}
