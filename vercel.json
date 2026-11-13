@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "fastapi",
+  "functions": {
+    "vercel_entry.py": {
+      "includeFiles": "{app/templates/**,app/static/**,data/**}"
+    }
+  }
+}

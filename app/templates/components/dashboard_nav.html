@@ -1,39 +1,35 @@
-<nav class="flex flex-col h-screen w-64 bg-neutrals-0 text-black p-5 justify-between border-r-2 border-neutrals-100 font-[Lato] fixed min-w-32">
-    <div id="nav-buttons" class="flex flex-col gap-7 w-full h-fit">
-        <div id="title" class="flex flex-row gap-2 w-full h-fit justify-start items-center font-bold text-lg">
-            <div id="logo"class="h-8 w-8 rounded-full bg-purple-500"></div>
-            <p>Tiger Class Drive</p>
-        </div>
-        <div id="nav-tabs" class="flex flex-col gap w-full h-fit justify-start items-start text-sm text-neutrals-500">
-            <a href="/dashboard" id="dashboard-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutrals-100 cursor-pointer transition-colors {{ 'active' if request.url.path == '/dashboard' else '' }}">
-                {{ dashboard }}
-                <span>Dashboard</span>
-            </a>
-            <a href="/schedule" id="schedule-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutrals-100 cursor-pointer {{ 'active' if request.url.path == '/schedule' else '' }}">
-                {{ calendar }}
-                <span>Schedule</span>
-            </a>
-            <a href="/planning" id="planning-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutrals-100 cursor-pointer {{ 'active' if request.url.path == '/planning' else '' }}">
-                {{ bookmark }}
-                <span>Planning</span>
-            </a>
-            <a href="/friends" id="friends-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutrals-100 cursor-pointer {{ 'active' if request.url.path == '/friends' else '' }}">
-                {{ users }}
-                <span>Friends</span>
-            </a>
-            <a href="/profile" id="profile-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutrals-100 cursor-pointer {{ 'active' if request.url.path == '/profile' else '' }}">
-                {{ user }}
-                <span>Profile</span>
-            </a>
+<nav class="dashboard-nav" aria-label="Main navigation">
+    <div id="nav-buttons">
+        <a id="title" class="brand" href="/dashboard">
+            <span id="logo" aria-hidden="true">T</span>
+            <span>Tiger Class Drive</span>
+        </a>
+        <div id="nav-tabs">
+            {% for label, path, icon in nav_links %}
+                <a href="{{ path }}" class="nav-link {{ 'active' if request.url.path == path else '' }}"
+                   {% if request.url.path == path %}aria-current="page"{% endif %}>
+                    <span aria-hidden="true">{{ icons[icon] }}</span>
+                    <span>{{ label }}</span>
+                </a>
+            {% endfor %}
         </div>
     </div>
-    <div id="profile-footer" class="flex flex-row gap-2 w-full h-fit border-t-2 border-neutrals-100 pt-4">
-        <div id="profile-image">
-            <div class="h-8 w-8 rounded-full bg-purple-500"></div>
-        </div>
+    <div id="profile-footer">
         <div id="profile-info">
-            <p id="profile-name" class="font-semibold text-sm">User</p>
-            <p id="profile-email" class="text-xs text-neutrals-400">user@lsu.edu</p>
+            <p id="profile-name">{{ (profile.username or profile.email) if profile else 'Your account' }}</p>
+            {% if profile %}<p id="profile-email">{{ profile.email }}</p>{% endif %}
+        </div>
+        <div class="account-links">
+            {% if account_active %}
+                <a href="/profile">View profile</a>
+                <form method="post" action="/account/logout">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button class="link-button" type="submit">Log out</button>
+                </form>
+            {% else %}
+                <a href="/login" {% if request.url.path == '/login' %}aria-current="page"{% endif %}>Log in</a>
+                <a href="/signup" {% if request.url.path == '/signup' %}aria-current="page"{% endif %}>Sign up</a>
+            {% endif %}
         </div>
     </div>
 </nav>

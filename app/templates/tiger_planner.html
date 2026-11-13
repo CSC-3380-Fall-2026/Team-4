@@ -1,169 +1,85 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{url_for('static',path='/css/app.css')}}" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <title>Planning</title>
-</head>
-<body id="main-body" class="flex flex-row h-screen w-screen bg-neutrals-0 font-[Lato]">
-    {% include "components/course_form.html" %}
-    {% include "components/dashboard_nav.html" %}
-    <div id="workspace" class="flex flex-col w-full h-fit grow min-w-200 ml-64">
-        <div id="top-bar" class="flex flex-row w-full h-fit justify-between items-center pl-6 pr-6 pt-4 pb-4 border-b-2 border-neutrals-100 font-bold">
-            <p>Planning</p>
-            <div id="notifications" class="h-6 w-6 rounded-full bg-neutrals-400"></div>
+{% extends "tiger_base.html" %}
+{% from "components/page_message.html" import show_message %}
+{% set page_title = "Planning" %}
+{% block content %}
+<div class="page-intro"><p class="eyebrow">LOOK AHEAD</p><h2>Plan your semester</h2><p>Use expected grades to forecast your GPA. Your academic record is not changed.</p></div>
+{% if example %}{{ show_message("empty", "Example loaded", "This is the 60 completed credits at 3.0 plus 15 planned credits at 4.0 example. Press Calculate GPA to check the result.") }}{% endif %}
+{% if errors %}
+<section id="form-errors" class="page-message message-error" role="alert">
+    <strong>Please check your plan</strong><ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    <p>Your entered values are still in the form below.</p>
+</section>
+{% endif %}
+<form method="post" action="/planning" id="planning-form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <section id="gpa-overview" class="page-card">
+        <h2>GPA overview</h2>
+        <p class="muted">Use completed GPA credit hours, including attempted courses that received an F. Exclude courses that do not count toward GPA.</p>
+        <div class="field-grid">
+            <div class="form-field"><label for="current-gpa">Current cumulative GPA</label><input id="current-gpa" name="current_gpa" value="{{ form.current_gpa }}" type="text" inputmode="decimal" placeholder="For example, 3.0" maxlength="32" required></div>
+            <div class="form-field"><label for="completed-credits">Completed GPA credit hours</label><input id="completed-credits" name="completed_credits" value="{{ form.completed_credits }}" type="text" inputmode="numeric" placeholder="For example, 60" maxlength="32" required></div>
         </div>
-        <div id="content" class="flex flex-col w-full h-fit p-6 gap-6 max-w-800 bg-neutrals-50">
-            <div id="completed-courses" class="flex flex-col w-full h-fit gap-4 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
-                <div id="courses-header" class="flex flex-row w-full h-fit justify-between items-center">
-                    <div id="courses-title" class="flex flex-col w-fit h-full gap-0">
-                        <p class="text-lg font-bold text-neutrals-900">Completed Courses</p>
-                        <p class="text-sm font-medium text-neutrals-400"><span class="font-bold text-neutrals-700">25</span> credits completed</p>
-                    </div>
-                    <button id="add-courses" onclick="toggleCourseForm(true)" class="w-fit h-fit cursor-pointer rounded-md bg-purple-400 px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-500">Add a Course</button>
-                </div>
-                <div id="course-table-container" class="overflow-x-auto rounded-md border border-neutrals-100">
-                    <table id="course-table" class="h-fit w-full border-collapse rounded-md bg-neutrals-0 text-left">
-                        <thead class="h-12 w-full bg-purple-50 text-sm text-neutrals-700">
-                            <tr>
-                                <th class="h-fit w-500 pl-4 border-1 border-neutrals-100">Course</th>
-                                <th class="h-fit pl-4 border-1 border-neutrals-100">Credits</th>
-                                <th class="h-fit pl-4 border-1 border-neutrals-100">Grade</th>
-                                <th class="h-fit pl-4 border-1 border-neutrals-100">Schedule</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="h-16 w-full transition-colors hover:bg-yellow-50">
-                                <td class="h-fit w-200 border border-neutrals-100 pl-4 font-semibold text-neutrals-900">CSC 1350</td>
-                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">3 cr</td>
-                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
-                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">Fall 2025</td>
-                            </tr>
-                            <tr class="h-16 w-full transition-colors hover:bg-yellow-50">
-                                <td class="h-fit w-200 border border-neutrals-100 pl-4 font-semibold text-neutrals-900">MATH 1550</td>
-                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">5 cr</td>
-                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
-                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">Fall 2025</td>
-                            </tr>
-                            <tr class="h-16 w-full transition-colors hover:bg-yellow-50">
-                                <td class="h-fit w-200 border border-neutrals-100 pl-4 font-semibold text-neutrals-900">ENGL 1001</td>
-                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">3 cr</td>
-                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
-                                <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">Fall 2025</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <p class="field-help">If you have no completed GPA credits, enter 0 for both fields.</p>
+    </section>
+    <div id="planner" class="planner-grid">
+        <section id="sem-planner" class="page-card">
+            <div class="section-heading"><h2>Semester plan</h2><button class="secondary-button" type="submit" name="action" value="add" formnovalidate>Add course</button></div>
+            <p class="muted">Enter each planned course's credit hours and expected grade. Completely blank rows are ignored.</p>
+            <div class="table-scroll" role="region" aria-label="Planned courses" tabindex="0">
+                <table id="sem-table" class="page-table">
+                    <thead><tr><th scope="col">Course</th><th scope="col">Credits</th><th scope="col">Expected grade</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+                    <tbody>
+                        {% for row in form.rows %}
+                        <tr>
+                            <td><label class="visually-hidden" for="course-name-{{ loop.index0 }}">Course {{ loop.index }} name</label><input id="course-name-{{ loop.index0 }}" name="course_name" value="{{ row.name }}" maxlength="100" placeholder="CSC 3380"></td>
+                            <td><label class="visually-hidden" for="course-credit-{{ loop.index0 }}">Course {{ loop.index }} credits</label><input id="course-credit-{{ loop.index0 }}" class="credit-input" name="course_credit" value="{{ row.credit }}" type="text" inputmode="numeric" maxlength="12" placeholder="3"></td>
+                            <td><label class="visually-hidden" for="course-grade-{{ loop.index0 }}">Course {{ loop.index }} expected grade</label>
+                                <select id="course-grade-{{ loop.index0 }}" name="course_grade">
+                                    <option value="">Choose grade</option>
+                                    {% if row.grade and row.grade not in grades %}<option value="{{ row.grade }}" selected>Invalid grade: {{ row.grade }}</option>{% endif %}
+                                    {% for letter, points in grades.items() %}<option value="{{ letter }}" {% if row.grade == letter %}selected{% endif %}>{{ letter }} ({{ "%.1f" | format(points) }})</option>{% endfor %}
+                                </select>
+                            </td>
+                            <td><button class="remove-button" type="submit" name="action" value="remove:{{ loop.index0 }}" formnovalidate aria-label="Remove course {{ loop.index }}">Remove</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <div id="gpa-overview" class="flex h-fit w-full flex-col gap-4 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
-                <div id="gpa-header">
-                    <p class="text-lg font-bold text-neutrals-900">GPA Overview</p>
-                </div>
-                <div id="gpa-metrics" class="flex h-fit w-full flex-row gap-3">
-                    <div id="cum-GPA" class="flex h-fit w-full flex-col gap-2 rounded-lg border border-neutrals-100 bg-neutrals-50 p-4">
-                        <p class="text-sm font-medium text-neutrals-500">Current cumulative GPA</p>
-                        <p class="text-4xl font-bold text-purple-800">3.45</p>
-                    </div>
-                    <div id="cum-hours" class="flex h-fit w-full flex-col gap-2 rounded-lg border border-neutrals-100 bg-neutrals-50 p-4">
-                        <p class="text-sm font-medium text-neutrals-500">Completed credit hours</p>
-                        <p class="text-4xl font-bold text-purple-800">45</p>
-                    </div>
-                </div>
-            </div>
-            <div id="planner" class="flex flex-row w-full h-fit gap-6">
-                <div id="sem-planner" class="flex h-fit w-full flex-col gap-5 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
-                    <div id="sem-planner-header" class="flex flex-row w-full h-fit justify-between items-center">
-                        <p class="text-lg font-bold text-neutrals-900">Semester Plan</p>
-                        <div id="schedule-picker" class="flex flex-row w-fit h-fit gap-3 items-center">
-                            <p class="text-md font-medium">Schedule:</p>
-                            <div id="schedule-dropdown">{% include "components/schedule_select.html" %}</div>
-                        </div>
-                    </div>
-                    <div id="sem-table-container" class="overflow-x-auto rounded-md border border-neutrals-100">
-                        <table id="sem-table" class="h-fit w-full border-collapse rounded-md bg-neutrals-0 text-left">
-                            <thead class="h-12 w-full bg-purple-50 text-sm text-neutrals-700">
-                                <tr>
-                                    <th class="h-fit w-500 pl-4 border-1 border-neutrals-100">Course</th>
-                                    <th class="h-fit pl-4 border-1 border-neutrals-100">Credits</th>
-                                    <th class="h-fit pl-4 border-1 border-neutrals-100">Expected Grade</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="h-16 w-full transition-colors hover:bg-yellow-50">
-                                    <td class="h-fit w-200 border border-neutrals-100 pl-4 font-semibold text-neutrals-900">CSC 1350</td>
-                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">3 cr</td>
-                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
-                                </tr>
-                                <tr class="h-16 w-full transition-colors hover:bg-yellow-50">
-                                    <td class="h-fit w-200 border border-neutrals-100 pl-4 font-semibold text-neutrals-900">MATH 1550</td>
-                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">5 cr</td>
-                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
-                                </tr>
-                                <tr class="h-16 w-full transition-colors hover:bg-yellow-50">
-                                    <td class="h-fit w-200 border border-neutrals-100 pl-4 font-semibold text-neutrals-900">ENGL 1001</td>
-                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">3 cr</td>
-                                    <td class="h-fit w-200 pl-4 border-1 border-neutrals-100">{% include "components/grade_select.html" %}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div id="sem-metrics" class="flex h-fit w-full flex-row gap-3">
-                        <div id="sem-GPA" class="flex h-fit w-full flex-col gap-2 rounded-lg border border-neutrals-100 bg-neutrals-50 p-4">
-                            <p class="text-sm font-medium text-neutrals-500">Semester GPA</p>
-                            <p class="text-3xl font-bold text-purple-800">3.58</p>
-                        </div>
-                        <div id="new-cum-GPA" class="flex h-fit w-full flex-col gap-2 rounded-lg border border-neutrals-100 bg-neutrals-50 p-4">
-                            <p class="text-sm font-medium text-neutrals-500">New cumulative GPA</p>
-                            <p class="text-3xl font-bold text-purple-800">3.49</p>
-                        </div>
-                    </div>
-                </div>
-                <div id="gpa-calc" class="flex h-fit flex-col gap-5 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
-                    <div id="gpa-calc-header" class="flex flex-col w-full h-fit">
-                        <p class="font-bold text-neutrals-900">Target GPA Calculator</p>
-                        <p class="text-sm font-medium text-neutrals-300">Enter your target cumulative GPA and see the semester GPA required to reach it.</p>
-                    </div>
-                    <div id="gpa-calc-inputs" class="flex flex-col w-full h-fit gap-3">
-                        <div id="field-target-cum-GPA" class="flex flex-col w-fill h-fit gap-2">
-                            <label for="input-targ-cum-GPA" class="text-sm font-medium text-neutrals-400">Target cumulative GPA</label>
-                            <input id="input-targ-cum-GPA" type="text" class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 text-md font-semibold focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-100" placeholder="3.00" required/></input>
-                        </div>
-                        <div id="field-current-credits" class="flex flex-col w-fill h-fit gap-2"> 
-                            <label for="input-curr-credits" class="text-sm font-medium text-neutrals-400">Current credit load</label>
-                            <input id="input-curr-credits" type="text" class="block w-full rounded-lg border border-neutrals-100 bg-neutrals-50 px-3 py-2.5 text-md font-semibold focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-100" placeholder="15" required/></input>
-                        </div>
-                    </div>
-                    <div id="gpa-calc-output" class="flex h-fit w-full flex-col gap-2 rounded-lg border border-l-4 border-neutrals-100 border-l-yellow-400 bg-neutrals-50 p-4">
-                        <p class="text-sm font-medium text-neutrals-500">Semester GPA needed:</p>
-                        <p class="text-4xl font-extrabold text-purple-700">3.67</p>
-                        <p class="text-sm font-medium text-neutrals-500">Based on cumulative hours, cumulative GPA, and a target of 3.50.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <p class="field-help">Up to {{ max_rows }} courses. Grades use LSU's plus/minus scale.</p>
+        </section>
+        <section id="gpa-calc" class="page-card target-card">
+            <h2>Target GPA calculator</h2>
+            <p class="muted">See the semester GPA you would need to reach an overall goal.</p>
+            <div class="form-field"><label for="target-gpa">Target cumulative GPA <span class="muted">(optional)</span></label><input id="target-gpa" name="target_gpa" value="{{ form.target_gpa }}" type="text" inputmode="decimal" maxlength="32" placeholder="For example, 3.20"></div>
+            <p class="field-help">Planned credit hours are calculated from the course rows.</p>
+            <button class="page-button" type="submit" name="action" value="calculate" formaction="/planning#planning-results">Calculate GPA</button>
+            <a class="text-link" href="/planning?example=true">Load the 3.20 example</a>
+        </section>
     </div>
-
-    <script>
-        function toggleCourseForm(show) {
-            const courseForm = document.getElementById('course-form');
-            if (show) {
-                courseForm.classList.remove('hidden');
-                document.body.classList.add('overflow-hidden');
-            } else {
-                courseForm.classList.add('hidden');
-                document.body.classList.remove('overflow-hidden');
-            }
-        }
-
-        document.getElementById('course-form').addEventListener('click', function(e) {
-            if (e.target === this) {
-                toggleCourseForm(false);
-            }
-        });
-    </script>
-</body>
-</html>
+</form>
+{% if result %}
+<section id="planning-results" class="page-card" aria-labelledby="results-title">
+    <div class="section-heading"><h2 id="results-title">Your GPA forecast</h2><span class="result-tag">{{ result.planned_credits }} planned credits</span></div>
+    <dl class="result-grid">
+        <div><dt>Semester GPA</dt><dd id="semester-result">{{ "%.2f" | format(result.semester_gpa) }}</dd></div>
+        <div><dt>New cumulative GPA</dt><dd id="cumulative-result">{{ "%.2f" | format(result.cumulative_gpa) }}</dd></div>
+        <div>
+    <dt>Required semester GPA</dt>
+    <dd id="required-result">
+        {% if result.required_gpa is not none %}
+            {{ "%.2f" | format(result.required_gpa) }}
+        {% elif result.target_error %}
+            Unavailable
+        {% else %}
+            Enter a target
+        {% endif %}
+    </dd>
+</div>
+</dl>
+    {% if result.target_error %}<p class="target-error">{{ result.target_error }}</p>{% elif not form.target_gpa.strip() %}<p class="muted">Add a target GPA to calculate the semester GPA needed to reach it.</p>{% endif %}
+    <p class="field-help">Results are rounded to two decimal places for display. Course-repeat policies and transcript adjustments are not included.</p>
+    <a class="text-link" href="/dashboard">Back to Dashboard</a>
+</section>
+{% else %}{{ show_message("empty", "Ready when you are", "Enter your current GPA, completed credits, and at least one planned course, then select Calculate GPA.") }}{% endif %}
+{% endblock %}

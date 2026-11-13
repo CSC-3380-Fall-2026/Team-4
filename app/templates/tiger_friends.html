@@ -1,22 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{ url_for('static', path='/css/app.css') }}" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <title>Friends</title>
-</head>
-<body class="flex min-h-screen w-screen flex-row bg-neutrals-0 font-[Lato]">
-    {% include "components/dashboard_nav.html" %}
-    <div id="workspace" class="ml-64 flex min-h-screen w-full min-w-200 grow flex-col">
-        <div id="top-bar" class="flex h-fit w-full flex-row items-center justify-between border-b-2 border-neutrals-100 px-6 py-4 font-bold">
-            <p>Friends</p>
-            <div id="notifications" class="h-6 w-6 rounded-full bg-neutrals-400" aria-label="Notifications"></div>
-        </div>
-        <main id="content" class="flex w-full max-w-800 flex-col gap-4 bg-neutrals-50 p-6">
+{% extends "tiger_base.html" %}
+{% set page_title = "Friends" %}
+{% block body_class %}bg-neutrals-0 font-[Lato]{% endblock %}
+{% block content %}
             <section class="grid gap-3 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-4" aria-labelledby="find-friends-title">
                 <h1 id="find-friends-title" class="text-lg font-bold text-neutrals-900">Find Friends</h1>
                 <form id="find-friend-form" class="flex flex-col gap-3 sm:flex-row">
@@ -116,10 +101,9 @@
                     </div>
                 </section>
             </section>
-        </main>
-    </div>
+{% endblock %}
+{% block scripts %}
     <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
     <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=1" defer></script>
     <script src="{{ url_for('static', path='/js/friends.js') }}?v=14" defer></script>
-</body>
-</html>
+{% endblock %}

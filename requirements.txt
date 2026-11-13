@@ -7,3 +7,8 @@ beautifulsoup4
 jinja2
 python-lucide
 pytest
+
+python-multipart
+itsdangerous
+httpx
+tzdata
