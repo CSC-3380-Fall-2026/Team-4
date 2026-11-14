@@ -83,3 +83,25 @@ def test_dashboard_course_checker_has_input_and_validation():
     assert 'id="completed-courses"' in response.text
     assert "checkCoursePrerequisites()" in response.text
     assert "Please enter a course code." in response.text
+
+
+def test_login_rejects_missing_credentials():
+    response = client.post("/login", json={})
+    assert response.status_code == 422
+    assert "detail" in response.json()
+
+
+def test_signup_rejects_missing_credentials():
+    response = client.post("/signup", json={})
+    assert response.status_code == 422
+    assert "detail" in response.json()
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="Dedicated catalog page has not been implemented",
+)
+def test_catalog_page_contains_course_content():
+    response = client.get("/catalog")
+    assert response.status_code == 200
+    assert "course" in response.text.lower()

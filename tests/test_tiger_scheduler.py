@@ -102,3 +102,16 @@ def test_back_to_back_classes_are_allowed():
                 },
             )
             assert response.status_code == 201, response.text
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="Scheduler does not yet require authenticated accounts",
+)
+def test_unauthenticated_user_cannot_create_schedule():
+    with TestClient(app) as anonymous:
+        response = anonymous.post(
+            "/api/schedules",
+            json={"name": "Unauthorized Schedule", "color": "blue"},
+        )
+        assert response.status_code in (401, 403), response.text
