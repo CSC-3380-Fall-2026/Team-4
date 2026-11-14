@@ -28,3 +28,58 @@ def test_public_page_routes():
 def test_unknown_route_returns_404():
     response = client.get("/this-page-does-not-exist")
     assert response.status_code == 404
+
+
+def test_friends_page_contains_request_form():
+    response = client.get("/friends")
+    assert response.status_code == 200
+    assert 'id="find-friend-form"' in response.text
+    assert 'name="username"' in response.text
+    assert 'type="submit"' in response.text
+
+
+def test_planning_page_contains_gpa_inputs():
+    response = client.get("/planning")
+    assert response.status_code == 200
+    assert 'id="input-targ-cum-GPA"' in response.text
+    assert 'id="input-curr-credits"' in response.text
+
+
+def test_schedule_page_contains_controls():
+    response = client.get("/schedule")
+    assert response.status_code == 200
+    assert 'id="schedule-add"' in response.text
+    assert 'id="schedule-edit"' in response.text
+
+
+import pytest
+
+
+@pytest.mark.xfail(strict=True, reason="Login form not implemented yet")
+def test_login_page_has_form():
+    response = client.get("/login")
+    assert "<form" in response.text.lower()
+    assert 'type="password"' in response.text.lower()
+
+
+@pytest.mark.xfail(strict=True, reason="Registration form not implemented yet")
+def test_registration_page_has_form():
+    response = client.get("/signin")
+    assert "<form" in response.text.lower()
+    assert 'type="password"' in response.text.lower()
+
+
+@pytest.mark.xfail(strict=True, reason="Profile form not implemented yet")
+def test_profile_page_has_editable_fields():
+    response = client.get("/profile")
+    assert "<form" in response.text.lower()
+    assert "<input" in response.text.lower()
+
+
+def test_dashboard_course_checker_has_input_and_validation():
+    response = client.get("/dashboard")
+    assert response.status_code == 200
+    assert 'id="prereq-course"' in response.text
+    assert 'id="completed-courses"' in response.text
+    assert "checkCoursePrerequisites()" in response.text
+    assert "Please enter a course code." in response.text
