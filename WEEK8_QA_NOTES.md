@@ -17,3 +17,21 @@
 - Confirmed: Friends, Planning, and Schedule content tests pass.
 - Known gaps: Login, Registration, and Profile forms are placeholders, documented with strict expected-failure tests.
 - Pending: catalog content and invalid form submission/error-message tests.
+
+## Week 8 QA Follow-up
+
+### Account Ownership
+- Added a test requiring unauthenticated schedule creation to be rejected.
+- Current backend accepts anonymous schedule creation; documented as an expected failure.
+- Two-account ownership and Supabase persistence tests remain pending authenticated backend integration.
+
+### Page and Form Regression
+- Added passing tests for missing login and signup credentials (HTTP 422).
+- Added an expected-failure test for the missing /catalog page.
+- Existing catalog API tests cover searching and filtering.
+- Login, registration, and profile form implementation remains pending.
+
+### Latest Test Results
+- 37 passed
+- 7 expected failures
+- 0 unexpected failures
