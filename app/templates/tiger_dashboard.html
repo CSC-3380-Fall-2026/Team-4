@@ -1,82 +1,94 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{url_for('static',path='/css/app.css')}}" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <title>Dashboard</title>
-</head>
-<body class="flex flex-row h-screen w-screen bg-neutrals-0 font-[Lato]">
-    {% include "components/dashboard_nav.html" %}
-    <div id="workspace" class="flex flex-col w-full h-fit grow min-w-200 ml-64">
-        <div id="top-bar" class="flex flex-row w-full h-fit justify-between items-center pl-6 pr-6 pt-4 pb-4 border-b-2 border-neutrals-100 font-bold">
-            <p>Dashboard</p>
-            <div id="notifications" class="h-6 w-6 rounded-full bg-neutrals-400"></div>
+{% extends "tiger_base.html" %}
+{% from "components/page_message.html" import show_message %}
+{% set page_title = "Dashboard" %}
+{% block content %}
+<div class="page-intro">
+    <p class="eyebrow">YOUR WORKSPACE</p>
+    <h2>Your semester at a glance</h2>
+    <p>Check your schedule, explore your GPA goals, and see what's next.</p>
+</div>
+<div class="dashboard-grid">
+    <section id="selected-schedule" class="page-card">
+        <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.calendar }}</span><h2>Selected schedule</h2></div>
+        {% if data.selected %}
+            <p class="summary-name">{{ data.selected.name }}</p>
+            <p class="muted">{{ data.selected.semester }}</p>
+            <dl class="metric-pair">
+                <div><dt>Courses</dt><dd>{{ data.selected.course_count }}</dd></div>
+                <div><dt>Credit hours</dt><dd>{{ data.selected.credit_hours }}</dd></div>
+            </dl>
+        {% else %}
+            {{ show_message("empty", "No schedule selected", "Your selected schedule will appear here when one is available.") }}
+        {% endif %}
+        <a class="card-link" href="/schedule">Open Schedule <span aria-hidden="true">→</span></a>
+    </section>
+    <section id="gpa-summary" class="page-card">
+        <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.bookmark }}</span><h2>GPA summary</h2></div>
+        {% if data.forecast %}
+            <p class="muted">GPA forecast</p>
+            <dl class="metric-pair">
+                <div><dt>Semester GPA</dt><dd id="dashboard-semester">{{ "%.2f" | format(data.forecast.semester_gpa) }}</dd></div>
+                <div><dt>Cumulative GPA</dt><dd id="dashboard-cumulative">{{ "%.2f" | format(data.forecast.cumulative_gpa) }}</dd></div>
+            </dl>
+            <p class="muted">{{ data.forecast.planned_credits }} planned credit hours</p>
+        {% else %}
+            {{ show_message("empty", "No GPA forecast yet", "Enter your current GPA and expected grades in Planning to calculate a forecast.") }}
+        {% endif %}
+        <a class="card-link" href="/planning">Open Planning <span aria-hidden="true">→</span></a>
+    </section>
+    <section id="upcoming-events" class="page-card">
+        <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.calendar }}</span><h2>Upcoming events</h2></div>
+        {% if data.events %}
+            <ol class="event-list">
+                {% for event in data.events %}
+                    <li><strong>{{ event.title }}</strong><time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%b %d · %I:%M %p %Z') }}</time>{% if event.location %}<span>{{ event.location }}</span>{% endif %}</li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            {{ show_message("empty", "No upcoming events", "When your schedule has upcoming events, they will appear here.") }}
+        {% endif %}
+        <a class="card-link" href="/schedule">View your schedule <span aria-hidden="true">→</span></a>
+    </section>
+</div>
+<section class="planning-banner">
+    <div><h2>What could your next semester look like?</h2><p>Try different grades and see how they change your GPA.</p></div>
+    <a class="page-button" href="/planning">Plan my semester</a>
+</section>
+<section id="prerequisite-checker" class="page-card" aria-labelledby="prerequisite-title">
+    <h2 id="prerequisite-title">Check course prerequisites</h2>
+    <p class="muted">Enter a course and the courses you have completed. This does not change your academic record.</p>
+    <form method="get" action="/dashboard#prerequisite-checker">
+        <div class="field-grid">
+            <div class="form-field">
+                <label for="prereq-course">Course to check</label>
+                <input id="prereq-course" name="course_code" value="{{ course_code }}" placeholder="CSC 4330" maxlength="100" required>
+            </div>
+            <div class="form-field">
+                <label for="completed-courses">Completed courses and grades</label>
+                <textarea id="completed-courses" name="completed" rows="4" maxlength="5000" placeholder="CSC 3102: B" aria-describedby="prerequisite-help">{{ completed }}</textarea>
+                <p id="prerequisite-help" class="field-help">Use one course per line, such as CSC 3102: B.</p>
+            </div>
         </div>
-<h3>Check Course Prerequisites</h3>
-<label for="prereq-course">Course to check:</label>
-<input id="prereq-course" placeholder="CSC 4330">
-
-<label for="completed-courses">Completed courses and grades:</label>
-<textarea id="completed-courses" rows="4"
-placeholder="CSC 3102: B"></textarea>
-
-<button type="button" onclick="checkCoursePrerequisites()">
-    Check Prerequisites
-</button>
-
-<div id="prereq-result" role="status"></div>
-
-<script>
-async function checkCoursePrerequisites() {
-    const course = document.getElementById("prereq-course").value.trim().toUpperCase();
-    const completed = {};
-    const result = document.getElementById("prereq-result");
-
-    for (const line of document.getElementById("completed-courses").value.split("\n")) {
-        if (!line.trim()) continue;
-        const parts = line.split(":");
-        if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
-            result.textContent = "Enter each course as CSC 3102: B";
-            return;
-        }
-        completed[parts[0].trim().toUpperCase()] = parts[1].trim().toUpperCase();
-    }
-
-    if (!course) {
-        result.textContent = "Please enter a course code.";
-        return;
-    }
-
-    result.textContent = "Checking...";
-
-    try {
-        const response = await fetch("/courses/check-prerequisites", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({course_code: course, completed: completed})
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-            result.textContent = data.detail || "Unable to check prerequisites.";
-            return;
-        }
-
-        result.textContent =
-            "Satisfied: " + (data.satisfied.join(", ") || "None") + "\n" +
-            "Missing: " + (data.missing.join(", ") || "None") + "\n" +
-            "Cannot verify: " + (data.cannot_evaluate.join(", ") || "None") + "\n" +
-            (data.eligible ? "Requirements satisfied." : "Eligibility not confirmed.");
-        result.style.whiteSpace = "pre-line";
-    } catch (error) {
-        result.textContent = "Could not connect to the prerequisite checker.";
-    }
-}
-</script>
+        <button class="page-button" type="submit">Check prerequisites</button>
+    </form>
+    <div id="prereq-result" role="status">
+        {% if course_error %}
+            {{ show_message("error", "Check your course entries", course_error) }}
+        {% elif course_result %}
+            {% if course_result.eligible %}
+                {{ show_message("success", "Prerequisites satisfied", "The listed prerequisites are satisfied for " ~ course_result.course_code ~ ".") }}
+            {% else %}
+                {{ show_message("empty", "Prerequisites need attention", "Review the missing or unverified requirements below.") }}
+            {% endif %}
+            {% for label, items in [("Satisfied", course_result.satisfied), ("Missing", course_result.missing), ("Needs verification", course_result.cannot_evaluate)] %}
+                {% if items %}
+                    <div class="page-message">
+                        <strong>{{ label }}</strong>
+                        <ul>{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
     </div>
-</body>
-</html>
+</section>
+{% endblock %}

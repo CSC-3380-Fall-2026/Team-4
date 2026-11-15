@@ -1,15 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{url_for('static',path='/css/app.css')}}" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <title>Profile</title>
-</head>
-<body class="flex flex-row h-screen w-screen bg-neutrals-0 font-[Lato]">
-    {% include "components/dashboard_nav.html" %}
-</body>
-</html>
+{% extends "tiger_base.html" %}
+{% from "components/page_message.html" import show_message %}
+{% set page_title = "Profile" %}
+{% block content %}
+<div class="page-intro"><p class="eyebrow">YOUR ACCOUNT</p><h2>Student profile</h2><p>Account details and completed course information.</p></div>
+{% if error %}{{ show_message("error", "Profile unavailable", error, "/profile", "Try again") }}
+{% elif not profile %}{{ show_message("empty", "Log in to see your profile", "Your own account information will appear after you log in.", "/login", "Log in") }}
+{% else %}
+<div class="profile-grid">
+    <section class="page-card"><h2>Account information</h2><dl class="profile-details"><dt>Name</dt><dd>{{ profile.username or "Name not provided" }}</dd><dt>Email</dt><dd>{{ profile.email }}</dd></dl></section>
+    <section class="page-card"><h2>Current GPA</h2>{% if profile.data_error %}<p class="muted">Academic information could not be loaded. Please try again later.</p>{% elif profile.gpa is not none %}<p class="gpa-value">{{ "%.2f" | format(profile.gpa) }}</p>{% else %}{{ show_message("empty", "No GPA recorded", "Use Planning to calculate a forecast.", "/planning", "Open Planning") }}{% endif %}</section>
+</div>
+<section class="page-card"><h2>Completed courses</h2>
+    {% if profile.data_error %}{{ show_message("error", "Course information unavailable", "Your account is signed in, but completed course information could not be loaded.", "/profile", "Try again") }}
+    {% elif profile.courses %}<div class="table-scroll" role="region" aria-label="Completed courses" tabindex="0"><table class="page-table"><thead><tr><th scope="col">Course</th><th scope="col">Name</th><th scope="col">Credits</th></tr></thead><tbody>{% for course in profile.courses %}<tr><td>{{ course.course_code }}</td><td>{{ course.course_name }}</td><td>{{ course.credits }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}{{ show_message("empty", "No completed courses recorded", "No completed courses are saved for your account yet.", "/catalog", "Browse courses") }}{% endif %}
+</section>
+{% endif %}
+{% endblock %}
