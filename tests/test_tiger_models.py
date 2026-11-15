@@ -1,3 +1,6 @@
+
+
+from datetime import datetime
 from pydantic import ValidationError
 from app.tiger_models import Classes
 
@@ -9,12 +12,19 @@ def test_classes_valid_data():
         name="Object Oriented Design",
         grade=95.0,
         credit=3,
-        semester="Fall 2026"
+        semester="Fall 2026",
+        time=datetime(2026, 10, 23, 9, 0),
+        weekdays=["M", "W", "F"],
+        category="core",
+        title="Object Oriented Design",
+        days=["Monday", "Wednesday", "Friday"],
+        start="09:00",
+        end="12:00",
     )
 
     assert course.department == "CSC"
     assert course.number == 3380
-    assert course.name == "Object Oriented Design"
+    assert course.title  == "Object Oriented Design"
     assert course.grade == 95.0
     assert course.credit == 3
     assert course.semester == "Fall 2026"
