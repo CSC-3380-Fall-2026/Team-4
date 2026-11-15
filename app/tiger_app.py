@@ -49,7 +49,7 @@ async def root(request: Request):
 #Login
 @app.get("/login", response_class=HTMLResponse)
 async def root(request: Request):
-    return render_page(request, "Tiger_login.html")
+    return render_page(request, "tiger_login.html")
 
 #Signin
 @app.get("/signin", response_class=HTMLResponse)

@@ -9,7 +9,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
     <title>Profile</title>
 </head>
-<body class="flex flex-row h-screen w-screen bg-neutrals-0 font-[Lato]">
+<body class="flex min-h-screen w-screen flex-row bg-neutrals-0 font-[Lato]">
     {% include "components/dashboard_nav.html" %}
+    <main class="ml-64 flex min-h-screen flex-1 items-start p-6">
+        <button id="temporary-logout" type="button" class="rounded-md bg-purple-400 px-4 py-2 font-semibold text-white transition-colors hover:bg-purple-500 focus-visible:outline-2 focus-visible:outline-purple-500">Log Out</button>
+    </main>
+    <script src="{{ url_for('static', path='/js/logout.js') }}?v=2" defer></script>
 </body>
 </html>
