@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from tiger_models import UserBase, UserAuthSchema, ProfileUpdate
+import tiger_gpa as tiger_gpa
 from dotenv import load_dotenv
 from pathlib import Path
 from supabase import create_client, Client

@@ -1,0 +1,234 @@
+{
+  "CSC 1350": {
+    "requirements": [
+      {
+        "any_of": [
+          "MATH 1022",
+          "MATH 1023",
+          "MATH 1550",
+          "MATH 1551",
+          "MATH 1552"
+        ],
+        "credit_or_registration": true
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=229578"
+  },
+  "CSC 1351": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 1350"
+        ]
+      },
+      {
+        "any_of": [
+          "MATH 1550"
+        ],
+        "credit_or_registration": true
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=229581"
+  },
+  "CSC 2259": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 1254",
+          "CSC 1351"
+        ],
+        "credit_or_registration": true
+      },
+      {
+        "any_of": [
+          "MATH 1552"
+        ],
+        "credit_or_registration": true
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=229591"
+  },
+  "CSC 2262": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 1254",
+          "CSC 1351"
+        ]
+      },
+      {
+        "any_of": [
+          "MATH 2090"
+        ],
+        "credit_or_registration": true
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=229576"
+  },
+  "CSC 3102": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 1254",
+          "CSC 1351"
+        ],
+        "min_grade": "C"
+      },
+      {
+        "any_of": [
+          "CSC 2259",
+          "EE 2741"
+        ],
+        "credit_or_registration": true
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=229589"
+  },
+  "CSC 3200": {
+    "requirements": [
+      {
+        "any_of": [
+          "ENGL 1005",
+          "ENGL 2000",
+          "HNRS 2000"
+        ]
+      },
+      {
+        "any_of": [
+          "CSC 3102"
+        ]
+      }
+    ],
+    "unverified_requirements": [
+      "Major restriction requires verification"
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=233370"
+  },
+  "CSC 3380": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 1254",
+          "CSC 1351"
+        ],
+        "min_grade": "C"
+      }
+    ],
+    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+  },
+  "CSC 3501": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 2259"
+        ],
+        "min_grade": "C"
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=229583"
+  },
+  "CSC 4101": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 3102"
+        ],
+        "min_grade": "C"
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=229592"
+  },
+  "CSC 4103": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 3102"
+        ],
+        "min_grade": "C"
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=229593"
+  },
+  "CSC 4330": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 3102"
+        ],
+        "min_grade": "C"
+      },
+      {
+        "any_of": [
+          "CSC 3380"
+        ],
+        "min_grade": "C"
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=232623"
+  },
+  "CSC 4402": {
+    "requirements": [
+      {
+        "any_of": [
+          "CSC 3102"
+        ],
+        "min_grade": "C"
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=232628"
+  },
+  "MATH 1552": {
+    "requirements": [
+      {
+        "any_of": [
+          "MATH 1510",
+          "MATH 1550",
+          "MATH 1551"
+        ]
+      }
+    ],
+    "source_url": "https://www.math.lsu.edu/courses"
+  },
+  "MATH 2090": {
+    "requirements": [
+      {
+        "any_of": [
+          "MATH 1552",
+          "MATH 1553"
+        ]
+      }
+    ],
+    "source_url": "https://www.math.lsu.edu/courses"
+  },
+  "IE 3302": {
+    "requirements": [
+      {
+        "any_of": [
+          "MATH 1552"
+        ],
+        "min_grade": "C"
+      }
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=230270"
+  },
+  "ENGL 1001": {
+    "requirements": [],
+    "unverified_requirements": [
+      "English placement eligibility cannot be checked automatically"
+    ],
+    "source_url": "https://catalog.lsu.edu/content.php?catoid=35&navoid=3486"
+  },
+  "ENGL 2000": {
+    "requirements": [
+      {
+        "any_of": [
+          "ENGL 1001"
+        ]
+      }
+    ],
+    "unverified_requirements": [
+      "Equivalent transfer, dual-enrollment, or placement credit must be verified"
+    ],
+    "source_url": "https://catalog.lsu.edu/preview_course_nopop.php?catoid=35&coid=232308"
+  }
+}
