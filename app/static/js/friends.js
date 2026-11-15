@@ -1,5 +1,5 @@
 (() => {
-    // Keep friend requests, sharing controls, and schedule comparison local to this page.
+    // Keep sharing controls and schedule comparison local to this page.
     const { scheduleState, getUserById, loadScheduleData } = window.SchedulePrototype;
     const searchMessage = document.querySelector("#friend-search-message");
     loadScheduleData().then(initializeFriends).catch((error) => {
@@ -15,10 +15,6 @@
     let nextUserNumber = sampleUsers.length + 1;
 
     const state = {
-        requests: [
-            { id: "request-1", username: "user5", major: "Computer Science" },
-            { id: "request-2", username: "user6", major: "Biology" },
-        ],
         friends: [
             { username: "user1" },
             { username: "user2" },
@@ -37,10 +33,7 @@
     };
     const userLabels = new Map();
 
-    const requestList = document.querySelector("#pending-requests");
     const friendsList = document.querySelector("#friends-list");
-    const requestCount = document.querySelector("#pending-request-count");
-    const noRequests = document.querySelector("#no-pending-requests");
     const noFriends = document.querySelector("#no-friends");
     const friendForm = document.querySelector("#find-friend-form");
     const usernameInput = document.querySelector("#friend-username");
@@ -80,54 +73,6 @@
         button.setAttribute("aria-label", label);
         button.addEventListener("click", action);
         return button;
-    };
-
-    const renderRequests = () => {
-        requestList.replaceChildren();
-        requestCount.textContent = `${state.requests.length} New`;
-        requestCount.classList.toggle("hidden", state.requests.length === 0);
-        noRequests.classList.toggle("hidden", state.requests.length > 0);
-
-        state.requests.forEach((request) => {
-            const item = makeElement("li", "flex flex-col gap-3 rounded-md border border-neutrals-100 bg-neutrals-0 p-3 sm:flex-row sm:items-center sm:justify-between");
-            const identity = makeElement("div", "flex min-w-0 items-center gap-3");
-            identity.append(makeElement("span", "size-9 shrink-0 rounded-full bg-neutrals-100"));
-            const details = makeElement("div", "min-w-0");
-            const requestName = displayName(request.username);
-            details.append(
-                makeElement("p", "truncate text-sm font-bold text-neutrals-800", requestName),
-                makeElement("p", "truncate text-xs text-neutrals-400", request.major),
-            );
-            identity.append(details);
-
-            const actions = makeElement("div", "flex shrink-0 gap-2");
-            actions.append(
-                makeButton("Accept", "rounded-md bg-purple-400 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-purple-500", () => {
-                    const directoryEntry = usersByUsername.get(request.username);
-                    if (!directoryEntry) {
-                        const newUser = {
-                            username: request.username,
-                            major: request.major,
-                            status: "Free now",
-                            schedules: [],
-                        };
-                        sampleUsers.push(newUser);
-                        usersByUsername.set(request.username, newUser);
-                    }
-                    state.friends.push({
-                        username: request.username,
-                    });
-                    state.requests = state.requests.filter((item) => item.id !== request.id);
-                    renderAll();
-                }, `Accept ${requestName}'s request`),
-                makeButton("Decline", "rounded-md border border-neutrals-200 px-3 py-1.5 text-xs font-semibold text-neutrals-500 transition-colors hover:bg-yellow-50", () => {
-                    state.requests = state.requests.filter((item) => item.id !== request.id);
-                    renderRequests();
-                }, `Decline ${requestName}'s request`),
-            );
-            item.append(identity, actions);
-            requestList.append(item);
-        });
     };
 
     const renderFriends = () => {
@@ -256,7 +201,6 @@
     });
 
     const renderAll = () => {
-        renderRequests();
         renderFriends();
         renderSharedSchedulePicker();
         renderViewers();
@@ -274,16 +218,8 @@
             searchMessage.classList.add("text-red-600");
             return;
         }
-        const username = `user${nextUserNumber++}`;
-        state.requests.push({
-            id: `request-${Date.now()}`,
-            username,
-            major: "Student",
-        });
-        usernameInput.value = "";
-        searchMessage.textContent = "Friend request added to pending requests.";
-        searchMessage.classList.add("text-purple-700");
-        renderRequests();
+        searchMessage.textContent = "Friend request handling is not connected yet. Your request was not sent.";
+        searchMessage.classList.add("text-neutrals-500");
     });
 
     sharedSchedulePicker.addEventListener("change", () => {
