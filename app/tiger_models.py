@@ -1,34 +1,278 @@
-"""this file will be for defineing the typed classes for application data"""
-from pydantic import BaseModel, Field, EmailStr
-from datetime import datetime
+"""Typed models shared by application routes and services."""
+import re
+from typing import Literal
+from uuid import uuid4
 
-class UserBase(BaseModel):
-    id: int
-    username: str
-    email: str
-    gpa: int
-    courses: list
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
-class Classes(BaseModel): ##most likely be put into a list   
-    department: str
-    number: int
-    name: str
-    grade: float
-    credit: int
-    semester: str
-    time: datetime
-    weekdays: list ##list of strings such as ["M", "W", "F"]
-    category: str ### core, tech elective or other
+##Constants for schedule model
+Weekday = Literal[
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]
+ScheduleColor = Literal["blue", "green", "orange", "purple", "red", "yellow", "pink", "teal"]
 
-class Activites(BaseModel):
-    isMandatory: bool
-    time: datetime
-    name: str
-    weekdays: list ##list of strings such as ["M", "W", "F"]
-    notes: str ## any notes pertaining to the activity 
+
+def to_camel_case(value: str) -> str:
+    first, *rest = value.split("_")
+    return first + "".join(part.capitalize() for part in rest)
+
+#Base class for schedule-related classes
+class ScheduleModel(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel_case, populate_by_name=True)
+
 
 class UserAuthSchema(BaseModel):
     email: EmailStr
     password: str
 
-#class Schedules()
+#Schedule event data model with validation
+class ScheduleEventData(ScheduleModel):
+    title: str = Field(min_length=1, max_length=100)
+    days: list[Weekday] = Field(min_length=1)
+    start: str
+    end: str
+    location: str = Field(default="", max_length=120)
+    guests: list[str] = Field(default_factory=list)
+    favorite: bool = False
+
+    @field_validator("title", "location")
+    @classmethod
+    def strip_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("title")
+    @classmethod
+    def require_title(cls, value: str) -> str:
+        if not value:
+            raise ValueError("Event title cannot be blank.")
+        return value
+
+    @field_validator("start", "end")
+    @classmethod
+    def validate_time(cls, value: str) -> str:
+        if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", value):
+            raise ValueError("Event times must use 24-hour HH:MM format.")
+        return value
+
+    @field_validator("days", mode="before")
+    @classmethod
+    def normalize_days(cls, days: list[str]) -> list[str]:
+        day_names = {
+            "M": "Monday",
+            "T": "Tuesday",
+            "W": "Wednesday",
+            "Th": "Thursday",
+            "F": "Friday",
+            "Sa": "Saturday",
+            "Su": "Sunday",
+        }
+        return [day_names.get(day, day) for day in days]
+
+    @model_validator(mode="after")
+    def require_positive_duration(self) -> "ScheduleEventData":
+        if self.end <= self.start:
+            raise ValueError("End time must be after start time.")
+        return self
+
+    @field_validator("guests", mode="before")
+    @classmethod
+    def normalize_guests(cls, guests: list[str] | str) -> list[str]:
+        if isinstance(guests, str):
+            guests = guests.split(",")
+        return [guest.strip() for guest in guests if guest.strip()]
+
+#Schedule event model with unique ID
+class ScheduleEvent(ScheduleEventData):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+
+#Schedule class event with additional fields for department, number, grade, semester, and category
+class Classes(ScheduleEvent):
+    department: str
+    number: int
+    grade: float
+    semester: str
+    category: str
+    credit: int = Field(gt=0)  ##credit hours are stored explicitly, never derived from meeting times
+
+class UserAuthSchema(BaseModel):
+    email: EmailStr
+    password: str
+class ScrapedCourse(BaseModel):
+    id: str
+    course_code: str
+    course_name: str
+    credits: int
+    category: str
+    source_url: str 
+
+class ConcentrationRequirements(BaseModel):
+    required_courses: list[ScrapedCourse] = Field(default_factory=list)
+    approved_electives: list[ScrapedCourse] = Field(default_factory=list)
+    other_requirements: list[dict] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    required_credit_hours: int | None = None
+#Additional class for course presets displayed in the course form
+class CoursePreset(Classes):
+    course_id: str
+    professor: str
+    enrollment: str
+    section_details: str
+
+#Schedule class for storing schedule data
+class Schedule(ScheduleModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    name: str = Field(min_length=1, max_length=60)
+    color: ScheduleColor
+    events: list[Classes | ScheduleEvent] = Field(default_factory=list)
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Schedule title cannot be blank.")
+        return value
+
+#Schedule definition class for creating or updating schedules
+class ScheduleDefinition(ScheduleModel):
+    name: str = Field(min_length=1, max_length=60)
+    color: ScheduleColor
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Schedule title cannot be blank.")
+        return value
+
+#Course selection class for storing selected courses in a schedule
+class CourseSelection(ScheduleModel):
+    course_id: str
+
+
+class UserBase(ScheduleModel):
+    id: str  ##Supabase account ids are UUID strings
+    username: str | None = None
+    email: str
+    gpa: float | None = None
+    courses: list = Field(default_factory=list)
+    schedules: list[Schedule] = Field(default_factory=list)
+
+#Schedule metrics class for storing total hours and busy days in a schedule
+class ScheduleMetrics(ScheduleModel):
+    total_hours: int
+    days_busy: str
+
+#Class for shared free time with validation
+class SharedFreeTimeRequest(ScheduleModel):
+    friend_username: str = Field(min_length=1)
+    start_time: str
+    end_time: str
+    minimum_duration: int = Field(gt=0, le=1440)
+
+    @field_validator("friend_username")
+    @classmethod
+    def strip_friend_username(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Friend username cannot be blank.")
+        return value
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def validate_time(cls, value: str) -> str:
+        if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", value):
+            raise ValueError("Times must use 24-hour HH:MM format.")
+        return value
+
+    @model_validator(mode="after")
+    def require_positive_range(self) -> "SharedFreeTimeRequest":
+        if self.end_time <= self.start_time:
+            raise ValueError("End time must be after start time.")
+        return self
+
+#Class for shared free time period
+class SharedFreeTimePeriod(ScheduleModel):
+    start: str
+    end: str
+
+#Class for shared free time day with a list of periods
+class SharedFreeTimeDay(ScheduleModel):
+    day: Weekday
+    periods: list[SharedFreeTimePeriod]
+
+#Class for response to shared free time request with a list of days
+class SharedFreeTimeResponse(ScheduleModel):
+    days: list[SharedFreeTimeDay]
+
+
+class ProfileUpdate(BaseModel):
+    username: str | None = None
+    gpa: float | None = Field(default=None, ge=0, le=4.3)
+    courses: list = []
+
+class Meeting(BaseModel):
+    days: list[str]  ##such as ["M", "W", "F"]
+    start: str  ## "HH:MM", 24 hour
+    end: str
+    location: str = ""
+
+class ScheduleSection(BaseModel):
+    department: str
+    number: int
+    name: str
+    section: str
+    credit: int = Field(gt=0)
+    meetings: list[Meeting] = []
+
+class Commitment(BaseModel):
+    name: str
+    days: list[str]
+    start: str
+    end: str
+    notes: str = ""
+
+class ScheduleIn(BaseModel):
+    name: str = Field(min_length=1)
+    semester: str
+    sections: list[ScheduleSection] = []
+    commitments: list[Commitment] = []
+
+class ScheduleOut(ScheduleIn):
+    id: str
+    created_at: str | None = None
+    updated_at: str | None = None
+#Schedule page data class for storing current user ID, list of users, and schedule metrics
+class SchedulePageData(ScheduleModel):
+    current_user_id: str
+    users: list[UserBase]
+    metrics: dict[str, ScheduleMetrics]
+
+
+class FriendRequestIn(BaseModel):
+    username: str = Field(min_length=1)
+
+class FriendRequestOut(BaseModel):
+    id: str
+    sender_username: str
+    recipient_username: str
+    status: str
+    created_at: str | None = None
+
+class FriendRequestList(BaseModel):
+    incoming: list[FriendRequestOut]
+    outgoing: list[FriendRequestOut]
