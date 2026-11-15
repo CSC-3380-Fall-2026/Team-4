@@ -1,7 +1,8 @@
 """Start FastAPI and connect page routes, templates, and static files."""
 """PLEASE set up a .VENV look under # How to Run Dev and Test Environment in the README.md"""
+BASE_DIR = Path(__file__).resolve().parent
 from fastapi import FastAPI, Request
-from fastapi.responses import Response, HTMLResponse
+from fastapi.responses import Response, HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from datetime import datetime, timedelta
@@ -11,10 +12,8 @@ from tiger_models import *
 from pathlib import Path
 import tiger_catalog
 import tiger_scheduler
-
 import tiger_auth  # Import by using filename. 
 import tiger_gpa
-from fastapi.responses import RedirectResponse
 import tiger_prerequisites
 
 app = FastAPI()
@@ -35,6 +34,8 @@ app.mount(
 
 app.include_router(tiger_auth.router)
 app.include_router(tiger_gpa.router)
+app.include_router(tiger_scheduler.router)
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 app.include_router(tiger_catalog.router)
 app.include_router(tiger_prerequisites.router)
 app.include_router(tiger_scheduler.router)

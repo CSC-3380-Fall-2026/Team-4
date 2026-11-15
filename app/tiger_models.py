@@ -3,6 +3,12 @@ import re
 from typing import Literal
 from uuid import uuid4
 
+class UserBase(BaseModel):
+    id: str
+    username: str | None = None
+    email: str
+    gpa: float | None = None
+    courses: list = []
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -115,6 +121,23 @@ class Classes(ScheduleEvent):
         duration_minutes = (end_hour * 60 + end_minute) - (start_hour * 60 + start_minute)
         return (duration_minutes + 59) // 60
 
+class UserAuthSchema(BaseModel):
+    email: EmailStr
+    password: str
+class ScrapedCourse(BaseModel):
+    id: str
+    course_code: str
+    course_name: str
+    credits: int
+    category: str
+    source_url: str 
+
+class ConcentrationRequirements(BaseModel):
+    required_courses: list[ScrapedCourse] = Field(default_factory=list)
+    approved_electives: list[ScrapedCourse] = Field(default_factory=list)
+    other_requirements: list[dict] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    required_credit_hours: int | None = None
 #Additional class for course presets displayed in the course form
 class CoursePreset(Classes):
     course_id: str
@@ -211,6 +234,42 @@ class SharedFreeTimeResponse(ScheduleModel):
     days: list[SharedFreeTimeDay]
 
 
+class ProfileUpdate(BaseModel):
+    username: str | None = None
+    gpa: float | None = Field(default=None, ge=0, le=4.3)
+    courses: list = []
+
+class Meeting(BaseModel):
+    days: list[str]  ##such as ["M", "W", "F"]
+    start: str  ## "HH:MM", 24 hour
+    end: str
+    location: str = ""
+
+class ScheduleSection(BaseModel):
+    department: str
+    number: int
+    name: str
+    section: str
+    credit: int = 0
+    meetings: list[Meeting] = []
+
+class Commitment(BaseModel):
+    name: str
+    days: list[str]
+    start: str
+    end: str
+    notes: str = ""
+
+class ScheduleIn(BaseModel):
+    name: str = Field(min_length=1)
+    semester: str
+    sections: list[ScheduleSection] = []
+    commitments: list[Commitment] = []
+
+class ScheduleOut(ScheduleIn):
+    id: str
+    created_at: str | None = None
+    updated_at: str | None = None
 #Schedule page data class for storing current user ID, list of users, and schedule metrics
 class SchedulePageData(ScheduleModel):
     current_user_id: int
