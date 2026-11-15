@@ -46,8 +46,13 @@ const apiRequest = async (path, options = {}) => {
         const detail = responseData?.detail;
         const message = Array.isArray(detail)
             ? detail.map((issue) => issue.msg).join(" ")
-            : detail;
-        throw new Error(message || `Request failed (${response.status}).`);
+            : typeof detail === "string" ? detail : detail?.message;
+        const error = new Error(message || `Request failed (${response.status}).`);
+        if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+            error.code = detail.code;
+            error.eventNames = detail.event_names;
+        }
+        throw error;
     }
     return responseData;
 };

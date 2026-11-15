@@ -191,6 +191,49 @@ class ScheduleMetrics(ScheduleModel):
     total_hours: int
     days_busy: str
 
+#Class for shared free time with validation
+class SharedFreeTimeRequest(ScheduleModel):
+    friend_username: str = Field(min_length=1)
+    start_time: str
+    end_time: str
+    minimum_duration: int = Field(gt=0, le=1440)
+
+    @field_validator("friend_username")
+    @classmethod
+    def strip_friend_username(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Friend username cannot be blank.")
+        return value
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def validate_time(cls, value: str) -> str:
+        if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", value):
+            raise ValueError("Times must use 24-hour HH:MM format.")
+        return value
+
+    @model_validator(mode="after")
+    def require_positive_range(self) -> "SharedFreeTimeRequest":
+        if self.end_time <= self.start_time:
+            raise ValueError("End time must be after start time.")
+        return self
+
+#Class for shared free time period
+class SharedFreeTimePeriod(ScheduleModel):
+    start: str
+    end: str
+
+#Class for shared free time day with a list of periods
+class SharedFreeTimeDay(ScheduleModel):
+    day: Weekday
+    periods: list[SharedFreeTimePeriod]
+
+#Class for response to shared free time request with a list of days
+class SharedFreeTimeResponse(ScheduleModel):
+    days: list[SharedFreeTimeDay]
+
+
 class ProfileUpdate(BaseModel):
     username: str | None = None
     gpa: float | None = Field(default=None, ge=0, le=4.3)
