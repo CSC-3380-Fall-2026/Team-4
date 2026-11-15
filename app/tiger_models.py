@@ -115,6 +115,23 @@ class Classes(ScheduleEvent):
         duration_minutes = (end_hour * 60 + end_minute) - (start_hour * 60 + start_minute)
         return (duration_minutes + 59) // 60
 
+class UserAuthSchema(BaseModel):
+    email: EmailStr
+    password: str
+class ScrapedCourse(BaseModel):
+    id: str
+    course_code: str
+    course_name: str
+    credits: int
+    category: str
+    source_url: str 
+
+class ConcentrationRequirements(BaseModel):
+    required_courses: list[ScrapedCourse] = Field(default_factory=list)
+    approved_electives: list[ScrapedCourse] = Field(default_factory=list)
+    other_requirements: list[dict] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    required_credit_hours: int | None = None
 #Additional class for course presets displayed in the course form
 class CoursePreset(Classes):
     course_id: str
