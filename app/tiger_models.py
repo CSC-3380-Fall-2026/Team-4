@@ -1,14 +1,9 @@
 """Typed models shared by application routes and services."""
+
 import re
-from typing import Literal
+from typing import Any, Literal
 from uuid import uuid4
-from pydantic import BaseModel
-class UserBase(BaseModel):
-    id: str
-    username: str | None = None
-    email: str
-    gpa: float | None = None
-    courses: list = []
+
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -19,7 +14,6 @@ from pydantic import (
     model_validator,
 )
 
-##Constants for schedule model
 Weekday = Literal[
     "Monday",
     "Tuesday",
@@ -29,23 +23,26 @@ Weekday = Literal[
     "Saturday",
     "Sunday",
 ]
-ScheduleColor = Literal["blue", "green", "orange", "purple", "red", "yellow", "pink", "teal"]
 
+ScheduleColor = Literal[
+    "blue", "green", "orange", "purple", "red", "yellow", "pink", "teal"
+]
 
 def to_camel_case(value: str) -> str:
     first, *rest = value.split("_")
     return first + "".join(part.capitalize() for part in rest)
 
-#Base class for schedule-related classes
-class ScheduleModel(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel_case, populate_by_name=True)
 
+class ScheduleModel(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel_case,
+        populate_by_name=True,
+    )
 
 class UserAuthSchema(BaseModel):
     email: EmailStr
     password: str
 
-#Schedule event data model with validation
 class ScheduleEventData(ScheduleModel):
     title: str = Field(min_length=1, max_length=100)
     days: list[Weekday] = Field(min_length=1)
@@ -101,11 +98,9 @@ class ScheduleEventData(ScheduleModel):
             guests = guests.split(",")
         return [guest.strip() for guest in guests if guest.strip()]
 
-#Schedule event model with unique ID
 class ScheduleEvent(ScheduleEventData):
     id: str = Field(default_factory=lambda: str(uuid4()))
 
-#Schedule class event with additional fields for department, number, grade, semester, and category
 class Classes(ScheduleEvent):
     department: str
     number: int
@@ -116,36 +111,36 @@ class Classes(ScheduleEvent):
     @computed_field
     @property
     def credit(self) -> int:
+        # Preserves the existing calculation; this is based on meeting duration.
         start_hour, start_minute = map(int, self.start.split(":"))
         end_hour, end_minute = map(int, self.end.split(":"))
-        duration_minutes = (end_hour * 60 + end_minute) - (start_hour * 60 + start_minute)
+        duration_minutes = (
+            (end_hour * 60 + end_minute)
+            - (start_hour * 60 + start_minute)
+        )
         return (duration_minutes + 59) // 60
 
-class UserAuthSchema(BaseModel):
-    email: EmailStr
-    password: str
 class ScrapedCourse(BaseModel):
     id: str
     course_code: str
     course_name: str
     credits: int
     category: str
-    source_url: str 
+    source_url: str
 
 class ConcentrationRequirements(BaseModel):
     required_courses: list[ScrapedCourse] = Field(default_factory=list)
     approved_electives: list[ScrapedCourse] = Field(default_factory=list)
-    other_requirements: list[dict] = Field(default_factory=list)
+    other_requirements: list[dict[str, Any]] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
     required_credit_hours: int | None = None
-#Additional class for course presets displayed in the course form
+
 class CoursePreset(Classes):
     course_id: str
     professor: str
     enrollment: str
     section_details: str
 
-#Schedule class for storing schedule data
 class Schedule(ScheduleModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str = Field(min_length=1, max_length=60)
@@ -160,7 +155,6 @@ class Schedule(ScheduleModel):
             raise ValueError("Schedule title cannot be blank.")
         return value
 
-#Schedule definition class for creating or updating schedules
 class ScheduleDefinition(ScheduleModel):
     name: str = Field(min_length=1, max_length=60)
     color: ScheduleColor
@@ -173,25 +167,21 @@ class ScheduleDefinition(ScheduleModel):
             raise ValueError("Schedule title cannot be blank.")
         return value
 
-#Course selection class for storing selected courses in a schedule
 class CourseSelection(ScheduleModel):
     course_id: str
 
-
 class UserBase(ScheduleModel):
-    id: int
-    username: str
+    id: str | int
+    username: str | None = None
     email: str
-    gpa: int
-    courses: list
+    gpa: float | None = None
+    courses: list[Any] = Field(default_factory=list)
     schedules: list[Schedule] = Field(default_factory=list)
 
-#Schedule metrics class for storing total hours and busy days in a schedule
 class ScheduleMetrics(ScheduleModel):
     total_hours: int
     days_busy: str
 
-#Class for shared free time with validation
 class SharedFreeTimeRequest(ScheduleModel):
     friend_username: str = Field(min_length=1)
     start_time: str
@@ -219,59 +209,56 @@ class SharedFreeTimeRequest(ScheduleModel):
             raise ValueError("End time must be after start time.")
         return self
 
-#Class for shared free time period
+
 class SharedFreeTimePeriod(ScheduleModel):
     start: str
     end: str
 
-#Class for shared free time day with a list of periods
 class SharedFreeTimeDay(ScheduleModel):
     day: Weekday
     periods: list[SharedFreeTimePeriod]
 
-#Class for response to shared free time request with a list of days
 class SharedFreeTimeResponse(ScheduleModel):
     days: list[SharedFreeTimeDay]
-
 
 class ProfileUpdate(BaseModel):
     username: str | None = None
     gpa: float | None = Field(default=None, ge=0, le=4.3)
-    courses: list = []
-
+    courses: list[Any] = Field(default_factory=list)
+    
 class Meeting(BaseModel):
-    days: list[str]  ##such as ["M", "W", "F"]
-    start: str  ## "HH:MM", 24 hour
+    days: list[str]
+    start: str
     end: str
     location: str = ""
-
+    
 class ScheduleSection(BaseModel):
     department: str
     number: int
     name: str
     section: str
     credit: int = 0
-    meetings: list[Meeting] = []
-
+    meetings: list[Meeting] = Field(default_factory=list)
+    
 class Commitment(BaseModel):
     name: str
     days: list[str]
     start: str
     end: str
     notes: str = ""
-
+    
 class ScheduleIn(BaseModel):
     name: str = Field(min_length=1)
     semester: str
-    sections: list[ScheduleSection] = []
-    commitments: list[Commitment] = []
-
+    sections: list[ScheduleSection] = Field(default_factory=list)
+    commitments: list[Commitment] = Field(default_factory=list)
+    
 class ScheduleOut(ScheduleIn):
     id: str
     created_at: str | None = None
     updated_at: str | None = None
-#Schedule page data class for storing current user ID, list of users, and schedule metrics
+    
 class SchedulePageData(ScheduleModel):
-    current_user_id: int
+    current_user_id: str | int
     users: list[UserBase]
     metrics: dict[str, ScheduleMetrics]
