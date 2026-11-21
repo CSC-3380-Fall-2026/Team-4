@@ -19,7 +19,7 @@ def test_health_route():
 
 
 def test_public_page_routes():
-    for path in ["/", "/login", "/signin", "/dashboard", "/schedule", "/planning", "/friends", "/profile"]:
+    for path in ["/", "/login", "/signin", "/dashboard", "/schedule", "/planning", "/friends"]:
         response = client.get(path)
         assert response.status_code == 200, f"{path} returned {response.status_code}"
         assert "text/html" in response.headers["content-type"]

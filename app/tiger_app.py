@@ -12,6 +12,7 @@ from tiger_models import *
 import tiger_catalog
 import tiger_scheduler
 import tiger_auth
+import tiger_friends
 import tiger_gpa
 import tiger_prerequisites
 
@@ -28,6 +29,7 @@ app.mount(
     name="static",
 )
 app.include_router(tiger_auth.router)
+app.include_router(tiger_friends.router)
 app.include_router(tiger_gpa.router)
 app.include_router(tiger_scheduler.router)
 app.include_router(tiger_catalog.router)
