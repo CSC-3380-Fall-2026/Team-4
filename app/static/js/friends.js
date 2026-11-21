@@ -1,9 +1,17 @@
 (() => {
     // Keep friend requests, sharing controls, and schedule comparison local to this page.
-    const { scheduleState, sampleUsers, getUserById } = window.SchedulePrototype;
+    const { apiRequest, scheduleState, getUserById, loadScheduleData } = window.SchedulePrototype;
+    const searchMessage = document.querySelector("#friend-search-message");
+    loadScheduleData().then(initializeFriends).catch((error) => {
+        searchMessage.textContent = error.message;
+        searchMessage.className = "text-sm text-red-600";
+    });
+
+    function initializeFriends() {
+    const sampleUsers = scheduleState.sampleUsers;
     const currentUser = getUserById(scheduleState.currentUserId);
     const schedules = currentUser.schedules;
-    const usersById = new Map(sampleUsers.map((user) => [user.id, user]));
+    const usersByUsername = new Map(sampleUsers.map((user) => [user.username, user]));
     let nextUserNumber = sampleUsers.length + 1;
 
     const state = {
@@ -36,7 +44,6 @@
     const noFriends = document.querySelector("#no-friends");
     const friendForm = document.querySelector("#find-friend-form");
     const usernameInput = document.querySelector("#friend-username");
-    const searchMessage = document.querySelector("#friend-search-message");
     const sharedSchedulePicker = document.querySelector("#shared-schedule-picker");
     const publicSharingToggle = document.querySelector("#public-sharing-toggle");
     const scheduleViewers = document.querySelector("#schedule-viewers");
@@ -45,6 +52,11 @@
     const noScheduleViewers = document.querySelector("#no-schedule-viewers");
     const sharingStatus = document.querySelector("#sharing-status");
     const compareFriendPicker = document.querySelector("#compare-friend-picker");
+    const freeTimeStart = document.querySelector("#free-time-start");
+    const freeTimeEnd = document.querySelector("#free-time-end");
+    const minimumFreeDuration = document.querySelector("#minimum-free-duration");
+    const freePeriods = document.querySelector("#free-periods");
+    let freeTimeRequestSequence = 0;
     const makeElement = (tag, classes, text) => {
         const element = document.createElement(tag);
         element.className = classes;
@@ -54,8 +66,91 @@
         return element;
     };
 
+    const formatTime = (time) => {
+        const [hours, minutes] = time.split(":").map(Number);
+        const period = hours < 12 ? "AM" : "PM";
+        return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")} ${period}`;
+    };
+
+    const formatDuration = (start, end) => {
+        const toMinutes = (time) => {
+            const [hours, minutes] = time.split(":").map(Number);
+            return hours * 60 + minutes;
+        };
+        const duration = toMinutes(end) - toMinutes(start);
+        const hours = Math.floor(duration / 60);
+        const minutes = duration % 60;
+        if (hours === 0) {
+            return `${minutes} min`;
+        }
+        return minutes === 0 ? `${hours} hr` : `${hours} hr ${minutes} min`;
+    };
+    
+    const renderFreePeriods = async () => {
+        const requestSequence = ++freeTimeRequestSequence;
+        if (!state.selectedFriend) {
+            freePeriods.replaceChildren();
+            freePeriods.className = "rounded-md border border-dashed border-neutrals-200 bg-neutrals-50 p-4 text-sm text-neutrals-400";
+            freePeriods.textContent = "Add a friend to compare shared free time.";
+            return;
+        }
+
+        try {
+            const result = await apiRequest("/api/shared-free-time", {
+                method: "POST",
+                body: JSON.stringify({
+                    friendUsername: state.selectedFriend,
+                    startTime: freeTimeStart.value,
+                    endTime: freeTimeEnd.value,
+                    minimumDuration: Number(minimumFreeDuration.value),
+                }),
+            });
+            if (requestSequence !== freeTimeRequestSequence) {
+                return;
+            }
+            if (result.days.length === 0) {
+                freePeriods.replaceChildren();
+                freePeriods.className = "rounded-md border border-dashed border-neutrals-200 bg-neutrals-50 p-4 text-sm text-neutrals-400";
+                freePeriods.textContent = `No shared free periods of at least ${minimumFreeDuration.value} minutes within the selected hours.`;
+                return;
+            }
+
+            const list = makeElement("div", "grid gap-2");
+            result.days.forEach(({ day, periods }) => {
+                const daySection = makeElement("section", "grid gap-1");
+                daySection.append(makeElement("h5", "text-xs font-bold text-neutrals-700", day));
+                const periodList = makeElement("ul", "flex flex-wrap gap-1.5");
+                periods.forEach(({ start, end }) => {
+                    const period = makeElement(
+                        "li",
+                        "inline-flex items-center gap-1.5 rounded-md border border-neutrals-100 bg-neutrals-0 px-2 py-1",
+                    );
+                    period.append(
+                        makeElement("span", "size-1.5 shrink-0 rounded-full bg-purple-500"),
+                        makeElement("span", "text-xs font-bold text-neutrals-900", `${formatTime(start)} - ${formatTime(end)}`),
+                        makeElement("span", "text-xs text-neutrals-400", formatDuration(start, end)),
+                    );
+                    periodList.append(period);
+                });
+                daySection.append(periodList);
+                list.append(daySection);
+            });
+            freePeriods.className = "grid gap-2 rounded-md border border-neutrals-200 bg-neutrals-0 p-2.5";
+            freePeriods.replaceChildren(list);
+        } catch (error) {
+            if (requestSequence !== freeTimeRequestSequence) {
+                return;
+            }
+            freePeriods.className = "rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-600";
+            freePeriods.textContent = error.message;
+        }
+    };
+
     const displayName = (username) => {
-        const label = usersById.get(username)?.displayName ?? userLabels.get(username);
+        const knownUsername = usersByUsername.get(username)?.username;
+        const label = knownUsername
+            ? knownUsername === "user" ? "user" : knownUsername.replace(/^user/, "User ")
+            : userLabels.get(username);
         if (label) {
             return label;
         }
@@ -93,17 +188,16 @@
             const actions = makeElement("div", "flex shrink-0 gap-2");
             actions.append(
                 makeButton("Accept", "rounded-md bg-purple-400 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-purple-500", () => {
-                    const directoryEntry = usersById.get(request.username);
+                    const directoryEntry = usersByUsername.get(request.username);
                     if (!directoryEntry) {
                         const newUser = {
-                            id: request.username,
-                            displayName: displayName(request.username),
+                            username: request.username,
                             major: request.major,
                             status: "Free now",
                             schedules: [],
                         };
                         sampleUsers.push(newUser);
-                        usersById.set(newUser.id, newUser);
+                        usersByUsername.set(request.username, newUser);
                     }
                     state.friends.push({
                         username: request.username,
@@ -126,7 +220,7 @@
         noFriends.classList.toggle("hidden", state.friends.length > 0);
 
         state.friends.forEach((friend) => {
-            const user = usersById.get(friend.username);
+            const user = usersByUsername.get(friend.username);
             const status = friend.status ?? user?.status ?? "Free now";
             const item = makeElement("li", "flex items-center justify-between gap-3 rounded-md border border-neutrals-100 bg-neutrals-0 px-3 py-2");
             const identity = makeElement("div", "flex min-w-0 items-center gap-3");
@@ -241,7 +335,7 @@
     const { renderCalendar, scrollCalendarToFirstEvent } = window.FriendsCalendar.createRenderer({
         state,
         schedules,
-        usersById,
+        usersByUsername,
         displayName,
         makeElement,
     });
@@ -253,6 +347,7 @@
         renderViewers();
         renderComparePicker();
         renderCalendar();
+        renderFreePeriods();
     };
 
     friendForm.addEventListener("submit", (submitEvent) => {
@@ -306,7 +401,14 @@
     compareFriendPicker.addEventListener("change", () => {
         state.selectedFriend = compareFriendPicker.value;
         renderCalendar();
+        renderFreePeriods();
     });
+    [freeTimeStart, freeTimeEnd].forEach((input) => {
+        input.addEventListener("input", renderFreePeriods);
+        input.addEventListener("change", renderFreePeriods);
+    });
+    minimumFreeDuration.addEventListener("change", renderFreePeriods);
     renderAll();
     scrollCalendarToFirstEvent();
+    }
 })();

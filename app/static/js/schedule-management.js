@@ -1,7 +1,8 @@
 (() => {
 // Manage the selected schedule and its local add, edit, and remove interactions.
 const {
-    createId,
+    apiRequest,
+    loadScheduleData,
     getSelectedSchedule,
     scheduleColors,
     scheduleState,
@@ -78,7 +79,7 @@ const initializeScheduleManagement = (renderSchedule) => {
         scheduleDialog.showModal();
     });
 
-    scheduleForm.addEventListener("submit", (submitEvent) => {
+    scheduleForm.addEventListener("submit", async (submitEvent) => {
         submitEvent.preventDefault();
         const errorElement = scheduleForm.querySelector("[data-form-error]");
         clearError(errorElement);
@@ -88,18 +89,19 @@ const initializeScheduleManagement = (renderSchedule) => {
         }
 
         const formData = new FormData(scheduleForm);
-        const name = String(formData.get("name")).trim();
-        if (!name) {
-            showError(errorElement, "Schedule title cannot be blank.");
-            return;
+        const name = String(formData.get("name"));
+        try {
+            const schedule = await apiRequest("/api/schedules", {
+                method: "POST",
+                body: JSON.stringify({ name, color: String(formData.get("color")) }),
+            });
+            await loadScheduleData();
+            scheduleState.selectedScheduleId = schedule.id;
+            scheduleDialog.close();
+            renderSchedule();
+        } catch (error) {
+            showError(errorElement, error.message);
         }
-        // The prototype keeps new schedules in shared in-memory state only.
-        const id = createId("schedule");
-        scheduleState.schedules.push({ id, name, color: String(formData.get("color")), events: [] });
-        // Select the new schedule so the user can immediately add events to it.
-        scheduleState.selectedScheduleId = id;
-        scheduleDialog.close();
-        renderSchedule();
     });
 
     scheduleEditButton.addEventListener("click", () => {
@@ -111,7 +113,7 @@ const initializeScheduleManagement = (renderSchedule) => {
         editScheduleDialog.showModal();
     });
 
-    editScheduleForm.addEventListener("submit", (submitEvent) => {
+    editScheduleForm.addEventListener("submit", async (submitEvent) => {
         submitEvent.preventDefault();
         const errorElement = editScheduleForm.querySelector("[data-form-error]");
         clearError(errorElement);
@@ -120,20 +122,22 @@ const initializeScheduleManagement = (renderSchedule) => {
         }
 
         const formData = new FormData(editScheduleForm);
-        const name = String(formData.get("name")).trim();
-        if (!name) {
-            showError(errorElement, "Schedule title cannot be blank.");
-            return;
-        }
+        const name = String(formData.get("name"));
         const selectedSchedule = getSelectedSchedule();
-        // Update the existing object so its events remain attached to the schedule.
-        selectedSchedule.name = name;
-        selectedSchedule.color = String(formData.get("color"));
-        editScheduleDialog.close();
-        renderSchedule();
+        try {
+            await apiRequest(`/api/schedules/${encodeURIComponent(selectedSchedule.id)}`, {
+                method: "PUT",
+                body: JSON.stringify({ name, color: String(formData.get("color")) }),
+            });
+            await loadScheduleData();
+            editScheduleDialog.close();
+            renderSchedule();
+        } catch (error) {
+            showError(errorElement, error.message);
+        }
     });
 
-    editScheduleForm.querySelector("[data-remove-schedule]").addEventListener("click", () => {
+    editScheduleForm.querySelector("[data-remove-schedule]").addEventListener("click", async () => {
         const selectedSchedule = getSelectedSchedule();
         // Keep at least one schedule available for the page's picker and event forms.
         if (scheduleState.schedules.length <= 1) {
@@ -142,11 +146,18 @@ const initializeScheduleManagement = (renderSchedule) => {
         if (!window.confirm(`Remove the "${selectedSchedule.name}" schedule and all its events?`)) {
             return;
         }
-        scheduleState.schedules.splice(scheduleState.schedules.indexOf(selectedSchedule), 1);
-        // Switch to a remaining schedule after deleting the currently selected one.
-        scheduleState.selectedScheduleId = scheduleState.schedules[0].id;
-        editScheduleDialog.close();
-        renderSchedule();
+        clearError(editScheduleForm.querySelector("[data-form-error]"));
+        try {
+            await apiRequest(`/api/schedules/${encodeURIComponent(selectedSchedule.id)}`, {
+                method: "DELETE",
+            });
+            scheduleState.selectedScheduleId = "";
+            await loadScheduleData();
+            editScheduleDialog.close();
+            renderSchedule();
+        } catch (error) {
+            showError(editScheduleForm.querySelector("[data-form-error]"), error.message);
+        }
     });
 };
 
