@@ -122,4 +122,6 @@ def test_catalog_page_contains_course_content():
 def test_account_pages_have_no_sidebar():
     """Check that login and sign-up pages hide the navigation sidebar."""
     for path in ("/login", "/signup"):
-        assert "dashboard-nav" not in client.get(path).text
+        page = client.get(path).text
+        assert "dashboard-nav" not in page
+        assert "Browse courses" not in page
