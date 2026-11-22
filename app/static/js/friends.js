@@ -163,6 +163,7 @@
     const renderRequests = () => {
         requestList.replaceChildren();
         requestCount.textContent = state.incoming.length ? `${state.incoming.length} new` : "";
+        requestCount.classList.toggle("hidden", state.incoming.length === 0);
         noRequests.classList.toggle("hidden", state.incoming.length + state.outgoing.length > 0);
         state.incoming.forEach((request) => {
             requestList.append(requestItem(request, "Wants to be your friend", [

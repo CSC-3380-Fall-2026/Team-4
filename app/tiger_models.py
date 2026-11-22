@@ -4,11 +4,13 @@ import re
 from typing import Any, Literal
 from uuid import uuid4
 
+from models.tiger_profile import ProfileCourse
 from pydantic import (
     BaseModel,
     ConfigDict,
     EmailStr,
     Field,
+    PrivateAttr,
     field_validator,
     model_validator,
 )
@@ -209,6 +211,10 @@ class Schedule(ScheduleModel):
     name: str = Field(min_length=1, max_length=60)
     color: ScheduleColor
     events: list[Classes | ScheduleEvent] = Field(default_factory=list)
+    # Stored entries this version can't read, written back unchanged on save.
+    _kept: dict[str, list[Any]] = PrivateAttr(default_factory=dict)
+    # The row's updated_at when loaded, used to refuse overwriting newer edits.
+    _version: str | None = PrivateAttr(default=None)
 
     @field_validator("name")
     @classmethod
@@ -344,7 +350,7 @@ class ProfileUpdate(BaseModel):
     username: str | None = None
     gpa: float | None = Field(default=None, ge=0, le=4.3)
     completed_credit_hours: int = Field(default=0, ge=0)
-    courses: list[Any] = Field(default_factory=list)
+    courses: list[ProfileCourse] = Field(default_factory=list)
 
 class SchedulePageData(ScheduleModel):
     """Data needed to render the schedule page."""

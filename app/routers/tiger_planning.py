@@ -99,7 +99,7 @@ def edit_rows(form: PlanningForm, action: str) -> tuple[list[str], int]:
             return [], 200
         return [f"You can plan up to {MAX_ROWS} courses."], 400
     index: str = action.removeprefix("remove:")
-    if not (index.isdigit() and int(index) < len(form.rows)):
+    if not (index.isascii() and index.isdigit() and int(index) < len(form.rows)):
         return ["Choose an existing course row to remove."], 400
     form.rows.pop(int(index))
     if not form.rows:

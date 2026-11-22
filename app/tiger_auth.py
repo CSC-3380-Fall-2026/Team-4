@@ -11,10 +11,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from supabase import Client, create_client
+from pydantic import ValidationError
+from supabase import Client, ClientOptions, create_client
 
 from tiger_models import ProfileUpdate, UserAuthSchema, UserBase
-from models.tiger_profile import ProfileRecord
+from models.tiger_profile import ProfileCourse, ProfileRecord
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -40,16 +41,18 @@ def auth_client() -> Client:
             503, "Account services are temporarily unavailable."
         )
     try:
-        return create_client(url, key)
+        # One-off clients: no stored session and no background token refresh,
+        # so each login doesn't leave a refresh timer running in the server.
+        options = ClientOptions(auto_refresh_token=False, persist_session=False)
+        return create_client(url, key, options)
     except Exception as error:
         raise HTTPException(
             503, "Account services are temporarily unavailable."
         ) from error
 
 
-@router.post("/login")
 def login(credentials: UserAuthSchema) -> tuple[str, bool]:
-    """Sign in using the existing email and password API contract.
+    """Sign in with Supabase for the HTML login form.
 
     Args:
         credentials: Student email and password.
@@ -75,9 +78,8 @@ def login(credentials: UserAuthSchema) -> tuple[str, bool]:
     )
 
 
-@router.post("/signup")
 def signup(credentials: UserAuthSchema) -> tuple[str, bool]:
-    """Request account registration through the existing Supabase service.
+    """Request account registration with Supabase for the HTML signup form.
 
     Args:
         credentials: Student email and chosen password.
@@ -101,6 +103,44 @@ def signup(credentials: UserAuthSchema) -> tuple[str, bool]:
         "Registration could not be completed. Try logging in or try again later.",
         False,
     )
+
+
+@router.post("/login")
+def login_api(credentials: UserAuthSchema) -> dict[str, str]:
+    """Sign in through the JSON API.
+
+    Args:
+        credentials: Student email and password.
+
+    Returns:
+        The access token and its type.
+
+    Raises:
+        HTTPException: 401 when the email or password is wrong.
+    """
+    message, accepted = login(credentials)
+    if not accepted:
+        raise HTTPException(401, message)
+    return {"access_token": message, "token_type": "bearer"}
+
+
+@router.post("/signup")
+def signup_api(credentials: UserAuthSchema) -> dict[str, Any]:
+    """Register through the JSON API.
+
+    Args:
+        credentials: Student email and chosen password.
+
+    Returns:
+        Confirmation that the account was requested, with next steps.
+
+    Raises:
+        HTTPException: 400 when registration is refused.
+    """
+    message, accepted = signup(credentials)
+    if not accepted:
+        raise HTTPException(400, message)
+    return {"created": True, "message": message}
 
 
 @router.post("/logout")
@@ -146,6 +186,27 @@ def validate_token(token: str) -> bool:
         return False
 
 
+def readable_courses(raw: Any) -> list[dict[str, Any]]:
+    """Keep the saved courses that have the expected shape.
+
+    One malformed entry must not hide the whole profile, or the student
+    could never reach the form to fix it.
+
+    Args:
+        raw: The profile's stored courses value.
+
+    Returns:
+        Valid course dicts; anything else is skipped.
+    """
+    courses: list[dict[str, Any]] = []
+    for item in raw if isinstance(raw, list) else []:
+        try:
+            courses.append(ProfileCourse.model_validate(item).model_dump())
+        except ValidationError:
+            continue
+    return courses
+
+
 def session_card(session: "Session") -> dict[str, Any]:
     """Read account and profile data for an already verified session.
 
@@ -174,11 +235,13 @@ def session_card(session: "Session") -> dict[str, Any]:
             .data
         )
         if rows and rows[0]["id"] == session.user_id:
-            row: ProfileRecord = ProfileRecord.model_validate(rows[0])
+            row: ProfileRecord = ProfileRecord.model_validate(
+                {**rows[0], "courses": []}
+            )
             profile["username"] = row.username or profile["username"]
             profile["gpa"] = row.gpa
             profile["completed_credit_hours"] = row.completed_credit_hours
-            profile["courses"] = [course.model_dump() for course in row.courses]
+            profile["courses"] = readable_courses(rows[0].get("courses"))
     except Exception:
         profile["data_error"] = True
     return profile
@@ -432,6 +495,6 @@ def update_profile(
             "username": (update.username or "").strip() or None,
             "gpa": update.gpa,
             "completed_credit_hours": update.completed_credit_hours,
-            "courses": update.courses,
+            "courses": [course.model_dump() for course in update.courses],
         },
     )

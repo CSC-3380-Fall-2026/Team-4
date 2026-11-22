@@ -5,7 +5,6 @@ from io import BytesIO
 
 from pydantic import BaseModel, Field
 from pypdf import PdfReader
-from pypdf.errors import PdfReadError
 
 from models.tiger_profile import ProfileCourse
 
@@ -41,6 +40,30 @@ class ParsedTranscript(BaseModel):
     courses: list[ProfileCourse] = Field(default_factory=list)
 
 
+def read_pages(data: bytes) -> str:
+    """Open a PDF and join the text of its pages.
+
+    Args:
+        data: Raw bytes of the uploaded file.
+
+    Returns:
+        The text of every page.
+
+    Raises:
+        ValueError: For a protected, empty, or overly long PDF.
+        Exception: Any pypdf error on a damaged file; the caller converts it.
+    """
+    reader = PdfReader(BytesIO(data))
+    if reader.is_encrypted:
+        raise ValueError("That PDF is password protected.")
+    pages = reader.pages
+    if len(pages) == 0:
+        raise ValueError("That PDF has no pages.")
+    if len(pages) > MAX_PAGES:
+        raise ValueError("That PDF has too many pages to be a transcript.")
+    return "\n".join(page.extract_text() or "" for page in pages)
+
+
 def extract_text(data: bytes) -> str:
     """Read the text content of an uploaded PDF.
 
@@ -51,19 +74,19 @@ def extract_text(data: bytes) -> str:
         The PDF's text, page by page.
 
     Raises:
-        ValueError: If the file is not a readable, unprotected PDF with text.
+        ValueError: If the file is too large, or not a readable, unprotected
+            PDF with text.
     """
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise ValueError("That PDF is too large (5 MB limit).")
     try:
-        reader = PdfReader(BytesIO(data))
-    except PdfReadError as error:
+        text = read_pages(data)
+    except ValueError:
+        raise
+    except Exception as error:
+        # pypdf raises many error types on damaged files; all mean the same
+        # thing to the student.
         raise ValueError("That file is not a readable PDF.") from error
-    if reader.is_encrypted:
-        raise ValueError("That PDF is password protected.")
-    if len(reader.pages) == 0:
-        raise ValueError("That PDF has no pages.")
-    if len(reader.pages) > MAX_PAGES:
-        raise ValueError("That PDF has too many pages to be a transcript.")
-    text = "\n".join(page.extract_text() or "" for page in reader.pages)
     if not text.strip():
         raise ValueError(
             "No text could be read from that PDF. Export it directly from "
@@ -123,18 +146,21 @@ def read_summary(text: str) -> tuple[float | None, int]:
     The last "Cumulative (Institutional)" line in the transcript always
     carries the latest totals forward, even during an in-progress term.
 
+    Hours come from the "Carried" column: GPA hours, which include courses
+    graded F, unlike "Earned".
+
     Args:
         text: Full transcript text.
 
     Returns:
-        The cumulative GPA and earned credit hours, or (None, 0) if the
-        transcript has no cumulative summary line.
+        The cumulative GPA and GPA (carried) credit hours, or (None, 0) if
+        the transcript has no cumulative summary line.
     """
     matches = list(CUMULATIVE_PATTERN.finditer(text))
     if not matches:
         return None, 0
     last = matches[-1]
-    return float(last["gpa"]), round(float(last["earned"]))
+    return float(last["gpa"]), round(float(last["carried"]))
 
 
 def read_transcript(text: str) -> ParsedTranscript:

@@ -72,6 +72,12 @@ create policy "stop sharing own schedules"
 on public.schedule_shares for delete to authenticated
 using (owner_id = auth.uid());
 
+-- The recipient can remove a share pointing at them, so unfriending clears
+-- shares in both directions.
+drop policy if exists "recipient removes share" on public.schedule_shares;
+create policy "recipient removes share" on public.schedule_shares
+  for delete to authenticated using (friend_id = auth.uid());
+
 -- Accepted friends can read schedules that were explicitly shared with them.
 create policy "read schedules shared with me"
 on public.schedules for select to authenticated

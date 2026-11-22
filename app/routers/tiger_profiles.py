@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
-from starlette.formparsers import MultiPartException
+from starlette.exceptions import HTTPException
 
 import tiger_auth
 import tiger_transcript
@@ -14,6 +14,24 @@ from tiger_auth import Session, require_login
 from tiger_views import render_page, valid_token
 
 router: APIRouter = APIRouter()
+TOO_LARGE: str = "That PDF is too large (5 MB limit)."
+FORM_SLACK: int = 64 * 1024
+UNIQUE_VIOLATION: str = "23505"
+
+
+def whole_number(text: str) -> bool:
+    """Tell whether text is a plain ASCII whole number.
+
+    str.isdigit() alone also accepts characters such as "²" that int()
+    cannot read.
+
+    Args:
+        text: Text to check.
+
+    Returns:
+        True for text made only of the digits 0-9.
+    """
+    return text.isascii() and text.isdigit()
 
 
 def parse_courses(text: str) -> list[dict[str, Any]]:
@@ -50,7 +68,7 @@ def parse_line(line: str) -> dict[str, Any]:
     parts: list[str] = [part.strip() for part in line.split(",", 2)]
     if len(parts) < 3 or not parts[0] or not parts[2]:
         raise ValueError(f"Use code, credits, name on each line: {line.strip()}")
-    if not parts[1].isdigit() or int(parts[1]) > 12:
+    if not whole_number(parts[1]) or int(parts[1]) > 12:
         raise ValueError(f"Credits must be a whole number: {line.strip()}")
     return {
         "course_code": parts[0][:20],
@@ -91,11 +109,12 @@ def parse_hours(text: str) -> int:
     Raises:
         ValueError: If the text is not a non-negative whole number.
     """
-    if not text.strip():
+    value = text.strip()
+    if not value:
         return 0
-    if not text.strip().isdigit() or int(text) > 400:
+    if not whole_number(value) or int(value) > 400:
         raise ValueError("Completed credit hours must be a whole number.")
-    return int(text)
+    return int(value)
 
 
 def read_form(data: dict[str, str]) -> dict[str, Any]:
@@ -187,6 +206,37 @@ def draft_profile(
     return profile
 
 
+def body_size(request: Request) -> int:
+    """Read the declared request size so huge uploads are refused early.
+
+    Args:
+        request: Incoming form post.
+
+    Returns:
+        The Content-Length in bytes, or 0 when missing or unreadable.
+    """
+    try:
+        return int(request.headers.get("content-length", "0"))
+    except ValueError:
+        return 0
+
+
+def save_error(error: Exception) -> tuple[str, int]:
+    """Explain why saving the profile failed.
+
+    Args:
+        error: The database error.
+
+    Returns:
+        A message for the student and the HTTP status: 409 only when the
+        username is really taken, otherwise a temporary failure.
+    """
+    code = str(getattr(error, "code", "") or "")
+    if code == UNIQUE_VIOLATION or "duplicate key" in str(error).lower():
+        return "That username is already taken. Try another.", 409
+    return "Your profile couldn't be saved right now. Please try again.", 503
+
+
 @router.post("/profile/transcript", response_class=HTMLResponse)
 async def upload_transcript(
     request: Request, session: Session = Depends(require_login)
@@ -200,15 +250,13 @@ async def upload_transcript(
     Returns:
         The profile form pre-filled for review, or an error.
     """
+    if body_size(request) > tiger_transcript.MAX_UPLOAD_BYTES + FORM_SLACK:
+        return show_error(request, session, TOO_LARGE, 400)
     try:
-        form = await request.form(
-            max_files=1,
-            max_fields=2,
-            max_part_size=tiger_transcript.MAX_UPLOAD_BYTES,
-        )
-    except MultiPartException:
+        form = await request.form(max_files=1, max_fields=2)
+    except HTTPException:
         return show_error(
-            request, session, "That PDF is too large (5 MB limit).", 400
+            request, session, "Upload one PDF using the form below.", 400
         )
     if not valid_token(request, str(form.get("csrf_token", ""))):
         return show_error(
@@ -219,7 +267,9 @@ async def upload_transcript(
         return show_error(
             request, session, "Choose a transcript PDF to upload.", 400
         )
-    data = await upload.read()
+    data = await upload.read(tiger_transcript.MAX_UPLOAD_BYTES + 1)
+    if len(data) > tiger_transcript.MAX_UPLOAD_BYTES:
+        return show_error(request, session, TOO_LARGE, 400)
     try:
         parsed = await run_in_threadpool(tiger_transcript.parse_upload, data)
     except ValueError as error:
@@ -259,14 +309,9 @@ async def save_profile(
         return show_error(request, session, friendly(error), 400, data)
     try:
         await run_in_threadpool(tiger_auth.save_profile, session, fields)
-    except Exception:
-        return show_error(
-            request,
-            session,
-            "That username may already be taken. Try another.",
-            409,
-            data,
-        )
+    except Exception as error:
+        message, status = save_error(error)
+        return show_error(request, session, message, status, data)
     response: RedirectResponse = RedirectResponse(
         "/profile?saved=1", status_code=303
     )

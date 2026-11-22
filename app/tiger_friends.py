@@ -306,7 +306,10 @@ def list_shares(session: Session = Depends(current_session)) -> list[dict]:
     Returns:
         Share rows with the friend's username.
     """
-    names = friend_names(session)
+    current = {
+        other_id(row, session.user_id)
+        for row in friendship_rows(session) if row["status"] == "accepted"
+    }
     rows = (
         session.db.table("schedule_shares")
         .select("id,schedule_id,friend_id")
@@ -314,6 +317,8 @@ def list_shares(session: Session = Depends(current_session)) -> list[dict]:
         .execute()
         .data
     )
+    rows = [row for row in rows if row["friend_id"] in current]
+    names = friend_names(session) if rows else {}
     return [
         {**row, "username": names.get(row["friend_id"], UNNAMED)}
         for row in rows
@@ -399,7 +404,7 @@ def remove_friend(
     friendship_id: str,
     session: Session = Depends(current_session),
 ) -> dict:
-    """Remove an accepted friendship and stop sharing with that student.
+    """Remove an accepted friendship and every share between the two.
 
     Args:
         friendship_id: Id of the friendship row.
@@ -419,11 +424,14 @@ def remove_friend(
     if not result.data:
         raise HTTPException(404, "Friendship not found.")
     former = other_id(result.data[0], session.user_id)
+    me = session.user_id
     (
         session.db.table("schedule_shares")
         .delete()
-        .eq("owner_id", session.user_id)
-        .eq("friend_id", former)
+        .or_(
+            f"and(owner_id.eq.{me},friend_id.eq.{former}),"
+            f"and(owner_id.eq.{former},friend_id.eq.{me})"
+        )
         .execute()
     )
     return {"message": "Friend removed."}
@@ -511,6 +519,36 @@ def describe_row(row: dict[str, Any], user_id: str, names: dict[str, str]) -> di
     """
     other = other_id(row, user_id)
     return {"id": row["id"], "user_id": other, "username": names.get(other, UNNAMED)}
+
+
+@router.get("/requests")
+def list_requests(session: Session = Depends(current_session)) -> dict:
+    """List pending friend requests sent to and by this account.
+
+    Each entry's id is what accepting, declining, or canceling takes:
+    POST /api/friends/requests/{id}/accept or DELETE /api/friends/requests/{id}.
+
+    Args:
+        session: Authenticated session.
+
+    Returns:
+        Dict with incoming and outgoing requests, each naming the other student.
+    """
+    me = session.user_id
+    pending = [
+        row for row in friendship_rows(session) if row["status"] == "pending"
+    ]
+    names = friend_names(session) if pending else {}
+    return {
+        "incoming": [
+            describe_row(row, me, names)
+            for row in pending if row["addressee_id"] == me
+        ],
+        "outgoing": [
+            describe_row(row, me, names)
+            for row in pending if row["requester_id"] == me
+        ],
+    }
 
 
 @router.get("/list")

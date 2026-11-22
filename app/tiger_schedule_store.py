@@ -1,7 +1,7 @@
 """Load and save each student's schedules in the Supabase schedules table."""
 
 from datetime import date, datetime, timezone
-from typing import Any
+from typing import Any, get_args
 
 from fastapi import HTTPException
 
@@ -11,6 +11,7 @@ from tiger_models import (
     Classes,
     Schedule,
     ScheduleDefinition,
+    ScheduleColor,
     ScheduleEvent,
     SchedulePageData,
     UserBase,
@@ -19,6 +20,14 @@ from tiger_models import (
 TABLE: str = "schedules"
 SHARED_FIELDS: str = "id,name,semester,color,sections,commitments"
 FRIEND_LABEL: str = "Friend"
+COLORS: tuple[str, ...] = get_args(ScheduleColor)
+NAME_LIMIT: int = 60
+UNTITLED: str = "Untitled schedule"
+STAMP_FORMAT: str = "%Y-%m-%dT%H:%M:%S.%fZ"
+CONFLICT: str = (
+    "This schedule was changed somewhere else, maybe in another tab. "
+    "Reload the page and try again."
+)
 TERMS: tuple[tuple[int, str], ...] = ((6, "Spring"), (8, "Summer"), (13, "Fall"))
 
 
@@ -64,28 +73,75 @@ def to_row(schedule: Schedule) -> dict[str, Any]:
         "name": schedule.name,
         "semester": schedule_semester(schedule),
         "color": schedule.color,
-        "sections": [item.model_dump(mode="json") for item in classes],
-        "commitments": [item.model_dump(mode="json") for item in others],
+        "sections": [
+            *(item.model_dump(mode="json") for item in classes),
+            *schedule._kept.get("sections", []),
+        ],
+        "commitments": [
+            *(item.model_dump(mode="json") for item in others),
+            *schedule._kept.get("commitments", []),
+        ],
     }
 
 
-def parse_events(items: list[dict], kind: type) -> list[Any]:
-    """Rebuild events from stored JSON, skipping entries of an unknown shape.
+def parse_events(items: list[Any], kind: type) -> tuple[list[Any], list[Any]]:
+    """Rebuild events from stored JSON, setting aside entries it can't read.
 
     Args:
         items: Stored event dicts.
         kind: Event model to build, Classes or ScheduleEvent.
 
     Returns:
-        The events that validated.
+        The events that validated, and the raw entries that did not, which
+        are written back unchanged so saving never deletes them.
     """
-    events = []
+    events, kept = [], []
     for item in items:
         try:
             events.append(kind(**item))
         except (TypeError, ValueError):
-            continue
-    return events
+            kept.append(item)
+    return events, kept
+
+
+def clean_name(value: Any) -> str:
+    """Make a stored schedule name safe to show.
+
+    Args:
+        value: The name column, possibly too long or blank.
+
+    Returns:
+        A non-blank name within the length limit.
+    """
+    text = " ".join(str(value or "").split())[:NAME_LIMIT]
+    return text or UNTITLED
+
+
+def stamp(value: Any) -> str | None:
+    """Normalize a timestamp to a UTC string the database compares exactly.
+
+    Args:
+        value: An updated_at value read from or written to the database.
+
+    Returns:
+        The time as a UTC string ending in Z, or None when unreadable.
+    """
+    try:
+        moment = datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment.astimezone(timezone.utc).strftime(STAMP_FORMAT)
+
+
+def now_stamp() -> str:
+    """Return the current time as a normalized UTC timestamp.
+
+    Returns:
+        The current time ending in Z.
+    """
+    return datetime.now(timezone.utc).strftime(STAMP_FORMAT)
 
 
 def to_schedule(row: dict[str, Any]) -> Schedule:
@@ -97,14 +153,18 @@ def to_schedule(row: dict[str, Any]) -> Schedule:
     Returns:
         The matching Schedule whose id is the row id.
     """
-    classes = parse_events(row.get("sections") or [], Classes)
-    others = parse_events(row.get("commitments") or [], ScheduleEvent)
-    return Schedule(
+    classes, odd_classes = parse_events(row.get("sections") or [], Classes)
+    others, odd_others = parse_events(row.get("commitments") or [], ScheduleEvent)
+    color = row.get("color")
+    schedule = Schedule(
         id=str(row["id"]),
-        name=row["name"],
-        color=row.get("color") or "blue",
+        name=clean_name(row.get("name")),
+        color=color if color in COLORS else "blue",
         events=[*classes, *others],
     )
+    schedule._kept = {"sections": odd_classes, "commitments": odd_others}
+    schedule._version = stamp(row["updated_at"]) if row.get("updated_at") else None
+    return schedule
 
 
 def list_schedules(session: Session) -> list[Schedule]:
@@ -167,7 +227,7 @@ def insert_schedule(session: Session, definition: ScheduleDefinition) -> Schedul
         HTTPException: With status 400 when nothing was stored.
     """
     draft = Schedule(**definition.model_dump(), events=[])
-    row = {**to_row(draft), "user_id": session.user_id}
+    row = {**to_row(draft), "user_id": session.user_id, "updated_at": now_stamp()}
     rows = session.db.table(TABLE).insert(row).execute().data
     if not rows:
         raise HTTPException(status_code=400, detail="Could not save schedule.")
@@ -182,22 +242,45 @@ def save_schedule(session: Session, schedule: Schedule) -> None:
         schedule: Schedule whose id names the row to update.
 
     Raises:
-        HTTPException: With status 404 when the row is not the student's.
+        HTTPException: With status 404 when the row is not the student's,
+            or 409 when someone saved it after it was loaded.
     """
-    changes = {
-        **to_row(schedule),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
+    moment = now_stamp()
+    query = (
+        session.db.table(TABLE)
+        .update({**to_row(schedule), "updated_at": moment})
+        .eq("id", schedule.id)
+        .eq("user_id", session.user_id)
+    )
+    if schedule._version:
+        query = query.eq("updated_at", schedule._version)
+    rows = query.execute().data
+    if not rows:
+        if schedule._version and owns_schedule(session, schedule.id):
+            raise HTTPException(status_code=409, detail=CONFLICT)
+        raise HTTPException(status_code=404, detail="Schedule not found.")
+    schedule._version = moment
+
+
+def owns_schedule(session: Session, schedule_id: str) -> bool:
+    """Tell whether the student still has a schedule with this id.
+
+    Args:
+        session: Verified student and their database client.
+        schedule_id: Id of the schedule.
+
+    Returns:
+        True when the row exists and belongs to the student.
+    """
     rows = (
         session.db.table(TABLE)
-        .update(changes)
-        .eq("id", schedule.id)
+        .select("id")
+        .eq("id", schedule_id)
         .eq("user_id", session.user_id)
         .execute()
         .data
     )
-    if not rows:
-        raise HTTPException(status_code=404, detail="Schedule not found.")
+    return bool(rows)
 
 
 def remove_schedule(session: Session, schedule_id: str) -> None:

@@ -1,3 +1,4 @@
+-- NOTE: database/tiger_setup.sql is the complete, re-runnable setup. Prefer it.
 -- Tiger Class Drive schema: profiles and saved schedules.
 
 create table public.profiles (
@@ -52,7 +53,7 @@ create policy "send as self" on public.friend_requests
   for insert to authenticated with check (sender_id = auth.uid());
 
 -- Lets a student find another account by username without reading other profiles.
-create function public.profile_id_for_username(name text)
+create or replace function public.profile_id_for_username(name text)
 returns uuid
 language sql
 security definer
@@ -60,6 +61,10 @@ set search_path = public
 as $$
   select id from public.profiles where lower(username) = lower(name) limit 1;
 $$;
+
+-- Only signed-in students may look up usernames.
+revoke all on function public.profile_id_for_username(text) from public, anon;
+grant execute on function public.profile_id_for_username(text) to authenticated;
 
 -- For databases created before completed credit hours were saved.
 alter table public.profiles
