@@ -398,6 +398,7 @@
   }
   .mt-auto {
     margin-top: auto;
+  }
   .mt-1 {
     margin-top: var(--spacing);
   }
