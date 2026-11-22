@@ -1,5 +1,11 @@
+import sys
+from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from fake_supabase import FakeClient, FakeDatabase
 
 
 @pytest.fixture
@@ -32,3 +38,17 @@ def test_client():
     from tiger_app import app
 
     return TestClient(app)
+
+
+@pytest.fixture
+def fake_db(monkeypatch):
+    """Replace the Supabase client with a shared in-memory database."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
+    import tiger_auth
+
+    database = FakeDatabase()
+    monkeypatch.setattr(tiger_auth, "auth_client", lambda: FakeClient(database))
+    return database

@@ -71,3 +71,35 @@ with check (
 create policy "stop sharing own schedules"
 on public.schedule_shares for delete to authenticated
 using (owner_id = auth.uid());
+
+-- Accepted friends can read schedules that were explicitly shared with them.
+create policy "read schedules shared with me"
+on public.schedules for select to authenticated
+using (
+    exists (
+        select 1 from public.schedule_shares sh
+        where sh.schedule_id = schedules.id and sh.friend_id = auth.uid()
+    )
+    and exists (
+        select 1 from public.friendships f
+        where f.status = 'accepted'
+        and (
+            (f.requester_id = auth.uid() and f.addressee_id = schedules.user_id)
+            or (f.addressee_id = auth.uid() and f.requester_id = schedules.user_id)
+        )
+    )
+);
+
+-- Accepted friends can read each other's profile row (needed for usernames).
+create policy "friends read profiles"
+on public.profiles for select to authenticated
+using (
+    exists (
+        select 1 from public.friendships f
+        where f.status = 'accepted'
+        and (
+            (f.requester_id = auth.uid() and f.addressee_id = profiles.id)
+            or (f.addressee_id = auth.uid() and f.requester_id = profiles.id)
+        )
+    )
+);

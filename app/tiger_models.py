@@ -190,13 +190,17 @@ class ConcentrationRequirements(BaseModel):
     notes: list[str] = Field(default_factory=list)
     required_credit_hours: int | None = None
 
-class CoursePreset(Classes):
-    """A class preset with section and professor details."""
+class CoursePreset(ScheduleModel):
+    """A real catalog course offered for adding to a schedule."""
 
     course_id: str
-    professor: str
-    enrollment: str
-    section_details: str
+    title: str
+    course_name: str
+    department: str
+    number: int
+    credit: int = Field(gt=0)
+    category: str
+    semester: str
 
 class Schedule(ScheduleModel):
     """A named, colored schedule holding events."""
@@ -244,8 +248,8 @@ class ScheduleDefinition(ScheduleModel):
             raise ValueError("Schedule title cannot be blank.")
         return value
 
-class CourseSelection(ScheduleModel):
-    """The ID of a course chosen to add."""
+class CourseSelection(ScheduleEventData):
+    """A catalog course plus the meeting times the student chose for it."""
 
     course_id: str
 
@@ -341,49 +345,7 @@ class ProfileUpdate(BaseModel):
     gpa: float | None = Field(default=None, ge=0, le=4.3)
     completed_credit_hours: int = Field(default=0, ge=0)
     courses: list[Any] = Field(default_factory=list)
-    
-class Meeting(BaseModel):
-    """A weekly meeting time for a section."""
 
-    days: list[str]
-    start: str
-    end: str
-    location: str = ""
-    
-class ScheduleSection(BaseModel):
-    """A course section with its meetings."""
-
-    department: str
-    number: int
-    name: str
-    section: str
-    credit: int = Field(default=3, gt=0)
-    meetings: list[Meeting] = Field(default_factory=list)
-    
-class Commitment(BaseModel):
-    """A non-course commitment on a schedule."""
-
-    name: str
-    days: list[str]
-    start: str
-    end: str
-    notes: str = ""
-    
-class ScheduleIn(BaseModel):
-    """Schedule data submitted when saving."""
-
-    name: str = Field(min_length=1)
-    semester: str
-    sections: list[ScheduleSection] = Field(default_factory=list)
-    commitments: list[Commitment] = Field(default_factory=list)
-    
-class ScheduleOut(ScheduleIn):
-    """A saved schedule with its ID and timestamps."""
-
-    id: str
-    created_at: str | None = None
-    updated_at: str | None = None
-    
 class SchedulePageData(ScheduleModel):
     """Data needed to render the schedule page."""
 

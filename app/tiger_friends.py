@@ -268,6 +268,68 @@ def stop_sharing(
     return {"message": "Schedule sharing stopped."}
 
 
+SHARED_COLUMNS: str = "id,name,semester,sections"
+
+
+def is_friend(session: Session, other_id: str) -> bool:
+    """Check that the session's student has an accepted friendship with another.
+
+    Args:
+        session: Authenticated session.
+        other_id: Id of the other student.
+
+    Returns:
+        True when an accepted friendship exists in either direction.
+    """
+    rows = (
+        session.db.table("friendships")
+        .select("id")
+        .eq("status", "accepted")
+        .or_(
+            f"and(requester_id.eq.{session.user_id},addressee_id.eq.{other_id}),"
+            f"and(requester_id.eq.{other_id},addressee_id.eq.{session.user_id})"
+        )
+        .execute()
+        .data
+    )
+    return bool(rows)
+
+
+def shared_rows(session: Session, columns: str = SHARED_COLUMNS) -> list[dict]:
+    """Return schedules shared with the student by accepted friends.
+
+    Args:
+        session: Authenticated session.
+        columns: Schedule columns to select.
+
+    Returns:
+        List of dicts with the owner id and the schedule row.
+    """
+    shares = (
+        session.db.table("schedule_shares")
+        .select("schedule_id,owner_id")
+        .eq("friend_id", session.user_id)
+        .execute()
+        .data
+    )
+    results = []
+    for share in shares:
+        if not is_friend(session, share["owner_id"]):
+            continue
+        rows = (
+            session.db.table("schedules")
+            .select(columns)
+            .eq("id", share["schedule_id"])
+            .eq("user_id", share["owner_id"])
+            .execute()
+            .data
+        )
+        results.extend(
+            {"owner_id": share["owner_id"], "schedule": row} for row in rows
+        )
+    return results
+
+
 @router.get("/shared-with-me")
 def shared_schedules(session: Session = Depends(current_session)) -> list[dict]:
     """Return only course sections from schedules shared by accepted friends.
@@ -278,45 +340,7 @@ def shared_schedules(session: Session = Depends(current_session)) -> list[dict]:
     Returns:
         List of dicts with owner id and schedule.
     """
-    shares = (
-        session.db.table("schedule_shares")
-        .select("schedule_id,owner_id")
-        .eq("friend_id", session.user_id)
-        .execute()
-        .data
-    )
-
-    results = []
-    for share in shares:
-        friendship = (
-            session.db.table("friendships")
-            .select("id")
-            .eq("status", "accepted")
-            .or_(
-                f"and(requester_id.eq.{session.user_id},addressee_id.eq.{share['owner_id']}),"
-                f"and(requester_id.eq.{share['owner_id']},addressee_id.eq.{session.user_id})"
-            )
-            .execute()
-            .data
-        )
-        if not friendship:
-            continue
-
-        schedules = (
-            session.db.table("schedules")
-            .select("id,name,semester,sections")
-            .eq("id", share["schedule_id"])
-            .eq("user_id", share["owner_id"])
-            .execute()
-            .data
-        )
-        for schedule in schedules:
-            results.append({
-                "owner_id": share["owner_id"],
-                "schedule": schedule,
-            })
-
-    return results
+    return shared_rows(session)
 
 
 @router.get("/list")

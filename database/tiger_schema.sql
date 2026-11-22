@@ -14,6 +14,7 @@ create table public.schedules (
   user_id     uuid not null default auth.uid() references public.profiles (id) on delete cascade,
   name        text not null,
   semester    text not null,
+  color       text not null default 'blue',
   sections    jsonb not null default '[]',
   commitments jsonb not null default '[]',
   created_at  timestamptz not null default now(),
@@ -68,3 +69,7 @@ alter table public.profiles
 -- Usernames identify students to friends, so they must be unique ignoring case.
 create unique index if not exists profiles_username_key
   on public.profiles (lower(username));
+
+-- Schedule colour shown on the schedule page (for databases created earlier).
+alter table public.schedules
+  add column if not exists color text not null default 'blue';

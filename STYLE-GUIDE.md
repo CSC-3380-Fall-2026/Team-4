@@ -2,8 +2,8 @@
 PLEASE READ AND FOLLOW. PLEASEEEEEEEE 
 
 ## Style Guides & References
-- Google Python Style Guide
-- FastAPI Best Practices
+- [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
+- [FastAPI Best Practices](https://github.com/zhanymkanov/fastapi-best-practices)
 
 ## File Organization Structure
 - **`App/`**: Root directory for application code

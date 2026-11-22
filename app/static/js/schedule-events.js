@@ -89,10 +89,12 @@ const createEventRow = (schedule, event) => {
 const renderEventRows = () => {
     eventRows.replaceChildren();
     const selectedSchedule = getSelectedSchedule();
+    addEventButton.disabled = !selectedSchedule;
 
-    if (selectedSchedule.events.length === 0) {
+    if (!selectedSchedule || selectedSchedule.events.length === 0) {
         const row = createElement("tr");
-        const cell = createElement("td", "border-b border-neutrals-100 px-4 py-6 text-center text-neutrals-500", "No events in this schedule yet.");
+        const emptyText = selectedSchedule ? "No events in this schedule yet." : "Add a schedule to start adding events.";
+        const cell = createElement("td", "border-b border-neutrals-100 px-4 py-6 text-center text-neutrals-500", emptyText);
         cell.colSpan = 6;
         row.append(cell);
         eventRows.append(row);
@@ -119,6 +121,7 @@ const getEventFormPayload = (formData) => ({
 const setEventFormMode = (mode) => {
     const isCourse = mode === "course";
     eventForm.dataset.mode = mode;
+    delete eventForm.dataset.courseId;
     courseBrowser.classList.toggle("hidden", !isCourse);
     eventFields.classList.toggle("hidden", isCourse);
     createEventButton.classList.toggle("hidden", isCourse);
@@ -146,38 +149,25 @@ const initializeEventForms = (renderSchedule) => {
             info.append(createElement("p", "text-md font-semibold text-neutrals-900", course.title));
             const details = createElement("div", "flex flex-row flex-wrap gap-2 text-sm text-neutrals-400");
             details.append(
-                createElement("span", "", course.semester),
+                createElement("span", "", course.courseName),
                 createElement("span", "", "|"),
-                createElement("span", "", course.professor),
+                createElement("span", "", `${course.credit} credit hours`),
                 createElement("span", "", "|"),
-                createElement("span", "font-semibold text-purple-600", course.enrollment),
+                createElement("span", "font-semibold text-purple-600", course.category),
             );
-            const meetingDetails = createElement("div", "flex flex-row flex-wrap gap-2 text-sm text-yellow-700");
-            meetingDetails.append(
-                createElement("span", "", course.days.map((day) => dayAbbreviations[day]).join("")),
-                createElement("span", "", "|"),
-                createElement("span", "", `${formatTime(course.start)} - ${formatTime(course.end)}`),
-            );
-            info.append(details, meetingDetails);
+            info.append(details);
             const addButton = createElement("button", "add-course-btn flex h-fit shrink-0 cursor-pointer flex-row items-center justify-center gap-2 rounded-md bg-purple-500 px-3 py-2 font-semibold text-neutrals-0 transition-colors hover:bg-purple-600");
             addButton.type = "button";
             addButton.append(
                 courseAddIcon.content.firstElementChild.cloneNode(true),
                 document.createTextNode(" Add Course"),
             );
-            addButton.addEventListener("click", async () => {
-                try {
-                    const createdEvent = await apiRequest(`/api/schedules/${encodeURIComponent(scheduleState.selectedScheduleId)}/courses`, {
-                        method: "POST",
-                        body: JSON.stringify({ courseId: course.courseId }),
-                    });
-                    await loadScheduleData();
-                    eventDialog.close();
-                    renderSchedule();
-                    showScheduleSuccess(scheduleNotice, createdEvent.title);
-                } catch (error) {
-                    showEventError(errorElement, error);
-                }
+            addButton.addEventListener("click", () => {
+                // Catalog data has no meeting times, so the student enters them in the event form.
+                eventForm.querySelector('input[name="entry-mode"]').checked = false;
+                setEventFormMode("event");
+                eventForm.dataset.courseId = course.courseId;
+                eventForm.elements.namedItem("title").value = course.title;
             });
             row.append(info, addButton);
             courseBrowserItems.append(row);
@@ -205,6 +195,9 @@ const initializeEventForms = (renderSchedule) => {
     });
 
     addEventButton.addEventListener("click", () => {
+        if (!getSelectedSchedule()) {
+            return;
+        }
         clearScheduleNotice(scheduleNotice);
         eventForm.reset();
         setEventFormMode("event");
@@ -222,10 +215,14 @@ const initializeEventForms = (renderSchedule) => {
         }
         try {
             const schedule = getSelectedSchedule();
-            const createdEvent = await apiRequest(`/api/schedules/${encodeURIComponent(schedule.id)}/events`, {
-                method: "POST",
-                body: JSON.stringify(getEventFormPayload(formData)),
-            });
+            const courseId = eventForm.dataset.courseId;
+            const createdEvent = await apiRequest(
+                `/api/schedules/${encodeURIComponent(schedule.id)}/${courseId ? "courses" : "events"}`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({ ...getEventFormPayload(formData), ...(courseId ? { courseId } : {}) }),
+                },
+            );
             await loadScheduleData();
             eventDialog.close();
             renderSchedule();

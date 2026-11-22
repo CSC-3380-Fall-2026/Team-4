@@ -286,7 +286,7 @@ def current_session(
     return Session(user.id, user.email or "", token)
 
 
-def _load_profile(session: Session) -> UserBase:
+def session_profile(session: Session) -> UserBase:
     """Read the session owner's saved profile row.
 
     Args:
@@ -316,7 +316,7 @@ def _load_profile(session: Session) -> UserBase:
 @router.get("/api/profile")
 def get_profile(session: Session = Depends(current_session)) -> UserBase:
     """Return only the signed-in student's saved profile."""
-    return _load_profile(session)
+    return session_profile(session)
 
 
 def save_profile(session: Session, fields: dict[str, Any]) -> UserBase:
@@ -336,7 +336,7 @@ def save_profile(session: Session, fields: dict[str, Any]) -> UserBase:
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     session.db.table("profiles").upsert(row).execute()
-    return _load_profile(session)
+    return session_profile(session)
 
 
 @router.put("/api/profile")
