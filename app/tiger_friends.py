@@ -45,18 +45,12 @@ def send_request(
     if not username:
         raise HTTPException(422, "Username is required.")
 
-    matches = (
-        session.db.table("profiles")
-        .select("id,username")
-        .eq("username", username)
-        .execute()
-        .data
-    )
+    friend_id = session.db.rpc(
+        "profile_id_for_username", {"name": username}
+    ).execute().data
 
-    if not matches:
+    if not friend_id:
         raise HTTPException(404, "Username not found.")
-
-    friend_id = matches[0]["id"]
 
     if friend_id == session.user_id:
         raise HTTPException(400, "You cannot friend yourself.")
@@ -329,7 +323,16 @@ def shared_rows(session: Session, columns: str = SHARED_COLUMNS) -> list[dict]:
         )
     return results
 
-
+@router.get("/shared-by-me")
+def shared_by_me(session: Session = Depends(current_session)) -> list[dict]:
+    """List schedule shares created by the signed-in user."""
+    return (
+        session.db.table("schedule_shares")
+        .select("id,schedule_id,friend_id")
+        .eq("owner_id", session.user_id)
+        .execute()
+        .data
+    )
 @router.get("/shared-with-me")
 def shared_schedules(session: Session = Depends(current_session)) -> list[dict]:
     """Return only course sections from schedules shared by accepted friends.
@@ -364,6 +367,15 @@ def list_friends(session: Session = Depends(current_session)) -> dict:
         .data
     )
 
+    for row in rows:
+        other_id = (
+            row["addressee_id"]
+            if row["requester_id"] == session.user_id
+            else row["requester_id"]
+        )
+        row["username"] = session.db.rpc(
+            "username_for_friend", {"friend_user_id": other_id}
+        ).execute().data
     return {
         "friends": [r for r in rows if r["status"] == "accepted"],
         "incoming_requests": [
