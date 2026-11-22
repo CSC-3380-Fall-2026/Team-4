@@ -9,21 +9,38 @@ router = APIRouter(prefix="/api/friends", tags=["friends"])
 
 
 class FriendRequestIn(BaseModel):
+    """Request body naming the user to befriend."""
+
     username: str = Field(min_length=1, max_length=100)
 
 
 @router.get("/me")
-def friends_account(session: Session = Depends(current_session)):
-    """Confirm the authenticated account used by Friends APIs."""
+def friends_account(session: Session = Depends(current_session)) -> dict:
+    """Confirm the authenticated account used by Friends APIs.
+
+    Args:
+        session: Authenticated session.
+
+    Returns:
+        Dict holding the user id.
+    """
     return {"user_id": session.user_id}
 
 
 @router.post("/requests", status_code=201)
-def send_friend_request(
+def send_request(
     request: FriendRequestIn,
     session: Session = Depends(current_session),
-):
-    """Send a request to an existing account by exact username."""
+) -> dict:
+    """Send a request to an existing account by exact username.
+
+    Args:
+        request: Body with the target username.
+        session: Authenticated session.
+
+    Returns:
+        Dict with a message and the created request row.
+    """
     username = request.username.strip()
     if not username:
         raise HTTPException(422, "Username is required.")
@@ -72,10 +89,19 @@ def send_friend_request(
 
 
 @router.post("/requests/{request_id}/accept")
-def accept_friend_request(
+def accept_request(
     request_id: str,
     session: Session = Depends(current_session),
-):
+) -> dict:
+    """Accept a pending friend request addressed to the user.
+
+    Args:
+        request_id: Id of the friendship row.
+        session: Authenticated session.
+
+    Returns:
+        Dict with a confirmation message.
+    """
     result = (
         session.db.table("friendships")
         .update({"status": "accepted"})
@@ -92,10 +118,19 @@ def accept_friend_request(
 
 
 @router.delete("/requests/{request_id}")
-def reject_friend_request(
+def reject_request(
     request_id: str,
     session: Session = Depends(current_session),
-):
+) -> dict:
+    """Reject a pending friend request addressed to the user.
+
+    Args:
+        request_id: Id of the friendship row.
+        session: Authenticated session.
+
+    Returns:
+        Dict with a confirmation message.
+    """
     result = (
         session.db.table("friendships")
         .delete()
@@ -115,8 +150,16 @@ def reject_friend_request(
 def remove_friend(
     friendship_id: str,
     session: Session = Depends(current_session),
-):
-    """Remove an accepted friendship involving the logged-in user."""
+) -> dict:
+    """Remove an accepted friendship involving the logged-in user.
+
+    Args:
+        friendship_id: Id of the friendship row.
+        session: Authenticated session.
+
+    Returns:
+        Dict with a confirmation message.
+    """
     result = (
         session.db.table("friendships")
         .delete()
@@ -136,6 +179,8 @@ def remove_friend(
 
 
 class ScheduleShareIn(BaseModel):
+    """Request body naming a schedule and the friend to share it with."""
+
     schedule_id: str
     friend_id: str
 
@@ -144,8 +189,16 @@ class ScheduleShareIn(BaseModel):
 def share_schedule(
     request: ScheduleShareIn,
     session: Session = Depends(current_session),
-):
-    """Share an owned schedule with an accepted friend."""
+) -> dict:
+    """Share an owned schedule with an accepted friend.
+
+    Args:
+        request: Body with schedule and friend ids.
+        session: Authenticated session.
+
+    Returns:
+        Dict with a message and the share row.
+    """
     schedules = (
         session.db.table("schedules")
         .select("id")
@@ -193,7 +246,16 @@ def share_schedule(
 def stop_sharing(
     share_id: str,
     session: Session = Depends(current_session),
-):
+) -> dict:
+    """Stop sharing a schedule the user owns.
+
+    Args:
+        share_id: Id of the share row.
+        session: Authenticated session.
+
+    Returns:
+        Dict with a confirmation message.
+    """
     result = (
         session.db.table("schedule_shares")
         .delete()
@@ -207,8 +269,15 @@ def stop_sharing(
 
 
 @router.get("/shared-with-me")
-def shared_with_me(session: Session = Depends(current_session)):
-    """Return only course sections from schedules shared by accepted friends."""
+def shared_schedules(session: Session = Depends(current_session)) -> list[dict]:
+    """Return only course sections from schedules shared by accepted friends.
+
+    Args:
+        session: Authenticated session.
+
+    Returns:
+        List of dicts with owner id and schedule.
+    """
     shares = (
         session.db.table("schedule_shares")
         .select("schedule_id,owner_id")
@@ -251,8 +320,15 @@ def shared_with_me(session: Session = Depends(current_session)):
 
 
 @router.get("/list")
-def list_friends(session: Session = Depends(current_session)):
-    """List accepted friendships and pending requests for this account."""
+def list_friends(session: Session = Depends(current_session)) -> dict:
+    """List accepted friendships and pending requests for this account.
+
+    Args:
+        session: Authenticated session.
+
+    Returns:
+        Dict with friends, incoming and outgoing requests.
+    """
     rows = (
         session.db.table("friendships")
         .select("id,requester_id,addressee_id,status")

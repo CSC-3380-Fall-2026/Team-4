@@ -53,6 +53,73 @@ def planning_page(request: Request, example: bool = False) -> HTMLResponse:
     )
 
 
+def edit_rows(form: PlanningForm, action: str) -> tuple[list[str], int]:
+    """Apply an add-row or remove-row action to the form.
+
+    Args:
+        form: Planning form whose rows are edited in place.
+        action: The submitted "add" or "remove:<index>" action.
+
+    Returns:
+        Any error messages and the HTTP status code.
+    """
+    if action == "add":
+        if len(form.rows) < MAX_ROWS:
+            form.rows.append(CourseRow())
+            return [], 200
+        return [f"You can plan up to {MAX_ROWS} courses."], 400
+    index: str = action.removeprefix("remove:")
+    if not (index.isdigit() and int(index) < len(form.rows)):
+        return ["Choose an existing course row to remove."], 400
+    form.rows.pop(int(index))
+    if not form.rows:
+        form.rows.append(CourseRow())
+    return [], 200
+
+
+def run_action(
+    form: PlanningForm, action: str
+) -> tuple[PlanningResult | None, list[str], int]:
+    """Carry out a validated form action.
+
+    Args:
+        form: Planning form to edit or calculate.
+        action: The submitted action name.
+
+    Returns:
+        The result (if calculated), error messages, and status code.
+    """
+    if action == "add" or action.startswith("remove:"):
+        errors, status = edit_rows(form, action)
+        return None, errors, status
+    if action == "calculate":
+        result, errors = calculate_plan(form)
+        return result, errors, 400 if errors else 200
+    return None, ["Choose Calculate GPA, Add course, or Remove."], 400
+
+
+def check_form(request: Request, data: FormData) -> tuple[list[str], int]:
+    """Validate the CSRF token and row counts of a submission.
+
+    Args:
+        request: The submitted request.
+        data: Parsed form data.
+
+    Returns:
+        Error messages and status code; empty errors with 200 if valid.
+    """
+    if not valid_token(request, str(data.get("csrf_token", ""))):
+        return [
+            "This form expired. Your entries are kept; please submit again."
+        ], 403
+    if any(
+        len(data.getlist(key)) > MAX_ROWS
+        for key in ("course_name", "course_credit", "course_grade")
+    ):
+        return [f"Use no more than {MAX_ROWS} courses in one plan."], 400
+    return [], 200
+
+
 @router.post("/planning", response_class=HTMLResponse)
 async def submit_plan(request: Request) -> HTMLResponse:
     """Process row edits or calculate a forecast without losing input values.
@@ -67,40 +134,9 @@ async def submit_plan(request: Request) -> HTMLResponse:
     form: PlanningForm = read_form(data)
     action: str = str(data.get("action", "calculate"))
     result: PlanningResult | None = None
-    errors: list[str] = []
-    status_code: int = 200
-    if not valid_token(request, str(data.get("csrf_token", ""))):
-        errors = [
-            "This form expired. Your entries are kept; please submit again."
-        ]
-        status_code = 403
-    elif any(
-        len(data.getlist(key)) > MAX_ROWS
-        for key in ("course_name", "course_credit", "course_grade")
-    ):
-        errors = [f"Use no more than {MAX_ROWS} courses in one plan."]
-        status_code = 400
-    elif action == "add":
-        if len(form.rows) < MAX_ROWS:
-            form.rows.append(CourseRow())
-        else:
-            errors = [f"You can plan up to {MAX_ROWS} courses."]
-            status_code = 400
-    elif action.startswith("remove:"):
-        index: str = action.removeprefix("remove:")
-        if index.isdigit() and int(index) < len(form.rows):
-            form.rows.pop(int(index))
-            if not form.rows:
-                form.rows.append(CourseRow())
-        else:
-            errors = ["Choose an existing course row to remove."]
-            status_code = 400
-    elif action == "calculate":
-        result, errors = calculate_plan(form)
-        status_code = 400 if errors else 200
-    else:
-        errors = ["Choose Calculate GPA, Add course, or Remove."]
-        status_code = 400
+    errors, status_code = check_form(request, data)
+    if not errors:
+        result, errors, status_code = run_action(form, action)
     response: HTMLResponse = render_page(
         request,
         "tiger_planner.html",

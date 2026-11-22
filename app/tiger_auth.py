@@ -237,7 +237,14 @@ getUser = get_user
 class Session:
     """A verified student plus a database client that acts as that student."""
 
-    def __init__(self, user_id: str, email: str, token: str):
+    def __init__(self, user_id: str, email: str, token: str) -> None:
+        """Store the student's identity and build their scoped client.
+
+        Args:
+            user_id: Verified Supabase user ID.
+            email: Verified account email.
+            token: Access token used for database requests.
+        """
         self.user_id = user_id
         self.email = email
         self.token = token
@@ -280,6 +287,14 @@ def current_session(
 
 
 def _load_profile(session: Session) -> UserBase:
+    """Read the session owner's saved profile row.
+
+    Args:
+        session: The verified student and their database client.
+
+    Returns:
+        The saved profile, or defaults when no row exists.
+    """
     rows = (
         session.db.table("profiles")
         .select("*")

@@ -16,7 +16,7 @@ class GpaCourse(BaseModel):
 
     @field_validator("grade", mode="before")
     @classmethod
-    def grade_value(cls, value: object) -> object:
+    def grade_value(cls: type["GpaCourse"], value: object) -> object:
         """Convert a letter grade while preserving numeric API inputs.
 
         Args:
@@ -31,7 +31,7 @@ class GpaCourse(BaseModel):
 
     @field_validator("credit", mode="before")
     @classmethod
-    def credit_value(cls, value: object) -> object:
+    def credit_value(cls: type["GpaCourse"], value: object) -> object:
         """Reject boolean credits before integer conversion.
 
         Args:

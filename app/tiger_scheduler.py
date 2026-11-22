@@ -38,6 +38,14 @@ router: APIRouter = APIRouter(prefix="/api", tags=["Schedules"])
 
 # Supabase-backed operations use their own paths to avoid colliding with the page.
 def _to_out(row: dict[str, Any]) -> ScheduleOut:
+    """Convert a Supabase row into a ScheduleOut.
+
+    Args:
+        row: Raw schedule row from the database.
+
+    Returns:
+        The matching ScheduleOut model.
+    """
     return ScheduleOut(
         id=row["id"],
         name=row["name"],
@@ -50,6 +58,14 @@ def _to_out(row: dict[str, Any]) -> ScheduleOut:
 
 
 def _payload(schedule: ScheduleIn) -> dict[str, Any]:
+    """Build the database payload for a saved schedule.
+
+    Args:
+        schedule: Incoming schedule data.
+
+    Returns:
+        Dict of columns to store.
+    """
     return {
         "name": schedule.name,
         "semester": schedule.semester,
@@ -59,7 +75,16 @@ def _payload(schedule: ScheduleIn) -> dict[str, Any]:
 
 
 @router.post("/saved-schedules")
-def create_saved_schedule(schedule: ScheduleIn, session: Session = Depends(current_session)) -> ScheduleOut:
+def create_saved(schedule: ScheduleIn, session: Session = Depends(current_session)) -> ScheduleOut:
+    """Save a new schedule for the signed-in account.
+
+    Args:
+        schedule: Schedule data to store.
+        session: Current authenticated session.
+
+    Returns:
+        The stored schedule.
+    """
     row = {**_payload(schedule), "user_id": session.user_id}
     data = session.db.table("schedules").insert(row).execute().data
     if not data:
@@ -68,7 +93,15 @@ def create_saved_schedule(schedule: ScheduleIn, session: Session = Depends(curre
 
 
 @router.get("/saved-schedules")
-def list_saved_schedules(session: Session = Depends(current_session)) -> list[ScheduleOut]:
+def list_saved(session: Session = Depends(current_session)) -> list[ScheduleOut]:
+    """List the signed-in account's saved schedules, newest first.
+
+    Args:
+        session: Current authenticated session.
+
+    Returns:
+        The saved schedules.
+    """
     data = (
         session.db.table("schedules").select("*")
         .eq("user_id", session.user_id).order("updated_at", desc=True)
@@ -78,7 +111,16 @@ def list_saved_schedules(session: Session = Depends(current_session)) -> list[Sc
 
 
 @router.get("/saved-schedules/{schedule_id}")
-def get_saved_schedule(schedule_id: str, session: Session = Depends(current_session)) -> ScheduleOut:
+def get_saved(schedule_id: str, session: Session = Depends(current_session)) -> ScheduleOut:
+    """Fetch one saved schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        session: Current authenticated session.
+
+    Returns:
+        The requested schedule.
+    """
     data = (
         session.db.table("schedules").select("*")
         .eq("id", schedule_id).eq("user_id", session.user_id).execute().data
@@ -89,7 +131,17 @@ def get_saved_schedule(schedule_id: str, session: Session = Depends(current_sess
 
 
 @router.put("/saved-schedules/{schedule_id}")
-def update_saved_schedule(schedule_id: str, schedule: ScheduleIn, session: Session = Depends(current_session)) -> ScheduleOut:
+def update_saved(schedule_id: str, schedule: ScheduleIn, session: Session = Depends(current_session)) -> ScheduleOut:
+    """Update one saved schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        schedule: New schedule data.
+        session: Current authenticated session.
+
+    Returns:
+        The updated schedule.
+    """
     changes = {**_payload(schedule), "updated_at": datetime.now(timezone.utc).isoformat()}
     data = (
         session.db.table("schedules").update(changes)
@@ -101,7 +153,16 @@ def update_saved_schedule(schedule_id: str, schedule: ScheduleIn, session: Sessi
 
 
 @router.delete("/saved-schedules/{schedule_id}")
-def delete_saved_schedule(schedule_id: str, session: Session = Depends(current_session)) -> dict[str, bool]:
+def delete_saved(schedule_id: str, session: Session = Depends(current_session)) -> dict[str, bool]:
+    """Delete one saved schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        session: Current authenticated session.
+
+    Returns:
+        A dict confirming deletion.
+    """
     data = (
         session.db.table("schedules").delete()
         .eq("id", schedule_id).eq("user_id", session.user_id).execute().data
@@ -130,6 +191,21 @@ def _event(
     guests: list[str] | None = None,
     favorite: bool = False,
 ) -> ScheduleEvent:
+    """Build a ScheduleEvent from plain values.
+
+    Args:
+        event_id: Unique event ID.
+        title: Event title.
+        days: Weekdays the event occurs.
+        start: Start time as HH:MM.
+        end: End time as HH:MM.
+        location: Event location.
+        guests: Guest names.
+        favorite: Whether the event is favorited.
+
+    Returns:
+        The new ScheduleEvent.
+    """
     return ScheduleEvent(
         id=event_id,
         title=title,
@@ -154,6 +230,23 @@ def _class_event(
     guests: list[str] | None = None,
     favorite: bool = False,
 ) -> Classes:
+    """Build a Classes entry with sample defaults.
+
+    Args:
+        event_id: Unique event ID.
+        title: Class title.
+        department: Department code.
+        number: Course number.
+        days: Weekdays the class meets.
+        start: Start time as HH:MM.
+        end: End time as HH:MM.
+        location: Class location.
+        guests: Guest names.
+        favorite: Whether the class is favorited.
+
+    Returns:
+        The new Classes entry.
+    """
     return Classes(
         id=event_id,
         title=title,
@@ -178,6 +271,17 @@ def _schedule(
     color: str,
     events: list[Classes | ScheduleEvent],
 ) -> Schedule:
+    """Build a Schedule from plain values.
+
+    Args:
+        schedule_id: Unique schedule ID.
+        name: Schedule name.
+        color: Schedule color.
+        events: Events in the schedule.
+
+    Returns:
+        The new Schedule.
+    """
     return Schedule(
         id=schedule_id,
         name=name,
@@ -187,6 +291,16 @@ def _schedule(
 
 
 def _user(user_id: int, username: str, schedules: list[Schedule]) -> UserBase:
+    """Build a sample user.
+
+    Args:
+        user_id: Numeric user ID.
+        username: Username, also used for the email.
+        schedules: The user's schedules.
+
+    Returns:
+        The new UserBase.
+    """
     return UserBase(
         id=user_id,
         username=username,
@@ -199,6 +313,11 @@ def _user(user_id: int, username: str, schedules: list[Schedule]) -> UserBase:
 
 # Build sample course sections from catalog data.
 def _course_presets() -> list[CoursePreset]:
+    """Build sample course sections from catalog data.
+
+    Returns:
+        The generated course presets.
+    """
     presets = []
     day_patterns = [
         ["Monday", "Wednesday", "Friday"],
@@ -242,6 +361,11 @@ def _course_presets() -> list[CoursePreset]:
 
 # Default data for testing and prototyping.
 def _default_data() -> SchedulePageData:
+    """Build the default prototype page data.
+
+    Returns:
+        Sample SchedulePageData with several users.
+    """
     user_schedules = [
         _schedule("fall_2026", "Fall 2026", "blue", [
             _class_event(
@@ -455,7 +579,16 @@ _DEFAULT_DATA = _default_data()
 
 
 # Get or create the prototype session data.
-def _get_session_data(request: Request, response: Response) -> SchedulePageData:
+def _load_session(request: Request, response: Response) -> SchedulePageData:
+    """Get or create the prototype data for the request's session.
+
+    Args:
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        The session's SchedulePageData.
+    """
     session_id = request.cookies.get(SESSION_COOKIE)
 
     if not session_id:
@@ -477,11 +610,28 @@ def _get_session_data(request: Request, response: Response) -> SchedulePageData:
     return _session_data[session_id]
 
 
-def _save_session_data(request: Request, data: SchedulePageData) -> None:
+def _save_session(request: Request, data: SchedulePageData) -> None:
+    """Store the prototype data for the request's session.
+
+    Args:
+        request: Incoming request carrying the session ID.
+        data: Page data to store.
+    """
     _session_data[request.state.schedule_session_id] = data
 
 
-def _find_current_user(data: SchedulePageData) -> UserBase:
+def _find_user(data: SchedulePageData) -> UserBase:
+    """Find the current user in the page data.
+
+    Args:
+        data: Page data to search.
+
+    Returns:
+        The current user.
+
+    Raises:
+        HTTPException: If the user does not exist.
+    """
     user = next(
         (item for item in data.users if item.id == data.current_user_id),
         None,
@@ -492,10 +642,22 @@ def _find_current_user(data: SchedulePageData) -> UserBase:
 
 
 def _find_schedule(data: SchedulePageData, schedule_id: str) -> Schedule:
+    """Find a schedule belonging to the current user.
+
+    Args:
+        data: Page data to search.
+        schedule_id: ID of the schedule.
+
+    Returns:
+        The matching schedule.
+
+    Raises:
+        HTTPException: If the schedule does not exist.
+    """
     schedule = next(
         (
             item
-            for item in _find_current_user(data).schedules
+            for item in _find_user(data).schedules
             if item.id == schedule_id
         ),
         None,
@@ -506,6 +668,18 @@ def _find_schedule(data: SchedulePageData, schedule_id: str) -> Schedule:
 
 
 def _find_event(schedule: Schedule, event_id: str) -> int:
+    """Find an event's index within a schedule.
+
+    Args:
+        schedule: Schedule to search.
+        event_id: ID of the event.
+
+    Returns:
+        The event's list index.
+
+    Raises:
+        HTTPException: If the event does not exist.
+    """
     index = next(
         (
             i
@@ -519,15 +693,25 @@ def _find_event(schedule: Schedule, event_id: str) -> int:
     return index
 
 
-def _ensure_no_schedule_conflicts(
+def _check_conflicts(
     schedule: Schedule,
     proposed_event: ScheduleEventData,
-    exclude_event_id: str | None = None,
+    skip_id: str | None = None,
 ) -> None:
+    """Reject an event that overlaps one already in the schedule.
+
+    Args:
+        schedule: Schedule to check against.
+        proposed_event: Event being added or changed.
+        skip_id: Event ID to ignore, if any.
+
+    Raises:
+        HTTPException: With status 409 on a time conflict.
+    """
     conflicting_names = [
         event.title
         for event in schedule.events
-        if event.id != exclude_event_id
+        if event.id != skip_id
         and set(proposed_event.days).intersection(event.days)
         and proposed_event.start < event.end
         and event.start < proposed_event.end
@@ -546,7 +730,15 @@ def _ensure_no_schedule_conflicts(
         )
 
 
-def calculate_schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
+def schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
+    """Compute total hours and busy days for a schedule.
+
+    Args:
+        schedule: Schedule to measure.
+
+    Returns:
+        The schedule's metrics.
+    """
     weekdays = [
         "Monday",
         "Tuesday",
@@ -580,36 +772,72 @@ def calculate_schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
     )
 
 
-def get_schedule_page_data(data: SchedulePageData) -> SchedulePageData:
+def page_data(data: SchedulePageData) -> SchedulePageData:
+    """Return a copy of the page data with metrics filled in.
+
+    Args:
+        data: Page data to copy.
+
+    Returns:
+        Page data including per-schedule metrics.
+    """
     result = deepcopy(data)
-    current_user = _find_current_user(result)
+    current_user = _find_user(result)
 
     result.metrics = {
-        schedule.id: calculate_schedule_metrics(schedule)
+        schedule.id: schedule_metrics(schedule)
         for schedule in current_user.schedules
     }
 
     return result
 
 
-def _time_to_minutes(value: str) -> int:
+def _to_minutes(value: str) -> int:
+    """Convert an HH:MM string to minutes after midnight.
+
+    Args:
+        value: Time as HH:MM.
+
+    Returns:
+        Minutes after midnight.
+    """
     hours, minutes = map(int, value.split(":"))
     return hours * 60 + minutes
 
 
-def _minutes_to_time(value: int) -> str:
+def _to_time(value: int) -> str:
+    """Convert minutes after midnight to an HH:MM string.
+
+    Args:
+        value: Minutes after midnight.
+
+    Returns:
+        Time as HH:MM.
+    """
     return f"{value // 60:02}:{value % 60:02}"
 
 
-def calculate_shared_free_time(
+def free_time(
     current_user: UserBase,
     friend: UserBase,
     start_time: str,
     end_time: str,
     minimum_duration: int,
 ) -> SharedFreeTimeResponse:
-    range_start = _time_to_minutes(start_time)
-    range_end = _time_to_minutes(end_time)
+    """Compute weekly free periods shared by two users.
+
+    Args:
+        current_user: The signed-in user.
+        friend: The friend to compare against.
+        start_time: Start of the search window as HH:MM.
+        end_time: End of the search window as HH:MM.
+        minimum_duration: Shortest free period in minutes.
+
+    Returns:
+        Days with their shared free periods.
+    """
+    range_start = _to_minutes(start_time)
+    range_end = _to_minutes(end_time)
 
     events = [
         event
@@ -632,13 +860,13 @@ def calculate_shared_free_time(
     for day in weekdays:
         busy_intervals = sorted(
             (
-                max(_time_to_minutes(event.start), range_start),
-                min(_time_to_minutes(event.end), range_end),
+                max(_to_minutes(event.start), range_start),
+                min(_to_minutes(event.end), range_end),
             )
             for event in events
             if day in event.days
-            and _time_to_minutes(event.end) > range_start
-            and _time_to_minutes(event.start) < range_end
+            and _to_minutes(event.end) > range_start
+            and _to_minutes(event.start) < range_end
         )
 
         merged_intervals: list[tuple[int, int]] = []
@@ -663,8 +891,8 @@ def calculate_shared_free_time(
             if interval_start - cursor >= minimum_duration:
                 periods.append(
                     SharedFreeTimePeriod(
-                        start=_minutes_to_time(cursor),
-                        end=_minutes_to_time(interval_start),
+                        start=_to_time(cursor),
+                        end=_to_time(interval_start),
                     ),
                 )
             cursor = max(cursor, interval_end)
@@ -672,8 +900,8 @@ def calculate_shared_free_time(
         if range_end - cursor >= minimum_duration:
             periods.append(
                 SharedFreeTimePeriod(
-                    start=_minutes_to_time(cursor),
-                    end=_minutes_to_time(range_end),
+                    start=_to_time(cursor),
+                    end=_to_time(range_end),
                 ),
             )
 
@@ -686,20 +914,39 @@ def calculate_shared_free_time(
 
 
 @router.get("/schedule-data", response_model=SchedulePageData)
-def get_schedule_data(request: Request, response: Response) -> SchedulePageData:
-    return get_schedule_page_data(
-        _get_session_data(request, response)
+def schedule_data(request: Request, response: Response) -> SchedulePageData:
+    """Return the prototype page data for the session.
+
+    Args:
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        Page data with metrics.
+    """
+    return page_data(
+        _load_session(request, response)
     )
 
 
 @router.post("/shared-free-time", response_model=SharedFreeTimeResponse)
-def get_shared_free_time(
+def shared_free(
     query: SharedFreeTimeRequest,
     request: Request,
     response: Response,
 ) -> SharedFreeTimeResponse:
-    data = _get_session_data(request, response)
-    current_user = _find_current_user(data)
+    """Find free time shared with a friend.
+
+    Args:
+        query: Friend username, time window, and minimum duration.
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        Shared free periods by day.
+    """
+    data = _load_session(request, response)
+    current_user = _find_user(data)
 
     friend = next(
         (
@@ -713,7 +960,7 @@ def get_shared_free_time(
     if friend is None or friend.id == current_user.id:
         raise HTTPException(status_code=404, detail="Friend not found.")
 
-    return calculate_shared_free_time(
+    return free_time(
         current_user,
         friend,
         query.start_time,
@@ -723,7 +970,15 @@ def get_shared_free_time(
 
 
 @router.get("/course-presets", response_model=list[CoursePreset])
-def search_course_presets(query: str = "") -> list[CoursePreset]:
+def search_presets(query: str = "") -> list[CoursePreset]:
+    """Search the sample course sections.
+
+    Args:
+        query: Text to match, or empty for all.
+
+    Returns:
+        Matching course presets.
+    """
     search_term = query.strip().casefold()
 
     return [
@@ -752,11 +1007,21 @@ def create_schedule(
     request: Request,
     response: Response,
 ) -> Schedule:
-    data = _get_session_data(request, response)
+    """Create an empty schedule for the current user.
+
+    Args:
+        definition: Name and color for the schedule.
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        The new schedule.
+    """
+    data = _load_session(request, response)
     schedule = Schedule(**definition.model_dump(), events=[])
 
-    _find_current_user(data).schedules.append(schedule)
-    _save_session_data(request, data)
+    _find_user(data).schedules.append(schedule)
+    _save_session(request, data)
 
     return schedule
 
@@ -768,12 +1033,23 @@ def update_schedule(
     request: Request,
     response: Response,
 ) -> Schedule:
-    data = _get_session_data(request, response)
+    """Rename or recolor a schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        definition: New name and color.
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        The updated schedule.
+    """
+    data = _load_session(request, response)
     schedule = _find_schedule(data, schedule_id)
 
     schedule.name = definition.name
     schedule.color = definition.color
-    _save_session_data(request, data)
+    _save_session(request, data)
 
     return schedule
 
@@ -787,8 +1063,18 @@ def delete_schedule(
     request: Request,
     response: Response,
 ) -> Response:
-    data = _get_session_data(request, response)
-    schedules = _find_current_user(data).schedules
+    """Delete a schedule, keeping at least one.
+
+    Args:
+        schedule_id: ID of the schedule.
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        An empty 204 response.
+    """
+    data = _load_session(request, response)
+    schedules = _find_user(data).schedules
 
     if len(schedules) <= 1:
         raise HTTPException(
@@ -798,7 +1084,7 @@ def delete_schedule(
 
     schedule = _find_schedule(data, schedule_id)
     schedules.remove(schedule)
-    _save_session_data(request, data)
+    _save_session(request, data)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -814,14 +1100,25 @@ def create_event(
     request: Request,
     response: Response,
 ) -> ScheduleEvent:
-    data = _get_session_data(request, response)
+    """Add an event to a schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        event: Event data.
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        The created event.
+    """
+    data = _load_session(request, response)
     schedule = _find_schedule(data, schedule_id)
     created = ScheduleEvent(**event.model_dump())
 
-    _ensure_no_schedule_conflicts(schedule, created)
+    _check_conflicts(schedule, created)
 
     schedule.events.append(created)
-    _save_session_data(request, data)
+    _save_session(request, data)
 
     return created
 
@@ -831,13 +1128,24 @@ def create_event(
     response_model=Classes,
     status_code=status.HTTP_201_CREATED,
 )
-def add_course_to_schedule(
+def add_course(
     schedule_id: str,
     selection: CourseSelection,
     request: Request,
     response: Response,
 ) -> Classes:
-    data = _get_session_data(request, response)
+    """Add a sample course section to a schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        selection: The chosen course section.
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        The created class entry.
+    """
+    data = _load_session(request, response)
     schedule = _find_schedule(data, schedule_id)
 
     course = next(
@@ -867,10 +1175,10 @@ def add_course_to_schedule(
         )
     )
 
-    _ensure_no_schedule_conflicts(schedule, event)
+    _check_conflicts(schedule, event)
 
     schedule.events.append(event)
-    _save_session_data(request, data)
+    _save_session(request, data)
 
     return event
 
@@ -886,7 +1194,19 @@ def update_event(
     request: Request,
     response: Response,
 ) -> Classes | ScheduleEvent:
-    data = _get_session_data(request, response)
+    """Update an event in a schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        event_id: ID of the event.
+        event: New event data.
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        The updated event.
+    """
+    data = _load_session(request, response)
     schedule = _find_schedule(data, schedule_id)
     event_index = _find_event(schedule, event_id)
     existing = schedule.events[event_index]
@@ -899,14 +1219,14 @@ def update_event(
         },
     )
 
-    _ensure_no_schedule_conflicts(
+    _check_conflicts(
         schedule,
         updated,
-        exclude_event_id=event_id,
+        skip_id=event_id,
     )
 
     schedule.events[event_index] = updated
-    _save_session_data(request, data)
+    _save_session(request, data)
 
     return updated
 
@@ -921,11 +1241,22 @@ def delete_event(
     request: Request,
     response: Response,
 ) -> Response:
-    data = _get_session_data(request, response)
+    """Delete an event from a schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        event_id: ID of the event.
+        request: Incoming request.
+        response: Response used to set the session cookie.
+
+    Returns:
+        An empty 204 response.
+    """
+    data = _load_session(request, response)
     schedule = _find_schedule(data, schedule_id)
     event_index = _find_event(schedule, event_id)
 
     del schedule.events[event_index]
-    _save_session_data(request, data)
+    _save_session(request, data)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
