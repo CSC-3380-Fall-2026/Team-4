@@ -95,10 +95,6 @@ def test_signup_rejects_missing_credentials():
     response = client.post("/signup", json={})
     assert response.status_code == 422
     assert "detail" in response.json()
-
-
-@pytest.mark.xfail(
-    strict=True,
     reason="Dedicated catalog page has not been implemented",
 )
 def test_catalog_page_contains_course_content():

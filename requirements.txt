@@ -7,3 +7,5 @@ beautifulsoup4
 jinja2
 python-lucide
 pytest
+pydantic[email]
+httpx
