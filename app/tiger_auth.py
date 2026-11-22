@@ -20,7 +20,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 router = APIRouter()
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 def user_client(token: str) -> Client:
@@ -38,8 +38,10 @@ class Session:
         self.db = user_client(token)
 
 
-def current_session(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Session:
-    """Dependency for protected routes: identifies the student from the bearer token."""
+def current_session(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> Session:
+    """Shared helper for every protected route or page handler: identifies the student from the bearer token."""
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Not signed in: missing session token")
     token = credentials.credentials
     try:
         result = supabase.auth.get_user(token)
@@ -47,7 +49,7 @@ def current_session(credentials: HTTPAuthorizationCredentials = Depends(security
     except Exception:
         user = None
     if user is None:
-        raise HTTPException(status_code=401, detail="Not signed in")
+        raise HTTPException(status_code=401, detail="Session expired or invalid, please sign in again")
     return Session(user.id, user.email or "", token)
 
 
@@ -104,12 +106,12 @@ async def getUser(session: Session = Depends(current_session)) -> UserBase:
     return _load_profile(session)
 
 
-@router.get("/profile")
+@router.get("/api/profile")
 async def get_profile(session: Session = Depends(current_session)) -> UserBase:
     return _load_profile(session)
 
 
-@router.put("/profile")
+@router.put("/api/profile")
 async def update_profile(update: ProfileUpdate, session: Session = Depends(current_session)) -> UserBase:
     row = {
         "id": session.user_id,

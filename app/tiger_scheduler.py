@@ -162,6 +162,7 @@ def _class_event(
         grade=0.0,
         semester="Fall 2026",
         category="other",
+        credit=3,
         days=days,
         start=start,
         end=end,
@@ -862,7 +863,6 @@ def add_course_to_schedule(
                 "professor",
                 "enrollment",
                 "section_details",
-                "credit",
             },
         )
     )
@@ -893,7 +893,7 @@ def update_event(
 
     updated = type(existing)(
         **{
-            **existing.model_dump(exclude={"credit"}),
+            **existing.model_dump(),
             **event.model_dump(),
             "id": event_id,
         },

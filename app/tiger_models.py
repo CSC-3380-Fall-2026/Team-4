@@ -9,7 +9,6 @@ from pydantic import (
     ConfigDict,
     EmailStr,
     Field,
-    computed_field,
     field_validator,
     model_validator,
 )
@@ -107,18 +106,7 @@ class Classes(ScheduleEvent):
     grade: float
     semester: str
     category: str
-
-    @computed_field
-    @property
-    def credit(self) -> int:
-        # Preserves the existing calculation; this is based on meeting duration.
-        start_hour, start_minute = map(int, self.start.split(":"))
-        end_hour, end_minute = map(int, self.end.split(":"))
-        duration_minutes = (
-            (end_hour * 60 + end_minute)
-            - (start_hour * 60 + start_minute)
-        )
-        return (duration_minutes + 59) // 60
+    credit: int = Field(gt=0)  ##credit hours are stored explicitly, never derived from meeting times
 
 class ScrapedCourse(BaseModel):
     id: str
@@ -237,7 +225,7 @@ class ScheduleSection(BaseModel):
     number: int
     name: str
     section: str
-    credit: int = 0
+    credit: int = Field(default=3, gt=0)
     meetings: list[Meeting] = Field(default_factory=list)
     
 class Commitment(BaseModel):
@@ -262,3 +250,4 @@ class SchedulePageData(ScheduleModel):
     current_user_id: str | int
     users: list[UserBase]
     metrics: dict[str, ScheduleMetrics]
+
