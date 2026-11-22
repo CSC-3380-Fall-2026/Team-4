@@ -163,6 +163,7 @@ class UserBase(ScheduleModel):
     username: str | None = None
     email: str
     gpa: float | None = None
+    completed_credit_hours: int = 0
     courses: list[Any] = Field(default_factory=list)
     schedules: list[Schedule] = Field(default_factory=list)
 
@@ -212,6 +213,7 @@ class SharedFreeTimeResponse(ScheduleModel):
 class ProfileUpdate(BaseModel):
     username: str | None = None
     gpa: float | None = Field(default=None, ge=0, le=4.3)
+    completed_credit_hours: int = Field(default=0, ge=0)
     courses: list[Any] = Field(default_factory=list)
     
 class Meeting(BaseModel):

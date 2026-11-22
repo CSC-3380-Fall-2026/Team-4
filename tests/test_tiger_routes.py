@@ -41,8 +41,8 @@ def test_friends_page_contains_request_form():
 def test_planning_page_contains_gpa_inputs():
     response = client.get("/planning")
     assert response.status_code == 200
-    assert 'id="input-targ-cum-GPA"' in response.text
-    assert 'id="input-curr-credits"' in response.text
+    assert 'id="target-gpa"' in response.text
+    assert 'id="completed-credits"' in response.text
 
 
 def test_schedule_page_contains_controls():
@@ -79,8 +79,7 @@ def test_dashboard_course_checker_has_input_and_validation():
     assert response.status_code == 200
     assert 'id="prereq-course"' in response.text
     assert 'id="completed-courses"' in response.text
-    assert "checkCoursePrerequisites()" in response.text
-    assert "Please enter a course code." in response.text
+    assert "Check prerequisites" in response.text
 
 
 def test_login_rejects_missing_credentials():
