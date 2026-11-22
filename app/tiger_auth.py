@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import requests
 from dotenv import load_dotenv
@@ -181,9 +181,10 @@ def validate_token(token: str) -> bool:
         True only when Supabase returns a verified user.
     """
     try:
-        return auth_client().auth.get_user(token).user is not None
+        result = auth_client().auth.get_user(token)
     except Exception:
         return False
+    return result is not None and result.user is not None
 
 
 def readable_courses(raw: Any) -> list[dict[str, Any]]:
@@ -226,13 +227,15 @@ def session_card(session: "Session") -> dict[str, Any]:
         "data_error": False,
     }
     try:
-        rows = (
+        # The client types rows as generic JSON; profile rows are JSON objects.
+        rows = cast(
+            list[dict[str, Any]],
             session.db.table("profiles")
             .select("id,username,gpa,completed_credit_hours,courses")
             .eq("id", session.user_id)
             .limit(1)
             .execute()
-            .data
+            .data,
         )
         if rows and rows[0]["id"] == session.user_id:
             row: ProfileRecord = ProfileRecord.model_validate(
@@ -335,11 +338,12 @@ def verify_token(token: str) -> Session | None:
     if not token:
         return None
     try:
-        user = auth_client().auth.get_user(token).user
+        result = auth_client().auth.get_user(token)
     except HTTPException:
         raise
     except Exception:
         return None
+    user = result.user if result is not None else None
     if user is None:
         return None
     meta: dict[str, Any] = getattr(user, "user_metadata", None) or {}
@@ -435,18 +439,20 @@ def session_profile(session: Session) -> UserBase:
     Returns:
         The saved profile, or defaults when no row exists.
     """
-    rows = (
+    # The client types rows as generic JSON; profile rows are JSON objects.
+    rows = cast(
+        list[dict[str, Any]],
         session.db.table("profiles")
         .select("*")
         .eq("id", session.user_id)
         .execute()
-        .data
+        .data,
     )
-    row = rows[0] if rows else {}
+    row: dict[str, Any] = rows[0] if rows else {}
     return UserBase(
         id=session.user_id,
         username=row.get("username"),
-        email=row.get("email") or session.email,
+        email=str(row.get("email") or session.email),
         gpa=float(row["gpa"]) if row.get("gpa") is not None else None,
         completed_credit_hours=row.get("completed_credit_hours") or 0,
         courses=row.get("courses") or [],
