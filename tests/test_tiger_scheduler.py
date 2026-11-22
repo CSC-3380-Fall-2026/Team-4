@@ -46,7 +46,6 @@ def test_separate_sessions_cannot_access_schedule():
             json={"name": "Unauthorized Change", "color": "red"},
         )
         assert response.status_code == 404, response.text
-@pytest.mark.xfail(reason="Known bug: overlapping classes are accepted instead of rejected", strict=True)
 def test_overlapping_classes_should_be_rejected():
     with TestClient(app) as client:
         created = client.post(
