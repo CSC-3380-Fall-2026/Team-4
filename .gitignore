@@ -199,3 +199,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Node
+node_modules/
+#course requirements
+/data/course_requirements.json
+node_modules/
+.venv312/
+.vercel/
