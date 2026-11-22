@@ -98,6 +98,31 @@ as $$
   select id from public.profiles where lower(username) = lower(name) limit 1;
 $$;
 
+-- Usernames of the students linked to the caller by a friendship or request.
+-- Profiles stay private; this exposes only id and username to the two people
+-- involved, so the Friends page can show who sent a request.
+create or replace function public.friend_profiles()
+returns table (id uuid, username text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.id, p.username
+  from public.profiles p
+  where exists (
+    select 1 from public.friendships f
+    where (f.requester_id = auth.uid() and f.addressee_id = p.id)
+       or (f.addressee_id = auth.uid() and f.requester_id = p.id)
+  );
+$$;
+
+-- Only signed-in students may look up usernames.
+revoke all on function public.profile_id_for_username(text) from public, anon;
+grant execute on function public.profile_id_for_username(text) to authenticated;
+revoke all on function public.friend_profiles() from public, anon;
+grant execute on function public.friend_profiles() to authenticated;
+
 -- Row level security --------------------------------------------------------
 alter table public.profiles        enable row level security;
 alter table public.schedules       enable row level security;

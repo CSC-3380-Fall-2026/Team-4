@@ -98,6 +98,10 @@ class FakeDatabase:
             return row["user_id"] == uid or self.shared(row, uid)
         if name == "forecasts":
             return row["user_id"] == uid
+        if name == "friendships":
+            return uid in (row["requester_id"], row["addressee_id"])
+        if name == "schedule_shares":
+            return uid in (row["owner_id"], row["friend_id"])
         return True
 
     def shared(self, row: Row, uid: str) -> bool:
@@ -240,6 +244,48 @@ class FakeQuery:
         return SimpleNamespace(data=[dict(row) for row in rows])
 
 
+class FakeRpc:
+    """One database-function call; functions bypass row level security."""
+
+    def __init__(self, db: FakeDatabase, name: str, params: Row, uid: str) -> None:
+        """Remember the call.
+
+        Args:
+            db: Shared fake database.
+            name: Function name.
+            params: Function arguments.
+            uid: Signed-in student's id.
+        """
+        self.db, self.name, self.params, self.uid = db, name, params, uid
+
+    def execute(self) -> SimpleNamespace:
+        """Run the function like the SQL in database/tiger_setup.sql."""
+        if self.name in self.db.broken:
+            raise RuntimeError("function unavailable")
+        if self.name == "profile_id_for_username":
+            wanted = str(self.params.get("name", "")).lower()
+            found = next(
+                (
+                    row["id"] for row in self.db.rows("profiles")
+                    if (row.get("username") or "").lower() == wanted
+                ),
+                None,
+            )
+            return SimpleNamespace(data=found)
+        if self.name == "friend_profiles":
+            linked = {
+                row["addressee_id"] if row["requester_id"] == self.uid
+                else row["requester_id"]
+                for row in self.db.rows("friendships")
+                if self.uid in (row["requester_id"], row["addressee_id"])
+            }
+            return SimpleNamespace(data=[
+                {"id": row["id"], "username": row.get("username")}
+                for row in self.db.rows("profiles") if row["id"] in linked
+            ])
+        raise ValueError(f"unknown function {self.name}")
+
+
 class FakeClient:
     """Fake Supabase client bound to one access token."""
 
@@ -269,3 +315,7 @@ class FakeClient:
     def table(self, name: str) -> FakeQuery:
         """Start a query on a table."""
         return FakeQuery(self.db, name, self.uid)
+
+    def rpc(self, name: str, params: Row | None = None) -> FakeRpc:
+        """Start a database-function call."""
+        return FakeRpc(self.db, name, params or {}, self.uid)
