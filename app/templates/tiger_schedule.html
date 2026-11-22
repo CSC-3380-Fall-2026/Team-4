@@ -2,6 +2,7 @@
 {% set page_title = "Schedule" %}
 {% block body_class %}bg-neutrals-0 font-[Lato]{% endblock %}
 {% block content %}
+<div id="schedule-notice" popover="manual" style="position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); width: calc(100% - 2rem); max-width: 32rem; margin: 0;"></div>
             {% include "components/schedule_calendar.html" %}
             <section id="schedule-event-management" class="flex h-fit w-full flex-col gap-4 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
                 <p id="schedule-page-error" class="hidden text-sm text-red-700" role="alert"></p>
@@ -107,7 +108,7 @@
     <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
     <script src="{{ url_for('static', path='/js/schedule-ui.js') }}?v=1" defer></script>
     <script src="{{ url_for('static', path='/js/schedule-calendar.js') }}?v=4" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-events.js') }}?v=5" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-events.js') }}?v=6" defer></script>
     <script src="{{ url_for('static', path='/js/schedule-management.js') }}?v=3" defer></script>
     <script src="{{ url_for('static', path='/js/schedule-comparison.js') }}?v=3" defer></script>
     <script src="{{ url_for('static', path='/js/schedule.js') }}?v=9" defer></script>
