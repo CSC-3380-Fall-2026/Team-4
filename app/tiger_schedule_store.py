@@ -49,7 +49,7 @@ def schedule_semester(schedule: Schedule) -> str:
     return classes[0].semester if classes else current_semester()
 
 
-def schedule_to_row(schedule: Schedule) -> dict[str, Any]:
+def to_row(schedule: Schedule) -> dict[str, Any]:
     """Convert a Schedule into database columns.
 
     Args:
@@ -88,7 +88,7 @@ def parse_events(items: list[dict], kind: type) -> list[Any]:
     return events
 
 
-def row_to_schedule(row: dict[str, Any]) -> Schedule:
+def to_schedule(row: dict[str, Any]) -> Schedule:
     """Convert a database row into a Schedule.
 
     Args:
@@ -124,7 +124,7 @@ def list_schedules(session: Session) -> list[Schedule]:
         .execute()
         .data
     )
-    return [row_to_schedule(row) for row in rows or []]
+    return [to_schedule(row) for row in rows or []]
 
 
 def fetch_schedule(session: Session, schedule_id: str) -> Schedule:
@@ -150,7 +150,7 @@ def fetch_schedule(session: Session, schedule_id: str) -> Schedule:
     )
     if not rows:
         raise HTTPException(status_code=404, detail="Schedule not found.")
-    return row_to_schedule(rows[0])
+    return to_schedule(rows[0])
 
 
 def insert_schedule(session: Session, definition: ScheduleDefinition) -> Schedule:
@@ -167,11 +167,11 @@ def insert_schedule(session: Session, definition: ScheduleDefinition) -> Schedul
         HTTPException: With status 400 when nothing was stored.
     """
     draft = Schedule(**definition.model_dump(), events=[])
-    row = {**schedule_to_row(draft), "user_id": session.user_id}
+    row = {**to_row(draft), "user_id": session.user_id}
     rows = session.db.table(TABLE).insert(row).execute().data
     if not rows:
         raise HTTPException(status_code=400, detail="Could not save schedule.")
-    return row_to_schedule(rows[0])
+    return to_schedule(rows[0])
 
 
 def save_schedule(session: Session, schedule: Schedule) -> None:
@@ -185,7 +185,7 @@ def save_schedule(session: Session, schedule: Schedule) -> None:
         HTTPException: With status 404 when the row is not the student's.
     """
     changes = {
-        **schedule_to_row(schedule),
+        **to_row(schedule),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     rows = (
@@ -273,7 +273,7 @@ def friend_users(session: Session, own_name: str | None) -> list[UserBase]:
     owners: dict[str, list[Schedule]] = {}
     for share in shared_rows(session, SHARED_FIELDS):
         owners.setdefault(share["owner_id"], []).append(
-            row_to_schedule(share["schedule"])
+            to_schedule(share["schedule"])
         )
     taken = {own_name} if own_name else set()
     return [
