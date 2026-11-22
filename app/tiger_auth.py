@@ -60,12 +60,20 @@ async def signup(credentials: UserAuthSchema) -> dict:
             "email": credentials.email,
             "password": credentials.password
         })
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Signup failed: {e}")
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to create the account. Check your details or try another email.",
+        ) from None
     if not response or not response.user:
-        raise HTTPException(status_code=400, detail="Signup failed")
+        raise HTTPException(status_code=400, detail="Unable to create the account. Please try again.")
     token = response.session.access_token if response.session else None
-    return {"user_id": response.user.id, "access_token": token}
+    return {
+        "created": True,
+        "user_id": response.user.id,
+        "access_token": token,
+        "confirmation_required": response.session is None,
+    }
 
 
 @router.post("/login")  ##login using supabase and returns a JWT token

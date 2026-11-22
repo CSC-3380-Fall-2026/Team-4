@@ -55,14 +55,12 @@ def test_schedule_page_contains_controls():
 import pytest
 
 
-@pytest.mark.xfail(strict=True, reason="Login form not implemented yet")
 def test_login_page_has_form():
     response = client.get("/login")
     assert "<form" in response.text.lower()
     assert 'type="password"' in response.text.lower()
 
 
-@pytest.mark.xfail(strict=True, reason="Registration form not implemented yet")
 def test_registration_page_has_form():
     response = client.get("/signin")
     assert "<form" in response.text.lower()
@@ -95,8 +93,7 @@ def test_signup_rejects_missing_credentials():
     response = client.post("/signup", json={})
     assert response.status_code == 422
     assert "detail" in response.json()
-    reason="Dedicated catalog page has not been implemented",
-)
+
 def test_catalog_page_contains_course_content():
     response = client.get("/catalog")
     assert response.status_code == 200
