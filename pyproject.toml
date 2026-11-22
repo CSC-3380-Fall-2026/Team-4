@@ -19,3 +19,6 @@ dependencies = [
 ]
 [tool.vercel]
 entrypoint = "vercel_entry:app"
+
+[tool.fastapi]
+entrypoint = "vercel_entry:app"
