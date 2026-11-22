@@ -133,3 +133,7 @@
 }
 
 #prerequisite-checker form, #prereq-result { display: grid; gap: 1rem; }
+
+/* Login and sign-up pages have no sidebar. */
+.auth-page #workspace { margin-left: 0; }
+.auth-page #content { max-width: 32rem; padding-top: 3rem; }
