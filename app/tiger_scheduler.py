@@ -337,16 +337,17 @@ def _course_presets() -> list[CoursePreset]:
 
         presets.append(
             CoursePreset(
-                courseId=f"{department.lower()}-{number}-sample-section",
+                course_id=f"{department.lower()}-{number}-sample-section",
                 title=course["course_code"],
                 department=department,
                 number=int(number),
                 grade=0.0,
+                credit=course["credits"],
                 semester="Spring Semester 2027",
                 category=course["category"],
                 professor="Sample instructor",
                 enrollment="Sample enrollment",
-                sectionDetails=f"Sample section | {day_labels} | {start}-{end}",
+                section_details=f"Sample section | {day_labels} | {start}-{end}",
                 days=days,
                 start=start,
                 end=end,

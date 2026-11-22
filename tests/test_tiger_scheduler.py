@@ -114,3 +114,13 @@ def test_unauthenticated_user_cannot_create_schedule():
             json={"name": "Unauthorized Schedule", "color": "blue"},
         )
         assert response.status_code in (401, 403), response.text
+
+
+def test_course_presets_load() -> None:
+    """Check that course presets build with explicit credit hours."""
+    from fastapi.testclient import TestClient
+    from tiger_app import app
+
+    response = TestClient(app).get("/api/course-presets")
+    assert response.status_code == 200
+    assert response.json()[0]["credit"] > 0
