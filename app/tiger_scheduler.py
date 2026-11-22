@@ -21,7 +21,6 @@ from tiger_models import (
     SharedFreeTimeRequest,
     SharedFreeTimeResponse,
     UserBase,
-    Weekday,
 )
 from tiger_schedule_store import (
     current_semester,
