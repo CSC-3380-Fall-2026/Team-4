@@ -12,9 +12,6 @@ Describe a little about what the project is about here.
 
 The project is called Tiger-Class-Drive it is a proprietary website that will be the next generation of schedule keeping. Due to having all the best features, it will no-doubt become the best website incorporating all the best features from all applications into one main database for the absolute best user experience.
 ## Platforms Tested on
-- MacOS
-- Android
-- iOS
 - Linux
 - Windows
 # Important Links
