@@ -25,6 +25,8 @@ class UpcomingEvent(BaseModel):
 class DashboardData(BaseModel):
     """Display data; absent records remain empty instead of becoming sample data."""
 
+    gpa: float | None = None
+    completed_hours: int = Field(default=0, ge=0)
     selected: ScheduleSummary | None = None
     forecast: PlanningResult | None = None
     events: list[UpcomingEvent] = Field(default_factory=list)

@@ -51,6 +51,7 @@ class FakeDatabase:
         """Create empty tables and a creation-order counter."""
         self.tables: dict[str, list[Row]] = {}
         self.clock = count(1)
+        self.broken: set[str] = set()
 
     def rows(self, name: str) -> list[Row]:
         """Return the mutable row list of a table.
@@ -95,6 +96,8 @@ class FakeDatabase:
             return row["id"] == uid or self.friends(row["id"], uid)
         if name == "schedules":
             return row["user_id"] == uid or self.shared(row, uid)
+        if name == "forecasts":
+            return row["user_id"] == uid
         return True
 
     def shared(self, row: Row, uid: str) -> bool:
@@ -130,6 +133,7 @@ class FakeQuery:
         self.payload: Row = {}
         self.rules: list[Rule] = []
         self.sort: tuple[str, bool] | None = None
+        self.key: str = "id"
 
     def select(self, *_args: Any) -> "FakeQuery":
         """Select rows; the column list is ignored."""
@@ -141,9 +145,10 @@ class FakeQuery:
         self.action, self.payload = "insert", payload
         return self
 
-    def upsert(self, payload: Row, **_kw: Any) -> "FakeQuery":
-        """Insert or replace one row by id."""
+    def upsert(self, payload: Row, **kw: Any) -> "FakeQuery":
+        """Insert or replace one row by id or by the on_conflict column."""
         self.action, self.payload = "upsert", payload
+        self.key = kw.get("on_conflict", "id")
         return self
 
     def update(self, payload: Row) -> "FakeQuery":
@@ -201,8 +206,10 @@ class FakeQuery:
     def run_upsert(self) -> list[Row]:
         """Replace the row with the same id, or store a new one."""
         table = self.db.rows(self.name)
-        wanted = self.payload.get("id")
-        old = next((r for r in table if wanted and r.get("id") == wanted), None)
+        wanted = self.payload.get(self.key)
+        old = next(
+            (r for r in table if wanted and r.get(self.key) == wanted), None
+        )
         if old is None:
             return self.run_insert()
         old.update(self.payload)
@@ -224,6 +231,8 @@ class FakeQuery:
 
     def execute(self) -> SimpleNamespace:
         """Run the query and return an object with .data."""
+        if self.name in self.db.broken:
+            raise RuntimeError("table unavailable")
         rows = getattr(self, "run_" + self.action)()
         if self.sort:
             column, desc = self.sort

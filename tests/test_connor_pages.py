@@ -1,7 +1,6 @@
 """Check Connor's page, Planning, account, and deployment integration work."""
 
 from collections.abc import Iterator
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -17,25 +16,37 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from vercel_entry import app
 import tiger_auth
-from models.tiger_dashboard import DashboardData, ScheduleSummary, UpcomingEvent
 
 
 @pytest.fixture
-def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    """Provide an isolated browser without contacting real account services.
+def bare(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """Provide a signed-out browser without real account services.
 
     Args:
         monkeypatch: Fixture that restores environment and application state.
 
     Yields:
-        A test browser with a test-only forecast signing key.
+        A test browser with no Supabase settings and no login cookie.
     """
     monkeypatch.delenv("SUPABASE_URL", raising=False)
     monkeypatch.delenv("SUPABASE_KEY", raising=False)
-    monkeypatch.setenv("SESSION_SECRET", "test-only-forecast-signing-value")
-    monkeypatch.delattr(app.state, "dashboard_provider", raising=False)
     with TestClient(app) as browser:
         yield browser
+
+
+@pytest.fixture
+def client(bare: TestClient, fake_db: object) -> TestClient:
+    """Provide a browser signed in as a fake student "alice".
+
+    Args:
+        bare: Signed-out browser.
+        fake_db: In-memory Supabase replacement.
+
+    Returns:
+        The same browser carrying a token the fake Supabase accepts.
+    """
+    bare.cookies.set("tiger_access", "token-alice")
+    return bare
 
 
 def sample_plan() -> dict[str, object]:
@@ -89,11 +100,6 @@ def submit_plan(
 @pytest.mark.parametrize(
     "path",
     [
-        "/dashboard",
-        "/schedule",
-        "/planning",
-        "/friends",
-        "/profile",
         "/login",
         "/signup",
         "/catalog",
@@ -105,15 +111,15 @@ def submit_plan(
         "/favicon.ico",
     ],
 )
-def test_pages(client: TestClient, path: str) -> None:
+def test_pages(bare: TestClient, path: str) -> None:
     """Check direct URLs and refreshes without account configuration.
 
     Args:
-        client: Isolated test browser.
-        path: A supported page, API document, or asset URL.
+        bare: Signed-out test browser.
+        path: A public page, API document, or asset URL.
     """
     for _ in range(2):
-        response: httpx.Response = client.get(path)
+        response: httpx.Response = bare.get(path)
         assert response.status_code == 200, response.text
         assert response.content
 
@@ -325,65 +331,23 @@ def test_escaping(client: TestClient) -> None:
 
 
 def test_cookie(client: TestClient) -> None:
-    """Ignore a modified forecast cookie instead of displaying its values.
+    """Ignore a forged forecast cookie instead of displaying its values.
 
     Args:
-        client: Isolated test browser.
+        client: Signed-in test browser.
     """
-    submit_plan(client, sample_plan())
-    client.cookies.clear()
     client.cookies.set("tiger_forecast", "modified-forecast")
     assert "No GPA forecast yet" in client.get("/dashboard").text
 
 
-def test_supplied(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Render supplied dashboard data and future events in time order.
-
-    Args:
-        client: Isolated test browser.
-        monkeypatch: Fixture used to provide request-specific dashboard records.
-    """
-    now: datetime = datetime.now(timezone.utc)
-    records: DashboardData = DashboardData(
-        selected=ScheduleSummary(
-            name="Spring plan",
-            semester="Spring 2027",
-            credit_hours=15,
-            course_count=5,
-        ),
-        events=[
-            UpcomingEvent(
-                title="Later meeting", starts_at=now + timedelta(days=2)
-            ),
-            UpcomingEvent(
-                title="Past meeting", starts_at=now - timedelta(days=2)
-            ),
-            UpcomingEvent(
-                title="Next meeting", starts_at=now + timedelta(days=1)
-            ),
-        ],
-    )
-    monkeypatch.setattr(
-        app.state,
-        "dashboard_provider",
-        Mock(return_value=records),
-        raising=False,
-    )
-    page: str = client.get("/dashboard").text
-    assert "Spring plan" in page
-    assert "Past meeting" not in page
-    assert page.index("Next meeting") < page.index("Later meeting")
-    assert len(records.events) == 3
-
-
-def test_apis(client: TestClient) -> None:
+def test_apis(bare: TestClient) -> None:
     """Preserve GPA API URLs and numeric request shapes alongside letter grades.
 
     Args:
-        client: Isolated test browser.
+        bare: Signed-out test browser.
     """
     courses: list[dict[str, object]] = [{"credit": 3, "grade": 4.0}] * 5
-    response: httpx.Response = client.post(
+    response: httpx.Response = bare.post(
         "/calculateCumulativeGPA",
         json={
             "currentGPA": 3.0,
@@ -393,22 +357,22 @@ def test_apis(client: TestClient) -> None:
     )
     assert response.status_code == 200
     assert response.json() == pytest.approx(3.20)
-    assert client.post("/calculateTotalCredits", json=courses).json() == 15
-    assert client.post(
+    assert bare.post("/calculateTotalCredits", json=courses).json() == 15
+    assert bare.post(
         "/calculateGPA", json=[{"credit": 3, "grade": "B-"}]
     ).json() == pytest.approx(2.7)
-    assert client.post(
+    assert bare.post(
         "/calculateGPA",
         json=[{"credit": 3, "grade": 4}, {"credit": 1, "grade": 2}],
     ).json() == pytest.approx(3.5)
-    assert client.post("/getClasses").status_code == 501
+    assert bare.post("/getClasses").status_code == 501
 
 
-def test_required(client: TestClient) -> None:
+def test_required(bare: TestClient) -> None:
     """Check both zero-completed-credit cases from the earlier bug-fix task.
 
     Args:
-        client: Isolated test browser.
+        bare: Signed-out test browser.
     """
     values: dict[str, object] = {
         "currentGPA": 3.0,
@@ -416,37 +380,37 @@ def test_required(client: TestClient) -> None:
         "plannedCredits": 15,
         "targetGPA": 3.5,
     }
-    assert client.post("/calculateRequiredGPA", json=values).status_code == 400
+    assert bare.post("/calculateRequiredGPA", json=values).status_code == 400
     values["currentGPA"] = 0.0
-    response: httpx.Response = client.post("/calculateRequiredGPA", json=values)
+    response: httpx.Response = bare.post("/calculateRequiredGPA", json=values)
     assert response.status_code == 200
     assert response.json() == 3.5
 
 
-def test_catalog(client: TestClient) -> None:
+def test_catalog(bare: TestClient) -> None:
     """Exercise the existing catalog through its HTML search page.
 
     Args:
-        client: Isolated test browser.
+        bare: Signed-out test browser.
     """
-    assert "CSC 3380" in client.get("/catalog?query=3380").text
+    assert "CSC 3380" in bare.get("/catalog?query=3380").text
     assert (
-        "No matching courses" in client.get("/catalog?query=xyz-no-course").text
+        "No matching courses" in bare.get("/catalog?query=xyz-no-course").text
     )
-    assert client.get("/catalog?category=invalid").status_code == 400
+    assert bare.get("/catalog?category=invalid").status_code == 400
 
 
-def test_accounts(client: TestClient) -> None:
+def test_accounts(bare: TestClient) -> None:
     """Keep public pages working when account settings have not been supplied.
 
     Args:
-        client: Isolated test browser.
+        bare: Signed-out test browser.
     """
-    client.get("/login")
-    response: httpx.Response = client.post(
+    bare.get("/login")
+    response: httpx.Response = bare.post(
         "/account/login",
         data={
-            "csrf_token": client.cookies["tiger_csrf"],
+            "csrf_token": bare.cookies["tiger_csrf"],
             "email": "student@example.com",
             "password": "test-only-password",
         },
@@ -455,7 +419,7 @@ def test_accounts(client: TestClient) -> None:
     assert "Account services are temporarily unavailable" in response.text
     assert "test-only-password" not in response.text
     assert 'value="student@example.com"' in response.text
-    assert client.get("/health").status_code == 200
+    assert bare.get("/health").status_code == 200
 
 
 def test_accountflow(
@@ -472,6 +436,7 @@ def test_accountflow(
     )
     monkeypatch.setattr(tiger_auth, "logout", Mock(return_value=True))
     submit_plan(client, sample_plan())
+    client.cookies.delete("tiger_access")
     client.get("/login")
     response: httpx.Response = client.post(
         "/account/login",
@@ -483,10 +448,11 @@ def test_accountflow(
         follow_redirects=False,
     )
     assert response.status_code == 303
-    assert response.headers["location"] == "/profile"
+    assert response.headers["location"] == "/dashboard"
     assert client.cookies["tiger_access"] == "test-token"
     assert "HttpOnly" in response.headers["set-cookie"]
     assert "tiger_forecast" not in client.cookies
+    assert response.headers["cache-control"] == "no-store"
     response = client.post(
         "/account/logout",
         data={"csrf_token": client.cookies["tiger_csrf"]},
@@ -496,12 +462,12 @@ def test_accountflow(
     assert "tiger_access" not in client.cookies
 
 
-def test_profile(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_profile(bare: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """Use the verified account ID and reject malformed academic profile data.
 
     Args:
-        client: Isolated test browser.
-        monkeypatch: Fixture replacing the external Supabase client.
+        bare: Signed-out test browser.
+        monkeypatch: Fixture replacing the external Supabase bare.
     """
     backend: Mock = Mock()
     backend.auth.get_user.return_value = SimpleNamespace(
@@ -531,8 +497,8 @@ def test_profile(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
         ]
     )
     monkeypatch.setattr(tiger_auth, "auth_client", Mock(return_value=backend))
-    client.cookies.set("tiger_access", "test-token")
-    response: httpx.Response = client.get("/profile?user_id=someone-else")
+    bare.cookies.set("tiger_access", "test-token")
+    response: httpx.Response = bare.get("/profile?user_id=someone-else")
     assert response.status_code == 200
     assert "3.20" in response.text and "CSC 3380" in response.text
     backend.table.return_value.select.return_value.eq.assert_called_with(
@@ -540,17 +506,17 @@ def test_profile(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     )
     backend.postgrest.auth.assert_called_with("test-token")
     query.execute.return_value.data[0]["gpa"] = "not a GPA"
-    response = client.get("/profile")
+    response = bare.get("/profile")
     assert response.status_code == 200
     assert "saved academic information could not be loaded" in response.text
 
 
-def test_profile_save(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_profile_save(bare: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """Save profile fields only for the verified account and reject bad input.
 
     Args:
-        client: Isolated test browser.
-        monkeypatch: Fixture replacing the external Supabase client.
+        bare: Signed-out test browser.
+        monkeypatch: Fixture replacing the external Supabase bare.
     """
     backend: Mock = Mock()
     backend.auth.get_user.return_value = SimpleNamespace(
@@ -560,9 +526,9 @@ def test_profile_save(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> No
         data=[]
     )
     monkeypatch.setattr(tiger_auth, "auth_client", Mock(return_value=backend))
-    client.get("/profile")
-    token: str = client.cookies.get("tiger_csrf")
-    client.cookies.set("tiger_access", "token-a")
+    bare.get("/profile")
+    token: str = bare.cookies.get("tiger_csrf")
+    bare.cookies.set("tiger_access", "token-a")
     form: dict[str, str] = {
         "csrf_token": token,
         "username": "tigerA",
@@ -570,16 +536,16 @@ def test_profile_save(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> No
         "hours": "45",
         "courses": "CSC 1350, 4, Computer Science I",
     }
-    response: httpx.Response = client.post("/profile", data=form, follow_redirects=False)
+    response: httpx.Response = bare.post("/profile", data=form, follow_redirects=False)
     assert response.status_code == 303
     saved: dict[str, object] = backend.table.return_value.upsert.call_args.args[0]
     assert saved["id"] == "student-a"
     assert saved["completed_credit_hours"] == 45
     assert saved["courses"][0]["credits"] == 4
     form["gpa"] = "9"
-    assert client.post("/profile", data=form).status_code == 400
+    assert bare.post("/profile", data=form).status_code == 400
     form["csrf_token"] = "wrong"
-    assert client.post("/profile", data=form).status_code == 403
+    assert bare.post("/profile", data=form).status_code == 403
 
 
 def test_entrypoint() -> None:

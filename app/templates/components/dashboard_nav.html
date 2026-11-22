@@ -5,7 +5,7 @@
             <span>Tiger Class Drive</span>
         </a>
         <div id="nav-tabs">
-            {% for label, path, icon in nav_links %}
+            {% for label, path, icon in nav_links if account_active or path == '/catalog' %}
                 <a href="{{ path }}" class="nav-link {{ 'active' if request.url.path == path else '' }}"
                    {% if request.url.path == path %}aria-current="page"{% endif %}>
                     <span aria-hidden="true">{{ icons[icon] }}</span>

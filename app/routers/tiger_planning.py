@@ -1,11 +1,13 @@
 """Serve the Planning form using Python and ordinary HTML submissions."""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
+from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
 
 from grade_scale import GRADE_POINTS
 from models.tiger_planning import CourseRow, PlanningForm, PlanningResult
+from tiger_auth import Session, require_login
 from tiger_forecast import save_forecast
 from tiger_planning import MAX_ROWS, calculate_plan, read_form
 from tiger_views import render_page, valid_token
@@ -14,12 +16,17 @@ router: APIRouter = APIRouter()
 
 
 @router.get("/planning", response_class=HTMLResponse)
-def planning_page(request: Request, example: bool = False) -> HTMLResponse:
+def planning_page(
+    request: Request,
+    example: bool = False,
+    session: Session = Depends(require_login),
+) -> HTMLResponse:
     """Open a blank plan or the explicitly requested acceptance-test example.
 
     Args:
         request: Browser request for the Planning page.
         example: Whether to load the labeled 60-credit / 15-credit example.
+        session: The verified student; signed-out visitors go to login.
 
     Returns:
         A Planning form with no fabricated calculation results.
@@ -121,11 +128,14 @@ def check_form(request: Request, data: FormData) -> tuple[list[str], int]:
 
 
 @router.post("/planning", response_class=HTMLResponse)
-async def submit_plan(request: Request) -> HTMLResponse:
+async def submit_plan(
+    request: Request, session: Session = Depends(require_login)
+) -> HTMLResponse:
     """Process row edits or calculate a forecast without losing input values.
 
     Args:
         request: Submitted Planning form, including repeated course rows.
+        session: The verified student whose forecast is saved.
 
     Returns:
         The same form with its entered values, results, or readable errors.
@@ -137,7 +147,10 @@ async def submit_plan(request: Request) -> HTMLResponse:
     errors, status_code = check_form(request, data)
     if not errors:
         result, errors, status_code = run_action(form, action)
-    response: HTMLResponse = render_page(
+    unsaved: bool = result is not None and not await run_in_threadpool(
+        save_forecast, session, result
+    )
+    return render_page(
         request,
         "tiger_planner.html",
         status_code=status_code,
@@ -147,7 +160,5 @@ async def submit_plan(request: Request) -> HTMLResponse:
         grades=GRADE_POINTS,
         max_rows=MAX_ROWS,
         example=False,
+        unsaved=unsaved,
     )
-    if result is not None:
-        save_forecast(request, response, result)
-    return response

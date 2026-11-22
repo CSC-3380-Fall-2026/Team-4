@@ -2,11 +2,12 @@
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
 import tiger_auth
+from tiger_auth import Session, require_login
 from tiger_views import render_page, valid_token
 
 router: APIRouter = APIRouter()
@@ -117,25 +118,24 @@ def read_form(data: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def show_error(request: Request, message: str, status: int) -> Response:
+def show_error(
+    request: Request, session: Session, message: str, status: int
+) -> Response:
     """Redisplay the profile page with a safe error message.
 
     Args:
         request: Current browser request.
+        session: The verified student.
         message: Error shown to the student.
         status: HTTP status code.
 
     Returns:
         The profile page with the student's own saved data.
     """
-    try:
-        profile = tiger_auth.load_profile(request)
-    except HTTPException:
-        profile = None
     return render_page(
         request,
         "tiger_profile.html",
-        profile=profile,
+        profile=tiger_auth.session_card(session),
         error=message,
         saved=False,
         status_code=status,
@@ -143,11 +143,14 @@ def show_error(request: Request, message: str, status: int) -> Response:
 
 
 @router.post("/profile", response_class=HTMLResponse)
-async def save_profile(request: Request) -> Response:
+async def save_profile(
+    request: Request, session: Session = Depends(require_login)
+) -> Response:
     """Save the signed-in student's own profile.
 
     Args:
         request: Form post carrying the login cookie and form token.
+        session: The verified student; signed-out visitors go to login.
 
     Returns:
         A redirect back to the profile, or the form with an error.
@@ -155,19 +158,24 @@ async def save_profile(request: Request) -> Response:
     form = await request.form(max_files=0, max_fields=12)
     data: dict[str, str] = {key: str(value) for key, value in form.items()}
     if not valid_token(request, data.get("csrf_token", "")):
-        return show_error(request, "This form expired. Please try again.", 403)
-    try:
-        session = tiger_auth.current_session(request, None)
-    except HTTPException:
-        return RedirectResponse("/login", status_code=303)
+        return show_error(
+            request, session, "This form expired. Please try again.", 403
+        )
     try:
         fields = read_form(data)
     except ValueError as error:
-        return show_error(request, str(error), 400)
+        return show_error(request, session, str(error), 400)
     try:
         await run_in_threadpool(tiger_auth.save_profile, session, fields)
     except Exception:
         return show_error(
-            request, "That username may already be taken. Try another.", 409
+            request,
+            session,
+            "That username may already be taken. Try another.",
+            409,
         )
-    return RedirectResponse("/profile?saved=1", status_code=303)
+    response: RedirectResponse = RedirectResponse(
+        "/profile?saved=1", status_code=303
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response

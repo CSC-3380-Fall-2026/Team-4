@@ -4,12 +4,13 @@ from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from lucide import lucide_icon
 
 import tiger_auth
 import tiger_catalog
+from tiger_auth import Session, require_login
 from grade_scale import GRADE_POINTS
 from tiger_prerequisites import CourseResult, check_prerequisites
 from models.tiger_dashboard import DashboardData
@@ -20,33 +21,42 @@ router: APIRouter = APIRouter()
 
 
 @router.get("/", response_class=HTMLResponse)
-def home_page(request: Request) -> RedirectResponse:
+def home_page(
+    request: Request, session: Session = Depends(require_login)
+) -> RedirectResponse:
     """Open the dashboard from the site's root address.
 
     Args:
         request: Browser request for the site's root.
+        session: The verified student; signed-out visitors go to login.
 
     Returns:
-        A redirect to the canonical dashboard URL.
+        An uncached redirect to the canonical dashboard URL.
     """
-    return RedirectResponse("/dashboard", status_code=303)
+    response: RedirectResponse = RedirectResponse("/dashboard", status_code=303)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard_page(
-    request: Request, course_code: str = "", completed: str = ""
+    request: Request,
+    course_code: str = "",
+    completed: str = "",
+    session: Session = Depends(require_login),
 ) -> HTMLResponse:
     """Display selected schedule, GPA forecast, and upcoming event sections.
 
     Args:
-        request: Browser request used by the configured data provider.
+        request: Browser request for the dashboard.
         course_code: Optional course to check for prerequisites.
         completed: Completed courses, one COURSE: GRADE entry per line.
+        session: The verified student whose data is shown.
 
     Returns:
         William's layout populated with actual supplied values or empty states.
     """
-    data: DashboardData = dashboard_data(request)
+    data: DashboardData = dashboard_data(session)
     course_result: CourseResult | None = None
     course_error: str = ""
     if course_code or completed:
@@ -67,14 +77,17 @@ def dashboard_page(
 
 
 @router.get("/schedule", response_class=HTMLResponse)
-def schedule_page(request: Request) -> HTMLResponse:
-    """Open the schedule page using the same supplied data as the dashboard.
+def schedule_page(
+    request: Request, session: Session = Depends(require_login)
+) -> HTMLResponse:
+    """Open the schedule page; the page script loads schedules from the API.
 
     Args:
-        request: Browser request used to load available schedule information.
+        request: Browser request for the schedule page.
+        session: The verified student; signed-out visitors go to login.
 
     Returns:
-        A schedule page with the current week's headings and provided events.
+        A schedule page with the current week's headings.
     """
     today: datetime = datetime.now(ZoneInfo("America/Chicago"))
     week_start: datetime = today - timedelta(days=today.weekday())
@@ -84,20 +97,18 @@ def schedule_page(request: Request) -> HTMLResponse:
         week_days.append(
             {"name": day.strftime("%A"), "date": day.strftime("%b %d")}
         )
-    return render_page(
-        request,
-        "tiger_schedule.html",
-        data=dashboard_data(request),
-        week_days=week_days,
-    )
+    return render_page(request, "tiger_schedule.html", week_days=week_days)
 
 
 @router.get("/friends", response_class=HTMLResponse)
-def friends_page(request: Request) -> HTMLResponse:
+def friends_page(
+    request: Request, session: Session = Depends(require_login)
+) -> HTMLResponse:
     """Open the existing Friends interface with shared navigation.
 
     Args:
         request: Browser request for the Friends page.
+        session: The verified student; signed-out visitors go to login.
 
     Returns:
         The Friends page and its existing schedule-sharing controls.
@@ -106,27 +117,24 @@ def friends_page(request: Request) -> HTMLResponse:
 
 
 @router.get("/profile", response_class=HTMLResponse)
-def profile_page(request: Request) -> HTMLResponse:
-    """Display only the browser's verified account and available profile data.
+def profile_page(
+    request: Request, session: Session = Depends(require_login)
+) -> HTMLResponse:
+    """Display only the verified student's account and saved profile data.
 
     Args:
-        request: Browser request with an optional account cookie.
+        request: Browser request for the profile page.
+        session: The verified student whose profile is shown.
 
     Returns:
-        A profile, sign-in prompt, or understandable service error.
+        The student's profile page.
     """
-    profile: dict[str, Any] | None = None
-    error: str = ""
-    try:
-        profile = tiger_auth.load_profile(request)
-    except HTTPException as exception:
-        error = str(exception.detail)
+    profile: dict[str, Any] = tiger_auth.session_card(session)
     return render_page(
         request,
         "tiger_profile.html",
         profile=profile,
-        error=error,
-        status_code=503 if error else 200,
+        saved=request.query_params.get("saved") == "1",
     )
 
 

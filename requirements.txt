@@ -9,6 +9,5 @@ python-lucide
 pytest
 pydantic[email]
 python-multipart
-itsdangerous
 httpx
 tzdata

@@ -73,3 +73,16 @@ create unique index if not exists profiles_username_key
 -- Schedule colour shown on the schedule page (for databases created earlier).
 alter table public.schedules
   add column if not exists color text not null default 'blue';
+
+-- One saved GPA forecast per student (shown on the dashboard).
+create table if not exists public.forecasts (
+  user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  result     jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.forecasts enable row level security;
+
+drop policy if exists "own forecast" on public.forecasts;
+create policy "own forecast" on public.forecasts
+  for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());

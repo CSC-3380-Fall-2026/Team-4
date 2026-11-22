@@ -25,7 +25,7 @@ This package has not been pushed to GitHub or deployed to Vercel. The base commi
 - GPA input models are separate from the existing full course model. No invented meeting time or semester is required to calculate a forecast.
 - Login and Signup have HTML forms that call the existing Supabase account operations. Account settings are loaded when needed, so missing settings no longer crash every page at startup.
 - The Profile page verifies the session with Supabase and queries only the verified user's profile ID. Passwords are never echoed into HTML.
-- The last computed GPA forecast can appear on Dashboard through a signed, HTTP-only browser cookie when SESSION_SECRET is configured. It is a forecast, not a saved academic record. It expires after 24 hours and clears on login/logout.
+- The last computed GPA forecast is saved per student in the Supabase `forecasts` table (protected by row level security) and shown on Dashboard. It is a forecast, not an academic record.
 - All template filenames used by these routes match their case on Linux. The login template is renamed from Tiger_login.html to tiger_login.html.
 
 Important scope: Schedule and Friends are connected pages with William's visual style and honest empty states. Their earlier JavaScript sample-data interactions are not loaded by the new pages. Saved schedule editing, friend requests, and shared calendars are not implemented by this package. Existing unused prototype sources are retained for the teammates implementing those features. Catalog search and GPA calculations continue to work.
@@ -89,8 +89,8 @@ Use that manual rename only for the manual-copy route, not after the patch has a
 | app/grade_scale.py | One LSU grade-point mapping used by the form and GPA calculations. |
 | app/models/tiger_planning.py | Typed calculation data and raw strings retained after validation errors. |
 | app/models/tiger_dashboard.py | The selected schedule, forecast, and event data the dashboard expects. |
-| app/tiger_dashboard.py | Reads supplied dashboard data and the signed browser forecast; sorts future events in LSU's time zone. |
-| app/tiger_forecast.py | Signs and reads the browser's short-lived GPA forecast. |
+| app/tiger_dashboard.py | Builds dashboard data from the student's saved profile, schedules and forecast; computes upcoming events in America/Chicago. |
+| app/tiger_forecast.py | Saves and reads the student's GPA forecast in Supabase. |
 | app/tiger_auth.py | Reuses account operations with per-operation Supabase clients and verified profile ownership. |
 | app/models/tiger_profile.py | Validates optional profile GPA/course data before it is displayed. |
 | app/tiger_views.py | Provides shared navigation, icons, rendering, and form tokens. |
@@ -116,11 +116,7 @@ From the repository root:
 The supplied version passed 45 tests on Python 3.12.14. This includes the four existing tests. It also passed the browser calculation check and a 390px-wide iframe layout check.
 
 For accounts, use your existing .env settings if they are already correct. Otherwise copy .env.example to .env, then enter the current SUPABASE_URL and SUPABASE_KEY locally. Never commit .env.
-For Dashboard to remember a browser forecast, set SESSION_SECRET to a random value. You can generate it locally with:
-
-    .\.venv312\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"
-
-Copy the generated value into SESSION_SECRET in your local .env. Keep it private. The calculator still runs without it; only remembering the forecast across page visits is disabled.
+Run the `forecasts` section of database/tiger_schema.sql once in the Supabase SQL editor so forecasts can be saved. The calculator still works without it; the page then says the forecast could not be saved.
 
 Start the server:
 
@@ -142,7 +138,7 @@ No Tailwind build is needed for this patch: main already includes app/static/css
 8. Set completed credits to 0 with current GPA 3.0. It should show a useful error, not a server exception.
 9. Set both current GPA and completed credits to 0. With 15 planned credits and target 3.5, required semester GPA should be 3.50.
 10. Try Add course and Remove. Other grades and history fields should stay intact.
-11. With SESSION_SECRET configured, calculate a valid forecast and open Dashboard. Its GPA summary should show that forecast.
+11. While logged in, calculate a valid forecast and open Dashboard. Its GPA summary should show that forecast.
 
 For the earlier JSON validation bug, /docs still has POST /calculateRequiredGPA. The request with currentGPA=3.0, completedCredits=0, plannedCredits=15, targetGPA=3.5 returns 400; changing currentGPA to 0.0 returns 200 and 3.5.
 
@@ -166,7 +162,7 @@ Verify the selected schedule, GPA summary, and upcoming events each have a usefu
 ## 6. Connect real schedule/profile records when the backend is ready
 
 This package does not create database tables or apply SQL to Supabase.
-The schedule backend can supply DashboardData through app.state.dashboard_provider. Its callable receives the Request and must return data belonging only to the verified current student. Selected schedule may be None; forecast may be None; events may be an empty list. Event starts_at values must include a time zone. The view displays the next six future events in America/Chicago time.
+Dashboard data is read from the signed-in student's saved schedules, profile and forecast. Selected schedule is the student's first schedule; events are the next six class and event meetings in America/Chicago time.
 
 The expected profile table fields are profiles.id, username, gpa, and courses. Account IDs are the verified Supabase user IDs. Each completed-course object is expected to contain course_code, course_name, and credits. If the team's actual schema differs, adapt the profile model/query to that schema instead of inventing records. Unavailable or malformed academic data produces a helpful message.
 
@@ -203,7 +199,7 @@ Only Connor performs these deployment steps.
 2. Keep the Vercel project connected to CSC-3380-Fall-2026/Team-4. The organization name is not an extra folder to deploy.
 3. Keep Root Directory at ./ and the framework preset FastAPI. The custom entrypoint stays vercel_entry:app in pyproject.toml. Do not change it to a missing main.py or create a second frontend deployment.
 4. Use the normal FastAPI build behavior. An old Render command such as gunicorn your_application.wsgi or an unrelated frontend output directory does not belong in this configuration.
-5. Set SUPABASE_URL, SUPABASE_KEY, and SESSION_SECRET in the project's Environment Variables for both Preview and Production. Use raw values, not Markdown links, backticks, or NAME=value in the value box. Use your current keys; do not send them in chat or commit them.
+5. Set SUPABASE_URL and SUPABASE_KEY in the project's Environment Variables for both Preview and Production. Use raw values, not Markdown links, backticks, or NAME=value in the value box. Use your current keys; do not send them in chat or commit them.
 6. Redeploy after changing environment variables. An older deployment does not automatically gain newly saved values.
 7. After the reviewed changes reach main, open the resulting production deployment and compare its Source commit with the merged GitHub commit.
 8. Test the production URL for /health, every page above, both CSS files, the Planning example, and real account login/profile behavior. Ready means the build completed; these route checks verify the application runs.

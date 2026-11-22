@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from supabase import Client, create_client
 
@@ -145,6 +146,44 @@ def validate_token(token: str) -> bool:
         return False
 
 
+def session_card(session: "Session") -> dict[str, Any]:
+    """Read account and profile data for an already verified session.
+
+    Args:
+        session: The verified student and their database client.
+
+    Returns:
+        Account information plus owned profile fields when available.
+    """
+    profile: dict[str, Any] = {
+        "id": session.user_id,
+        "username": session.meta.get("username") or "",
+        "email": session.email,
+        "gpa": None,
+        "completed_credit_hours": 0,
+        "courses": [],
+        "data_error": False,
+    }
+    try:
+        rows = (
+            session.db.table("profiles")
+            .select("id,username,gpa,completed_credit_hours,courses")
+            .eq("id", session.user_id)
+            .limit(1)
+            .execute()
+            .data
+        )
+        if rows and rows[0]["id"] == session.user_id:
+            row: ProfileRecord = ProfileRecord.model_validate(rows[0])
+            profile["username"] = row.username or profile["username"]
+            profile["gpa"] = row.gpa
+            profile["completed_credit_hours"] = row.completed_credit_hours
+            profile["courses"] = [course.model_dump() for course in row.courses]
+    except Exception:
+        profile["data_error"] = True
+    return profile
+
+
 def token_profile(token: str) -> dict[str, Any]:
     """Read account and profile data using a verified token and its owner ID.
 
@@ -157,62 +196,10 @@ def token_profile(token: str) -> dict[str, Any]:
     Raises:
         HTTPException: If the token is invalid or account services are unavailable.
     """
-    client: Client = auth_client()
-    try:
-        account = client.auth.get_user(token).user
-    except Exception as error:
-        raise HTTPException(401, "Please log in again.") from error
-    if account is None:
+    session: Session | None = verify_token(token)
+    if session is None:
         raise HTTPException(401, "Please log in again.")
-    profile: dict[str, Any] = {
-        "id": account.id,
-        "username": account.user_metadata.get("username") or "",
-        "email": account.email or "",
-        "gpa": None,
-        "courses": [],
-        "data_error": False,
-    }
-    try:
-        client.postgrest.auth(token)
-        rows = (
-            client.table("profiles")
-            .select("id,username,gpa,completed_credit_hours,courses")
-            .eq("id", account.id)
-            .limit(1)
-            .execute()
-            .data
-        )
-        if rows and rows[0]["id"] == account.id:
-            row: ProfileRecord = ProfileRecord.model_validate(rows[0])
-            profile["username"] = row.username or profile["username"]
-            profile["gpa"] = row.gpa
-            profile["courses"] = [course.model_dump() for course in row.courses]
-    except Exception:
-        profile["data_error"] = True
-    return profile
-
-
-def load_profile(request: Request) -> dict[str, Any] | None:
-    """Return the browser's verified profile or None when signed out.
-
-    Args:
-        request: Browser request carrying an HTTP-only access-token cookie.
-
-    Returns:
-        This student's profile, or None for a missing or invalid session.
-
-    Raises:
-        HTTPException: If account services are unavailable.
-    """
-    token: str = request.cookies.get(AUTH_COOKIE, "")
-    if not token:
-        return None
-    try:
-        return token_profile(token)
-    except HTTPException as error:
-        if error.status_code == 401:
-            return None
-        raise
+    return session_card(session)
 
 
 @router.get("/getUser")
@@ -237,18 +224,30 @@ getUser = get_user
 class Session:
     """A verified student plus a database client that acts as that student."""
 
-    def __init__(self, user_id: str, email: str, token: str) -> None:
+    def __init__(
+        self,
+        user_id: str,
+        email: str,
+        token: str,
+        meta: dict[str, Any] | None = None,
+    ) -> None:
         """Store the student's identity and build their scoped client.
 
         Args:
             user_id: Verified Supabase user ID.
             email: Verified account email.
             token: Access token used for database requests.
+            meta: Verified account metadata, such as the username.
         """
         self.user_id = user_id
         self.email = email
         self.token = token
+        self.meta = meta or {}
         self.db = user_client(token)
+
+
+class LoginRequired(Exception):
+    """Signal that a browser page needs a signed-in student."""
 
 
 def user_client(token: str) -> Client:
@@ -256,6 +255,49 @@ def user_client(token: str) -> Client:
     client: Client = auth_client()
     client.postgrest.auth(token)
     return client
+
+
+def verify_token(token: str) -> Session | None:
+    """Ask Supabase to verify an access token's signature and expiry.
+
+    Args:
+        token: Access token from a cookie or bearer header.
+
+    Returns:
+        The verified session, or None for a missing, invalid or expired token.
+
+    Raises:
+        HTTPException: If account services are unavailable.
+    """
+    if not token:
+        return None
+    try:
+        user = auth_client().auth.get_user(token).user
+    except HTTPException:
+        raise
+    except Exception:
+        return None
+    if user is None:
+        return None
+    meta: dict[str, Any] = getattr(user, "user_metadata", None) or {}
+    return Session(user.id, user.email or "", token, meta)
+
+
+def request_token(
+    request: Request, credentials: HTTPAuthorizationCredentials | None
+) -> str:
+    """Pick the bearer token if present, otherwise the login cookie.
+
+    Args:
+        request: Current request, which may carry the login cookie.
+        credentials: Optional bearer token from the Authorization header.
+
+    Returns:
+        The token, or an empty string when none was sent.
+    """
+    if credentials:
+        return credentials.credentials
+    return request.cookies.get(AUTH_COOKIE, "")
 
 
 def current_session(
@@ -267,23 +309,58 @@ def current_session(
     Args:
         request: Current request, which may carry the login cookie.
         credentials: Optional bearer token from the Authorization header.
+
+    Returns:
+        The verified session.
+
+    Raises:
+        HTTPException: With status 401 when not signed in or expired.
     """
-    token: str = (
-        credentials.credentials
-        if credentials
-        else request.cookies.get(AUTH_COOKIE, "")
-    )
+    token: str = request_token(request, credentials)
     if not token:
         raise HTTPException(401, "Not signed in.")
-    try:
-        user = auth_client().auth.get_user(token).user
-    except HTTPException:
-        raise
-    except Exception:
-        user = None
-    if user is None:
+    session: Session | None = verify_token(token)
+    if session is None:
         raise HTTPException(401, "Session expired, please log in again.")
-    return Session(user.id, user.email or "", token)
+    return session
+
+
+def require_login(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
+) -> Session:
+    """Allow a page request only from a student with a Supabase-verified token.
+
+    Args:
+        request: Current request, which may carry the login cookie.
+        credentials: Optional bearer token from the Authorization header.
+
+    Returns:
+        The verified session, shared with the page handler.
+
+    Raises:
+        LoginRequired: When the token is missing, invalid or expired.
+    """
+    session: Session | None = verify_token(request_token(request, credentials))
+    if session is None:
+        raise LoginRequired()
+    return session
+
+
+def login_redirect(request: Request, error: Exception) -> RedirectResponse:
+    """Send a signed-out browser to the login page and drop its stale cookie.
+
+    Args:
+        request: The request that needed a login.
+        error: The LoginRequired signal.
+
+    Returns:
+        An uncached 303 redirect to /login.
+    """
+    response: RedirectResponse = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(AUTH_COOKIE)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def session_profile(session: Session) -> UserBase:

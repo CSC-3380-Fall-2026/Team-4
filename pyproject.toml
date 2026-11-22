@@ -13,7 +13,6 @@ dependencies = [
     "python-lucide",
     "pytest",
     "python-multipart",
-    "itsdangerous",
     "httpx",
     "tzdata",
 ]

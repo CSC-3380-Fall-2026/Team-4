@@ -60,6 +60,7 @@
 </form>
 {% if result %}
 <section id="planning-results" class="page-card" aria-labelledby="results-title">
+    {% if unsaved %}{{ show_message("error", "Forecast not saved", "Your calculation is shown below, but it could not be saved to your account, so the dashboard will not show it yet.") }}{% endif %}
     <div class="section-heading"><h2 id="results-title">Your GPA forecast</h2><span class="result-tag">{{ result.planned_credits }} planned credits</span></div>
     <dl class="result-grid">
         <div><dt>Semester GPA</dt><dd id="semester-result">{{ "%.2f" | format(result.semester_gpa) }}</dd></div>

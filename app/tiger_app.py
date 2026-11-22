@@ -14,6 +14,9 @@ from routers import tiger_accounts, tiger_pages, tiger_planning, tiger_profiles
 from tiger_views import APP_DIR
 
 app: FastAPI = FastAPI(title="Tiger Class Drive")
+app.add_exception_handler(
+    tiger_auth.LoginRequired, tiger_auth.login_redirect
+)
 app.mount(
     "/static", StaticFiles(directory=str(APP_DIR / "static")), name="static"
 )

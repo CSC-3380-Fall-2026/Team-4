@@ -17,4 +17,5 @@ class ProfileRecord(BaseModel):
     model_config = ConfigDict(allow_inf_nan=False)
     username: str | None = None
     gpa: float | None = Field(default=None, ge=0, le=4.3)
+    completed_credit_hours: int = Field(default=0, ge=0)
     courses: list[ProfileCourse] = Field(default_factory=list)

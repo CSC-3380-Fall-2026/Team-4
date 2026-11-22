@@ -8,7 +8,6 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
 
 import tiger_auth
-from tiger_forecast import COOKIE_NAME
 from tiger_models import UserAuthSchema
 from tiger_views import render_page, valid_token
 
@@ -156,7 +155,7 @@ async def submit_account(request: Request, mode: str) -> Response:
         )
     if mode == "signup":
         return account_page(request, mode, email, message=message)
-    response: RedirectResponse = RedirectResponse("/profile", status_code=303)
+    response: RedirectResponse = RedirectResponse("/dashboard", status_code=303)
     response.set_cookie(
         tiger_auth.AUTH_COOKIE,
         message,
@@ -165,7 +164,6 @@ async def submit_account(request: Request, mode: str) -> Response:
         secure=request.url.scheme == "https",
         samesite="lax",
     )
-    response.delete_cookie(COOKIE_NAME)
     response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -177,7 +175,7 @@ async def signout_page(request: Request) -> RedirectResponse:
         request: Browser request with an optional access-token cookie.
 
     Returns:
-        A redirect with account and forecast cookies removed.
+        A redirect with the account cookie removed.
     """
     token: str = request.cookies.get(tiger_auth.AUTH_COOKIE, "")
     if token:
@@ -190,6 +188,5 @@ async def signout_page(request: Request) -> RedirectResponse:
             pass
     response: RedirectResponse = RedirectResponse("/login", status_code=303)
     response.delete_cookie(tiger_auth.AUTH_COOKIE)
-    response.delete_cookie(COOKIE_NAME)
     response.headers["Cache-Control"] = "no-store"
     return response

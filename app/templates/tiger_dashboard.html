@@ -24,6 +24,9 @@
     </section>
     <section id="gpa-summary" class="page-card">
         <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.bookmark }}</span><h2>GPA summary</h2></div>
+        {% if data.gpa is not none %}
+            <p class="muted" id="dashboard-profile">Current GPA {{ "%.2f" | format(data.gpa) }} · {{ data.completed_hours }} completed credit hours</p>
+        {% endif %}
         {% if data.forecast %}
             <p class="muted">GPA forecast</p>
             <dl class="metric-pair">
