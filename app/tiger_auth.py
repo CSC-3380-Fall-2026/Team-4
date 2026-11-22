@@ -176,7 +176,7 @@ def token_profile(token: str) -> dict[str, Any]:
         client.postgrest.auth(token)
         rows = (
             client.table("profiles")
-            .select("id,username,gpa,courses")
+            .select("id,username,gpa,completed_credit_hours,courses")
             .eq("id", account.id)
             .limit(1)
             .execute()
@@ -255,7 +255,12 @@ def current_session(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
 ) -> Session:
-    """Identify the student from a bearer token or the browser login cookie."""
+    """Identify the student from a bearer token or the browser login cookie.
+
+    Args:
+        request: Current request, which may carry the login cookie.
+        credentials: Optional bearer token from the Authorization header.
+    """
     token: str = (
         credentials.credentials
         if credentials
@@ -299,19 +304,42 @@ def get_profile(session: Session = Depends(current_session)) -> UserBase:
     return _load_profile(session)
 
 
-@router.put("/api/profile")
-def update_profile(
-    update: ProfileUpdate, session: Session = Depends(current_session)
-) -> UserBase:
-    """Save the signed-in student's username, GPA, credit hours, and courses."""
-    row = {
+def save_profile(session: Session, fields: dict[str, Any]) -> UserBase:
+    """Store validated profile fields for the session's own student.
+
+    Args:
+        session: The verified student and their database client.
+        fields: Username, GPA, credit hours, and courses to save.
+
+    Returns:
+        The profile as saved.
+    """
+    row: dict[str, Any] = {
+        **fields,
         "id": session.user_id,
         "email": session.email,
-        "username": (update.username or "").strip() or None,
-        "gpa": update.gpa,
-        "completed_credit_hours": update.completed_credit_hours,
-        "courses": update.courses,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     session.db.table("profiles").upsert(row).execute()
     return _load_profile(session)
+
+
+@router.put("/api/profile")
+def update_profile(
+    update: ProfileUpdate, session: Session = Depends(current_session)
+) -> UserBase:
+    """Save the signed-in student's username, GPA, credit hours, and courses.
+
+    Args:
+        update: New profile values.
+        session: The verified student making the request.
+    """
+    return save_profile(
+        session,
+        {
+            "username": (update.username or "").strip() or None,
+            "gpa": update.gpa,
+            "completed_credit_hours": update.completed_credit_hours,
+            "courses": update.courses,
+        },
+    )

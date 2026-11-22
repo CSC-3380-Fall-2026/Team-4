@@ -10,7 +10,7 @@ import tiger_friends
 import tiger_gpa
 import tiger_prerequisites
 import tiger_scheduler
-from routers import tiger_accounts, tiger_pages, tiger_planning
+from routers import tiger_accounts, tiger_pages, tiger_planning, tiger_profiles
 from tiger_views import APP_DIR
 
 app: FastAPI = FastAPI(title="Tiger Class Drive")
@@ -23,6 +23,7 @@ app.include_router(tiger_catalog.router)
 app.include_router(tiger_pages.router)
 app.include_router(tiger_planning.router)
 app.include_router(tiger_accounts.router)
+app.include_router(tiger_profiles.router)
 app.include_router(tiger_prerequisites.router)
 app.include_router(tiger_scheduler.router)
 app.include_router(tiger_friends.router)

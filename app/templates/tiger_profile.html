@@ -2,18 +2,39 @@
 {% from "components/page_message.html" import show_message %}
 {% set page_title = "Profile" %}
 {% block content %}
-<div class="page-intro"><p class="eyebrow">YOUR ACCOUNT</p><h2>Student profile</h2><p>Account details and completed course information.</p></div>
-{% if error %}{{ show_message("error", "Profile unavailable", error, "/profile", "Try again") }}
-{% elif not profile %}{{ show_message("empty", "Log in to see your profile", "Your own account information will appear after you log in.", "/login", "Log in") }}
+<div class="page-intro"><p class="eyebrow">YOUR ACCOUNT</p><h2>Student profile</h2><p>Save your GPA and completed courses so they are here every time you log in.</p></div>
+{% if saved %}{{ show_message("success", "Profile saved", "Your username, GPA, credit hours, and courses were saved.") }}{% endif %}
+{% if error %}{{ show_message("error", "Profile problem", error) }}{% endif %}
+{% if not profile %}
+{{ show_message("empty", "Log in to see your profile", "Your own account information will appear after you log in.", "/login", "Log in") }}
 {% else %}
-<div class="profile-grid">
-    <section class="page-card"><h2>Account information</h2><dl class="profile-details"><dt>Name</dt><dd>{{ profile.username or "Name not provided" }}</dd><dt>Email</dt><dd>{{ profile.email }}</dd></dl></section>
-    <section class="page-card"><h2>Current GPA</h2>{% if profile.data_error %}<p class="muted">Academic information could not be loaded. Please try again later.</p>{% elif profile.gpa is not none %}<p class="gpa-value">{{ "%.2f" | format(profile.gpa) }}</p>{% else %}{{ show_message("empty", "No GPA recorded", "Use Planning to calculate a forecast.", "/planning", "Open Planning") }}{% endif %}</section>
-</div>
-<section class="page-card"><h2>Completed courses</h2>
-    {% if profile.data_error %}{{ show_message("error", "Course information unavailable", "Your account is signed in, but completed course information could not be loaded.", "/profile", "Try again") }}
-    {% elif profile.courses %}<div class="table-scroll" role="region" aria-label="Completed courses" tabindex="0"><table class="page-table"><thead><tr><th scope="col">Course</th><th scope="col">Name</th><th scope="col">Credits</th></tr></thead><tbody>{% for course in profile.courses %}<tr><td>{{ course.course_code }}</td><td>{{ course.course_name }}</td><td>{{ course.credits }}</td></tr>{% endfor %}</tbody></table></div>
-    {% else %}{{ show_message("empty", "No completed courses recorded", "No completed courses are saved for your account yet.", "/catalog", "Browse courses") }}{% endif %}
+{% if profile.data_error %}{{ show_message("error", "Academic information unavailable", "Your account is signed in, but saved academic information could not be loaded. Saving now could overwrite it, so please try again later.", "/profile", "Try again") }}{% endif %}
+<section class="page-card">
+    <h2>Account information</h2>
+    <dl class="profile-details">
+        <dt>Email</dt><dd>{{ profile.email }}</dd>
+        <dt>Username</dt><dd>{{ profile.username or "Not set" }}</dd>
+        <dt>Current GPA</dt><dd>{% if profile.gpa is not none %}{{ "%.2f" | format(profile.gpa) }}{% else %}Not set{% endif %}</dd>
+        <dt>Completed GPA credit hours</dt><dd>{{ profile.completed_credit_hours }}</dd>
+    </dl>
 </section>
+{% if not profile.data_error %}
+<section class="page-card">
+    <h2>Edit profile</h2>
+    <form method="post" action="/profile" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-field"><label for="username">Username</label><input id="username" name="username" value="{{ profile.username or '' }}" maxlength="40" placeholder="Friends find you by this name"></div>
+        <div class="form-field"><label for="gpa">Current cumulative GPA</label><input id="gpa" name="gpa" value="{{ profile.gpa if profile.gpa is not none else '' }}" type="text" inputmode="decimal" maxlength="5" placeholder="For example, 3.25"></div>
+        <div class="form-field"><label for="hours">Completed GPA credit hours</label><input id="hours" name="hours" value="{{ profile.completed_credit_hours }}" type="text" inputmode="numeric" maxlength="3" placeholder="For example, 60"></div>
+        <div class="form-field">
+            <label for="courses">Completed courses</label>
+            <textarea id="courses" name="courses" rows="6" maxlength="5000" aria-describedby="courses-help">{% for course in profile.courses %}{{ course.course_code }}, {{ course.credits }}, {{ course.course_name }}
+{% endfor %}</textarea>
+            <p id="courses-help" class="field-help">One course per line: code, credits, name. For example, CSC 1350, 4, Computer Science I.</p>
+        </div>
+        <button class="page-button" type="submit">Save profile</button>
+    </form>
+</section>
+{% endif %}
 {% endif %}
 {% endblock %}

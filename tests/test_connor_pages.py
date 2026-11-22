@@ -542,7 +542,44 @@ def test_profile(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     query.execute.return_value.data[0]["gpa"] = "not a GPA"
     response = client.get("/profile")
     assert response.status_code == 200
-    assert "Academic information could not be loaded" in response.text
+    assert "saved academic information could not be loaded" in response.text
+
+
+def test_profile_save(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Save profile fields only for the verified account and reject bad input.
+
+    Args:
+        client: Isolated test browser.
+        monkeypatch: Fixture replacing the external Supabase client.
+    """
+    backend: Mock = Mock()
+    backend.auth.get_user.return_value = SimpleNamespace(
+        user=SimpleNamespace(id="student-a", email="a@example.com", user_metadata={})
+    )
+    backend.table.return_value.select.return_value.eq.return_value.execute.return_value = SimpleNamespace(
+        data=[]
+    )
+    monkeypatch.setattr(tiger_auth, "auth_client", Mock(return_value=backend))
+    client.get("/profile")
+    token: str = client.cookies.get("tiger_csrf")
+    client.cookies.set("tiger_access", "token-a")
+    form: dict[str, str] = {
+        "csrf_token": token,
+        "username": "tigerA",
+        "gpa": "3.4",
+        "hours": "45",
+        "courses": "CSC 1350, 4, Computer Science I",
+    }
+    response: httpx.Response = client.post("/profile", data=form, follow_redirects=False)
+    assert response.status_code == 303
+    saved: dict[str, object] = backend.table.return_value.upsert.call_args.args[0]
+    assert saved["id"] == "student-a"
+    assert saved["completed_credit_hours"] == 45
+    assert saved["courses"][0]["credits"] == 4
+    form["gpa"] = "9"
+    assert client.post("/profile", data=form).status_code == 400
+    form["csrf_token"] = "wrong"
+    assert client.post("/profile", data=form).status_code == 403
 
 
 def test_entrypoint() -> None:

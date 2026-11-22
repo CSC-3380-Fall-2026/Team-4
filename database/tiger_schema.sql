@@ -59,3 +59,12 @@ set search_path = public
 as $$
   select id from public.profiles where lower(username) = lower(name) limit 1;
 $$;
+
+-- For databases created before completed credit hours were saved.
+alter table public.profiles
+  add column if not exists completed_credit_hours integer not null default 0
+  check (completed_credit_hours >= 0);
+
+-- Usernames identify students to friends, so they must be unique ignoring case.
+create unique index if not exists profiles_username_key
+  on public.profiles (lower(username));
