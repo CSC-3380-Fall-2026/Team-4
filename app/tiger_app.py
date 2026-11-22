@@ -2,7 +2,7 @@
 """PLEASE set up a .VENV look under # How to Run Dev and Test Environment in the README.md"""
 from datetime import datetime, timedelta
 from pathlib import Path
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import Response, HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -85,8 +85,41 @@ async def get_calendar(request: Request):
 async def root(request: Request):
     return render_page(request, "tiger_planner.html")
 
+#Catalog
+@app.get("/catalog", response_class=HTMLResponse)
+def catalog_page(request: Request, query: str ="", category: str = "",) -> Response: 
+    """Display courses matching the submitted search and category."""
 
-# Friends
+    query = query.strip()
+    category = category.strip()
+
+    courses: list[dict[str, object]]= []
+    categories: list[str] = []
+    error: str = ""
+    status_code: int = 200
+
+    try:
+        categories = sorted({course["category"] for course in tiger_catalog.load_courses()})
+
+        if len(query) > 100:
+            error = "Keep the search to 100 characters or fewer please."
+            status_code = 400
+
+        elif category and category not in categories:
+            error = "Choose a category from the dropdown."
+            category = ""
+            status_code = 400
+
+        else:
+            courses = tiger_catalog.search_courses(query=query, category=category)
+
+    except HTTPException:
+        error = ("Sorry, the course catalog could not be loaded." "Please try again later :).")
+        status_code = 500
+    return render_page(request, "tiger_catalog.html", courses=courses, categories=categories, query=query, category=category, error = error, status_code=status_code,)
+
+
+#Friends
 @app.get("/friends", response_class=HTMLResponse)
 async def root(request: Request):
     return render_page(request, "tiger_friends.html")
@@ -94,7 +127,7 @@ async def root(request: Request):
 
 # Profile
 @app.get("/profile", response_class=HTMLResponse)
-async def root(request: Request):
+async def profile_page(request: Request):
     return render_page(request, "tiger_profile.html")
 
 

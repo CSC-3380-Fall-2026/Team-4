@@ -17,6 +17,11 @@
                 {{ bookmark }}
                 <span>Planning</span>
             </a>
+            <a href="/catlog" id ="catalog-tab" class=""flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutrals-100 cursor-pointer {{'active' if request.url.path == '/catalog' else '' }}">
+            
+            {{ search }}
+            <span>Course Catalog</span>
+            </a>
             <a href="/friends" id="friends-tab" class="flex flex-row items-center justify-start w-full h-fit gap-2 p-3 rounded-lg hover:bg-neutrals-100 cursor-pointer {{ 'active' if request.url.path == '/friends' else '' }}">
                 {{ users }}
                 <span>Friends</span>
@@ -32,8 +37,22 @@
             <div class="h-8 w-8 rounded-full bg-purple-500"></div>
         </div>
         <div id="profile-info">
-            <p id="profile-name" class="font-semibold text-sm">User</p>
-            <p id="profile-email" class="text-xs text-neutrals-400">user@lsu.edu</p>
+        {% if profile is defined and profile %}
+            <p id="profile-name" class="font-semibold text-sm">User
+                {{ profile.username or profile.email }}
+            </p>
+            <p id="profile-email" class="text-xs text-neutrals-400">user@lsu.edu
+                {{ profile.email }}
+            </p>
+        {% else %}
+            <p id = "profile-name" class="font-semibold text-sm">
+                Account
+            </p>
+
+            <a href="profile" class="text-xs text-neutrals-400">
+                View profile
+            </a>
+            {% endif %}
         </div>
     </div>
 </nav>
