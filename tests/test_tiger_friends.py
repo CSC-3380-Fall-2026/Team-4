@@ -226,3 +226,14 @@ def test_friends_api_requires_login(web: TestClient) -> None:
     assert web.get("/api/friends/list").status_code == 401
     assert web.post("/api/friends/requests", json={"username": "x"}).status_code == 401
     assert web.get("/api/friends/shares").status_code == 401
+
+
+def test_pages_survive_missing_name_function(
+    web: TestClient, fake_db: FakeDatabase
+) -> None:
+    """Keep schedules and friends loading if friend_profiles() is missing."""
+    befriend(web)
+    fake_db.broken.add("friend_profiles")
+    assert web.get("/api/schedule-data", headers=login("alex")).status_code == 200
+    friends = lists(web, "alex")["friends"]
+    assert [friend["username"] for friend in friends] == ["Student"]

@@ -1,5 +1,6 @@
 """Friends and schedule-sharing API for Tiger Scheduler."""
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,6 +9,7 @@ from pydantic import BaseModel, Field
 from tiger_auth import Session, current_session
 
 router = APIRouter(prefix="/api/friends", tags=["friends"])
+logger = logging.getLogger(__name__)
 
 SHARED_COLUMNS: str = "id,name,semester,sections"
 UNNAMED: str = "Student"
@@ -123,9 +125,19 @@ def friend_names(session: Session) -> dict[str, str]:
         session: Authenticated session.
 
     Returns:
-        Dict from student id to username.
+        Dict from student id to username, or an empty dict when the lookup
+        fails (for example before database/tiger_setup.sql is re-run), so
+        pages still load and show generic names instead of erroring.
     """
-    rows = session.db.rpc("friend_profiles", {}).execute().data or []
+    try:
+        rows = session.db.rpc("friend_profiles", {}).execute().data or []
+    except Exception:
+        logger.warning(
+            "friend_profiles() lookup failed; re-run database/tiger_setup.sql "
+            "in Supabase. Showing generic friend names for now.",
+            exc_info=True,
+        )
+        return {}
     return {row["id"]: row.get("username") or UNNAMED for row in rows}
 
 
