@@ -412,6 +412,27 @@ def search_presets(
     ]
 
 
+def check_name(session: Session, name: str, skip_id: str | None = None) -> None:
+    """Refuse a schedule name the student already uses.
+
+    Args:
+        session: Verified student and their database client.
+        name: Proposed schedule name.
+        skip_id: Schedule being renamed, which may keep its own name.
+
+    Raises:
+        HTTPException: 409 when another of the student's schedules has
+            the same name, ignoring case.
+    """
+    wanted = name.strip().lower()
+    for schedule in list_schedules(session):
+        if schedule.id != skip_id and schedule.name.strip().lower() == wanted:
+            raise HTTPException(
+                status_code=409,
+                detail=f'You already have a schedule named "{schedule.name}".',
+            )
+
+
 @router.post(
     "/schedules",
     response_model=Schedule,
@@ -430,6 +451,7 @@ def create_schedule(
     Returns:
         The new schedule.
     """
+    check_name(session, definition.name)
     return insert_schedule(session, definition)
 
 
@@ -450,6 +472,7 @@ def update_schedule(
         The updated schedule.
     """
     schedule = fetch_schedule(session, schedule_id)
+    check_name(session, definition.name, schedule_id)
 
     schedule.name = definition.name
     schedule.color = definition.color

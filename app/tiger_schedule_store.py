@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from tiger_auth import Session, session_profile
-from tiger_friends import shared_rows
+from tiger_friends import friend_names, shared_rows
 from tiger_models import (
     Classes,
     Schedule,
@@ -222,26 +222,6 @@ def remove_schedule(session: Session, schedule_id: str) -> None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
 
 
-def owner_name(session: Session, owner_id: str) -> str | None:
-    """Read a friend's username when the database allows it.
-
-    Args:
-        session: Verified student and their database client.
-        owner_id: Id of the friend.
-
-    Returns:
-        The username, or None when it is missing or hidden.
-    """
-    rows = (
-        session.db.table("profiles")
-        .select("username")
-        .eq("id", owner_id)
-        .execute()
-        .data
-    )
-    return (rows[0].get("username") or None) if rows else None
-
-
 def unique_label(base: str, taken: set[str]) -> str:
     """Make a label that no earlier friend already uses.
 
@@ -270,6 +250,7 @@ def friend_users(session: Session, own_name: str | None) -> list[UserBase]:
     Returns:
         One user per friend holding only the schedules shared with the student.
     """
+    names = friend_names(session)
     owners: dict[str, list[Schedule]] = {}
     for share in shared_rows(session, SHARED_FIELDS):
         owners.setdefault(share["owner_id"], []).append(
@@ -280,7 +261,7 @@ def friend_users(session: Session, own_name: str | None) -> list[UserBase]:
         UserBase(
             id=owner_id,
             username=unique_label(
-                owner_name(session, owner_id) or FRIEND_LABEL, taken
+                names.get(owner_id) or FRIEND_LABEL, taken
             ),
             email="",
             schedules=schedules,

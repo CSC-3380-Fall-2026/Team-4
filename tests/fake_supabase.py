@@ -93,7 +93,7 @@ class FakeDatabase:
             Whether the student may see the row.
         """
         if name == "profiles":
-            return row["id"] == uid or self.friends(row["id"], uid)
+            return row["id"] == uid
         if name == "schedules":
             return row["user_id"] == uid or self.shared(row, uid)
         if name == "forecasts":

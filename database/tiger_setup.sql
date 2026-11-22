@@ -134,16 +134,9 @@ drop policy if exists "own profile" on public.profiles;
 create policy "own profile" on public.profiles
   for all to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
+-- Friends see only each other's username, through friend_profiles(), never
+-- the whole profile row (GPA, courses, email).
 drop policy if exists "friends read profiles" on public.profiles;
-create policy "friends read profiles" on public.profiles
-  for select to authenticated using (
-    exists (
-      select 1 from public.friendships f
-      where f.status = 'accepted'
-      and ((f.requester_id = auth.uid() and f.addressee_id = profiles.id)
-        or (f.addressee_id = auth.uid() and f.requester_id = profiles.id))
-    )
-  );
 
 drop policy if exists "own schedules" on public.schedules;
 create policy "own schedules" on public.schedules
