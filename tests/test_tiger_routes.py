@@ -117,3 +117,9 @@ def test_catalog_page_contains_course_content():
     response = client.get("/catalog")
     assert response.status_code == 200
     assert "course" in response.text.lower()
+
+
+def test_account_pages_have_no_sidebar():
+    """Check that login and sign-up pages hide the navigation sidebar."""
+    for path in ("/login", "/signup"):
+        assert "dashboard-nav" not in client.get(path).text

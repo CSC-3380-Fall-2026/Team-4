@@ -13,7 +13,7 @@
 </head>
 <body id="main-body" class="{% block body_class %}tiger-workspace{% endblock %}">
     <a class="skip-link" href="#content">Skip to page content</a>
-    {% include "components/dashboard_nav.html" %}
+    {% block nav %}{% include "components/dashboard_nav.html" %}{% endblock %}
     <main id="workspace">
         <header id="top-bar">
             <h1 class="text-lg font-bold">{{ page_title }}</h1>
