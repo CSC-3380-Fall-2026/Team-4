@@ -9,5 +9,6 @@ python-lucide
 pytest
 pydantic[email]
 python-multipart
+pypdf
 httpx
 tzdata

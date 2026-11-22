@@ -5,8 +5,11 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import UploadFile
+from starlette.formparsers import MultiPartException
 
 import tiger_auth
+import tiger_transcript
 from tiger_auth import Session, require_login
 from tiger_views import render_page, valid_token
 
@@ -139,6 +142,73 @@ def show_error(
         error=message,
         saved=False,
         status_code=status,
+    )
+
+
+def draft_profile(
+    session: Session, parsed: tiger_transcript.ParsedTranscript
+) -> dict[str, Any]:
+    """Merge a parsed transcript onto the student's saved profile for review.
+
+    Args:
+        session: The verified student.
+        parsed: GPA, credit hours, and courses read from a transcript.
+
+    Returns:
+        A profile dict with the parsed fields ready to show for review;
+        nothing is saved to the database yet.
+    """
+    profile: dict[str, Any] = tiger_auth.session_card(session)
+    profile["gpa"] = parsed.gpa
+    profile["completed_credit_hours"] = parsed.completed_credit_hours
+    profile["courses"] = [course.model_dump() for course in parsed.courses]
+    return profile
+
+
+@router.post("/profile/transcript", response_class=HTMLResponse)
+async def upload_transcript(
+    request: Request, session: Session = Depends(require_login)
+) -> Response:
+    """Read an uploaded transcript PDF and show it for the student to review.
+
+    Args:
+        request: Form post carrying the login cookie, form token, and file.
+        session: The verified student; signed-out visitors go to login.
+
+    Returns:
+        The profile form pre-filled for review, or an error.
+    """
+    try:
+        form = await request.form(
+            max_files=1,
+            max_fields=2,
+            max_part_size=tiger_transcript.MAX_UPLOAD_BYTES,
+        )
+    except MultiPartException:
+        return show_error(
+            request, session, "That PDF is too large (5 MB limit).", 400
+        )
+    if not valid_token(request, str(form.get("csrf_token", ""))):
+        return show_error(
+            request, session, "This form expired. Please try again.", 403
+        )
+    upload = form.get("transcript")
+    if not isinstance(upload, UploadFile) or not upload.filename:
+        return show_error(
+            request, session, "Choose a transcript PDF to upload.", 400
+        )
+    data = await upload.read()
+    try:
+        parsed = await run_in_threadpool(tiger_transcript.parse_upload, data)
+    except ValueError as error:
+        return show_error(request, session, str(error), 400)
+    return render_page(
+        request,
+        "tiger_profile.html",
+        profile=draft_profile(session, parsed),
+        draft=True,
+        saved=False,
+        status_code=200,
     )
 
 

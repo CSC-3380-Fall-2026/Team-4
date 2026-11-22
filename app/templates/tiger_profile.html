@@ -5,6 +5,7 @@
 <div class="page-intro"><p class="eyebrow">YOUR ACCOUNT</p><h2>Student profile</h2><p>Save your GPA and completed courses so they are here every time you log in.</p></div>
 {% if saved %}{{ show_message("success", "Profile saved", "Your username, GPA, credit hours, and courses were saved.") }}{% endif %}
 {% if error %}{{ show_message("error", "Profile problem", error) }}{% endif %}
+{% if draft %}{{ show_message("success", "Transcript parsed", "Review the GPA, credit hours, and courses below, then click Save profile to keep them. Nothing is saved yet.") }}{% endif %}
 {% if not profile %}
 {{ show_message("empty", "Log in to see your profile", "Your own account information will appear after you log in.", "/login", "Log in") }}
 {% else %}
@@ -19,6 +20,15 @@
     </dl>
 </section>
 {% if not profile.data_error %}
+<section class="page-card">
+    <h2>Import from your unofficial transcript</h2>
+    <p class="field-help">Upload your LSU unofficial transcript (PDF, exported from Workday) to fill in the GPA, credit hours, and courses below for you to review. Nothing is saved until you click Save profile.</p>
+    <form method="post" action="/profile/transcript" enctype="multipart/form-data" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-field"><label for="transcript">Unofficial transcript (PDF)</label><input id="transcript" name="transcript" type="file" accept="application/pdf" required></div>
+        <button class="page-button" type="submit">Parse transcript</button>
+    </form>
+</section>
 <section class="page-card">
     <h2>Edit profile</h2>
     <form method="post" action="/profile" novalidate>
