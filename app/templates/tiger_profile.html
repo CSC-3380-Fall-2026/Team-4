@@ -1,15 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{url_for('static',path='/css/app.css')}}" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <title>Profile</title>
-</head>
-<body class="flex flex-row h-screen w-screen bg-neutrals-0 font-[Lato]">
-    {% include "components/dashboard_nav.html" %}
-</body>
-</html>
+{% extends "tiger_base.html" %}
+{% from "components/page_message.html" import show_message %}
+{% set page_title = "Profile" %}
+{% block content %}
+<div class="page-intro"><p class="eyebrow">YOUR ACCOUNT</p><h2>Student profile</h2><p>Save your GPA and completed courses so they are here every time you log in.</p></div>
+{% if saved %}{{ show_message("success", "Profile saved", "Your username, GPA, credit hours, and courses were saved.") }}{% endif %}
+{% if error %}{{ show_message("error", "Profile problem", error) }}{% endif %}
+{% if not profile %}
+{{ show_message("empty", "Log in to see your profile", "Your own account information will appear after you log in.", "/login", "Log in") }}
+{% else %}
+{% if profile.data_error %}{{ show_message("error", "Academic information unavailable", "Your account is signed in, but saved academic information could not be loaded. Saving now could overwrite it, so please try again later.", "/profile", "Try again") }}{% endif %}
+<section class="page-card">
+    <h2>Account information</h2>
+    <dl class="profile-details">
+        <dt>Email</dt><dd>{{ profile.email }}</dd>
+        <dt>Username</dt><dd>{{ profile.username or "Not set" }}</dd>
+        <dt>Current GPA</dt><dd>{% if profile.gpa is not none %}{{ "%.2f" | format(profile.gpa) }}{% else %}Not set{% endif %}</dd>
+        <dt>Completed GPA credit hours</dt><dd>{{ profile.completed_credit_hours }}</dd>
+    </dl>
+</section>
+{% if not profile.data_error %}
+<section class="page-card">
+    <h2>Edit profile</h2>
+    <form method="post" action="/profile" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-field"><label for="username">Username</label><input id="username" name="username" value="{{ profile.username or '' }}" maxlength="40" placeholder="Friends find you by this name"></div>
+        <div class="form-field"><label for="gpa">Current cumulative GPA</label><input id="gpa" name="gpa" value="{{ profile.gpa if profile.gpa is not none else '' }}" type="text" inputmode="decimal" maxlength="5" placeholder="For example, 3.25"></div>
+        <div class="form-field"><label for="hours">Completed GPA credit hours</label><input id="hours" name="hours" value="{{ profile.completed_credit_hours }}" type="text" inputmode="numeric" maxlength="3" placeholder="For example, 60"></div>
+        <div class="form-field">
+            <label for="courses">Completed courses</label>
+            <textarea id="courses" name="courses" rows="6" maxlength="5000" aria-describedby="courses-help">{% for course in profile.courses %}{{ course.course_code }}, {{ course.credits }}, {{ course.course_name }}
+{% endfor %}</textarea>
+            <p id="courses-help" class="field-help">One course per line: code, credits, name. For example, CSC 1350, 4, Computer Science I.</p>
+        </div>
+        <button class="page-button" type="submit">Save profile</button>
+    </form>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -11,31 +11,18 @@
     const sampleUsers = scheduleState.sampleUsers;
     const currentUser = getUserById(scheduleState.currentUserId);
     const schedules = currentUser.schedules;
+    // Friends are the students who shared schedules with the signed-in student.
+    const friendUsers = sampleUsers.filter((user) => user.id !== currentUser.id);
     const usersByUsername = new Map(sampleUsers.map((user) => [user.username, user]));
-    let nextUserNumber = sampleUsers.length + 1;
 
     const state = {
-        requests: [
-            { id: "request-1", username: "user5", major: "Computer Science" },
-            { id: "request-2", username: "user6", major: "Biology" },
-        ],
-        friends: [
-            { username: "user1" },
-            { username: "user2" },
-            { username: "user3" },
-            { username: "user4" },
-        ],
-        viewers: {
-            fall_2026: ["user1", "user2", "user3"],
-            work: [],
-            clubs: [],
-            other: [],
-        },
+        requests: [],
+        friends: friendUsers.map((user) => ({ username: user.username })),
+        viewers: Object.fromEntries(schedules.map((schedule) => [schedule.id, []])),
         publicSchedules: new Set(),
-        selectedScheduleId: schedules[0].id,
-        selectedFriend: "user1",
+        selectedScheduleId: schedules[0]?.id ?? "",
+        selectedFriend: friendUsers[0]?.username ?? "",
     };
-    const userLabels = new Map();
 
     const requestList = document.querySelector("#pending-requests");
     const friendsList = document.querySelector("#friends-list");
@@ -146,18 +133,7 @@
         }
     };
 
-    const displayName = (username) => {
-        const knownUsername = usersByUsername.get(username)?.username;
-        const label = knownUsername
-            ? knownUsername === "user" ? "user" : knownUsername.replace(/^user/, "User ")
-            : userLabels.get(username);
-        if (label) {
-            return label;
-        }
-        const generatedLabel = `User ${nextUserNumber++}`;
-        userLabels.set(username, generatedLabel);
-        return generatedLabel;
-    };
+    const displayName = (username) => username;
 
     const makeButton = (text, classes, action, label) => {
         const button = makeElement("button", classes, text);
@@ -221,7 +197,8 @@
 
         state.friends.forEach((friend) => {
             const user = usersByUsername.get(friend.username);
-            const status = friend.status ?? user?.status ?? "Free now";
+            const count = user?.schedules.length ?? 0;
+            const status = `${count} shared ${count === 1 ? "schedule" : "schedules"}`;
             const item = makeElement("li", "flex items-center justify-between gap-3 rounded-md border border-neutrals-100 bg-neutrals-0 px-3 py-2");
             const identity = makeElement("div", "flex min-w-0 items-center gap-3");
             identity.append(makeElement("span", "size-9 shrink-0 rounded-full bg-neutrals-100"));
@@ -257,8 +234,15 @@
     const renderViewers = () => {
         // This picker controls sharing only; it does not filter the comparison calendar
         const schedule = schedules.find((item) => item.id === state.selectedScheduleId);
-        const viewers = state.viewers[schedule.id] ?? [];
         scheduleViewers.replaceChildren();
+        if (!schedule) {
+            addScheduleViewer.replaceChildren();
+            addScheduleViewerButton.disabled = true;
+            noScheduleViewers.classList.remove("hidden");
+            sharingStatus.textContent = "Create a schedule to share it with friends.";
+            return;
+        }
+        const viewers = state.viewers[schedule.id] ?? [];
         noScheduleViewers.classList.toggle("hidden", viewers.length > 0);
         addScheduleViewer.replaceChildren();
         const defaultOption = document.createElement("option");
@@ -350,7 +334,7 @@
         renderFreePeriods();
     };
 
-    friendForm.addEventListener("submit", (submitEvent) => {
+    friendForm.addEventListener("submit", async (submitEvent) => {
         submitEvent.preventDefault();
         const enteredName = usernameInput.value.trim().replace(/^@/, "");
         searchMessage.className = "text-sm";
@@ -360,16 +344,18 @@
             searchMessage.classList.add("text-red-600");
             return;
         }
-        const username = `user${nextUserNumber++}`;
-        state.requests.push({
-            id: `request-${Date.now()}`,
-            username,
-            major: "Student",
-        });
-        usernameInput.value = "";
-        searchMessage.textContent = "Friend request added to pending requests.";
-        searchMessage.classList.add("text-purple-700");
-        renderRequests();
+        try {
+            const result = await apiRequest("/api/friends/requests", {
+                method: "POST",
+                body: JSON.stringify({ username: enteredName }),
+            });
+            usernameInput.value = "";
+            searchMessage.textContent = result.message;
+            searchMessage.classList.add("text-purple-700");
+        } catch (error) {
+            searchMessage.textContent = error.message;
+            searchMessage.classList.add("text-red-600");
+        }
     });
 
     sharedSchedulePicker.addEventListener("change", () => {
@@ -383,7 +369,7 @@
             return;
         }
         const viewers = state.viewers[state.selectedScheduleId];
-        if (!viewers.includes(username)) {
+        if (viewers && !viewers.includes(username)) {
             viewers.push(username);
         }
         renderViewers();

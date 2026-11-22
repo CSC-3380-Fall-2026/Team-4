@@ -1,0 +1,20 @@
+{% extends "tiger_base.html" %}
+{% from "components/page_message.html" import show_message %}
+{% set page_title = "Course Catalog" %}
+{% block content %}
+<div class="page-intro"><p class="eyebrow">FIND YOUR COURSES</p><h2>Explore the course catalog</h2><p>Search the project's curated course dataset by course code, name, or category.</p></div>
+<section class="page-card">
+    <form method="get" action="/catalog" class="catalog-form">
+        <div class="form-field"><label for="query">Course code or name</label><input id="query" name="query" type="search" value="{{ query }}" maxlength="100" placeholder="Example: CSC 1350"></div>
+        <div class="form-field"><label for="category">Category</label><select id="category" name="category"><option value="">All categories</option>{% if category and category not in categories %}<option value="{{ category }}" selected>Invalid category: {{ category }}</option>{% endif %}{% for item in categories %}<option value="{{ item }}" {% if item == category %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></div>
+        <button class="page-button" type="submit">Search</button><a class="text-link" href="/catalog">Clear filters</a>
+    </form>
+</section>
+{% if error %}{{ show_message("error", "Search could not be completed", error, "/catalog", "Try again") }}
+{% elif not courses %}{{ show_message("empty", "No matching courses.", "Try a different search or clear the category filter.", "/catalog", "Clear filters") }}
+{% else %}
+<section class="page-card"><div class="section-heading"><h2>Course results</h2><span class="result-tag">{{ courses | length }} courses</span></div>
+    <div class="table-scroll" role="region" aria-label="Course results" tabindex="0"><table class="page-table"><thead><tr><th scope="col">Code</th><th scope="col">Course</th><th scope="col">Credits</th></tr></thead><tbody>{% for course in courses %}<tr><td>{{ course.course_code }}</td><td>{{ course.course_name }}</td><td>{{ course.credits }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endif %}
+{% endblock %}

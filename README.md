@@ -1,9 +1,11 @@
+For Connor's page, Planning, dashboard, and Vercel integration, start with [the task walkthrough](docs/connor_tasks.md).
+
 # [ Tiger-Class-Drive] : [Team 4]
 # Members
 Project Manager: [Achilles Caceres ] ([PapaEmeritusCoder])\
 Communications Lead: [Connor Brito] ([LostCalm2])\
 Git Master:   ([Nihal Mohapatro] )     ([Blaze34536])\
-Design Lead: ([William Bradford ])    ([GitHub Name])\
+Design Lead: ([William Bradford ])    ([wiIIyt])\
 Quality Assurance Tester: ([Ahnaf Chowdhury ])   ([GitHub Name])\
 
 # About Our Software
@@ -12,16 +14,13 @@ Describe a little about what the project is about here.
 
 The project is called Tiger-Class-Drive it is a proprietary website that will be the next generation of schedule keeping. Due to having all the best features, it will no-doubt become the best website incorporating all the best features from all applications into one main database for the absolute best user experience.
 ## Platforms Tested on
-- MacOS
-- Android
-- iOS
 - Linux
 - Windows
 # Important Links
 Kanban Board: [https://github.com/orgs/CSC-3380-Fall-2026/projects/6/views/1]\
 Designs: [https://www.figma.com/proto/OGJkOTlSs3gKRG8gxCXiUi/Tiger-Class-Drive?node-id=2-7&t=Zzvs7lXQcMQjwnWF-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=2%3A7&show-proto-sidebar=1]\
 Styles Guide(s): [https://docs.google.com/document/d/1lb0NsES7KNL0gcBS0lKdo6mIHRc-wTw1EYfAR7Z1_LI/edit?usp=sharing]\
-Website: [https://team-4-fc15.onrender.com/dashboard]
+Website: [https://team-4-delta.vercel.app/]
 # How to Run Dev and Test Environment
 ```
 python -m venv .venv
