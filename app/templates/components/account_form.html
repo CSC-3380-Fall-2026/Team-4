@@ -7,7 +7,7 @@
     <form method="post" action="/account/{{ mode }}" class="account-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="form-field"><label for="account-email">Email</label><input id="account-email" type="email" name="email" value="{{ email }}" autocomplete="email" maxlength="254" required></div>
-        <div class="form-field"><label for="account-password">Password</label><input id="account-password" type="password" name="password" autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}" maxlength="1024" required></div>
+        <div class="form-field"><label for="account-password">Password</label><input id="account-password" type="password" name="password" autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}" {% if mode == 'signup' %}minlength="8" aria-describedby="password-help" {% endif %}maxlength="1024" required>{% if mode == 'signup' %}<p id="password-help" class="field-help">At least 8 characters.</p>{% endif %}</div>
         {% if mode == 'signup' %}<div class="form-field"><label for="confirm-password">Confirm password</label><input id="confirm-password" type="password" name="confirm_password" autocomplete="new-password" maxlength="1024" required></div>{% endif %}
         <button class="page-button" type="submit">{{ 'Log in' if mode == 'login' else 'Sign up' }}</button>
     </form>

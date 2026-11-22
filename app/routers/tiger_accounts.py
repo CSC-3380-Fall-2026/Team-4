@@ -12,6 +12,7 @@ from tiger_models import UserAuthSchema
 from tiger_views import render_page, valid_token
 
 router: APIRouter = APIRouter()
+MIN_PASSWORD: int = 8
 
 
 def account_page(
@@ -120,6 +121,14 @@ async def submit_account(request: Request, mode: str) -> Response:
             mode,
             email,
             error="Enter a valid password.",
+            status_code=400,
+        )
+    if mode == "signup" and len(password) < MIN_PASSWORD:
+        return account_page(
+            request,
+            mode,
+            email,
+            error=f"Password must be at least {MIN_PASSWORD} characters.",
             status_code=400,
         )
     if mode == "signup" and password != str(data.get("confirm_password", "")):

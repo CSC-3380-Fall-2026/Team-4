@@ -90,16 +90,3 @@ using (
     )
 );
 
--- Accepted friends can read each other's profile row (needed for usernames).
-create policy "friends read profiles"
-on public.profiles for select to authenticated
-using (
-    exists (
-        select 1 from public.friendships f
-        where f.status = 'accepted'
-        and (
-            (f.requester_id = auth.uid() and f.addressee_id = profiles.id)
-            or (f.addressee_id = auth.uid() and f.requester_id = profiles.id)
-        )
-    )
-);

@@ -121,8 +121,27 @@ def read_form(data: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def friendly(error: ValueError) -> str:
+    """Turn a form validation error into a message for the student.
+
+    Args:
+        error: The validation error.
+
+    Returns:
+        A readable message; Python's own float errors are replaced.
+    """
+    text = str(error)
+    if text.startswith("could not convert"):
+        return "GPA must be a number between 0.0 and 4.3."
+    return text
+
+
 def show_error(
-    request: Request, session: Session, message: str, status: int
+    request: Request,
+    session: Session,
+    message: str,
+    status: int,
+    form: dict[str, str] | None = None,
 ) -> Response:
     """Redisplay the profile page with a safe error message.
 
@@ -131,14 +150,17 @@ def show_error(
         session: The verified student.
         message: Error shown to the student.
         status: HTTP status code.
+        form: What the student typed, kept so they can fix it; None shows
+            their saved profile instead.
 
     Returns:
-        The profile page with the student's own saved data.
+        The profile page with the student's own data.
     """
     return render_page(
         request,
         "tiger_profile.html",
         profile=tiger_auth.session_card(session),
+        form=form,
         error=message,
         saved=False,
         status_code=status,
@@ -234,7 +256,7 @@ async def save_profile(
     try:
         fields = read_form(data)
     except ValueError as error:
-        return show_error(request, session, str(error), 400)
+        return show_error(request, session, friendly(error), 400, data)
     try:
         await run_in_threadpool(tiger_auth.save_profile, session, fields)
     except Exception:
@@ -243,6 +265,7 @@ async def save_profile(
             session,
             "That username may already be taken. Try another.",
             409,
+            data,
         )
     response: RedirectResponse = RedirectResponse(
         "/profile?saved=1", status_code=303

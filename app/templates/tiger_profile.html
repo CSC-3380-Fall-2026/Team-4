@@ -33,13 +33,13 @@
     <h2>Edit profile</h2>
     <form method="post" action="/profile" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div class="form-field"><label for="username">Username</label><input id="username" name="username" value="{{ profile.username or '' }}" maxlength="40" placeholder="Friends find you by this name"></div>
-        <div class="form-field"><label for="gpa">Current cumulative GPA</label><input id="gpa" name="gpa" value="{{ profile.gpa if profile.gpa is not none else '' }}" type="text" inputmode="decimal" maxlength="5" placeholder="For example, 3.25"></div>
-        <div class="form-field"><label for="hours">Completed GPA credit hours</label><input id="hours" name="hours" value="{{ profile.completed_credit_hours }}" type="text" inputmode="numeric" maxlength="3" placeholder="For example, 60"></div>
+        <div class="form-field"><label for="username">Username</label><input id="username" name="username" value="{{ form.username if form else (profile.username or '') }}" maxlength="40" placeholder="Friends find you by this name"></div>
+        <div class="form-field"><label for="gpa">Current cumulative GPA</label><input id="gpa" name="gpa" value="{{ form.gpa if form else (profile.gpa if profile.gpa is not none else '') }}" type="text" inputmode="decimal" maxlength="5" placeholder="For example, 3.25"></div>
+        <div class="form-field"><label for="hours">Completed GPA credit hours</label><input id="hours" name="hours" value="{{ form.hours if form else profile.completed_credit_hours }}" type="text" inputmode="numeric" maxlength="3" placeholder="For example, 60"></div>
         <div class="form-field">
             <label for="courses">Completed courses</label>
-            <textarea id="courses" name="courses" rows="6" maxlength="5000" aria-describedby="courses-help">{% for course in profile.courses %}{{ course.course_code }}, {{ course.credits }}, {{ course.course_name }}
-{% endfor %}</textarea>
+            <textarea id="courses" name="courses" rows="6" maxlength="5000" aria-describedby="courses-help">{% if form %}{{ form.courses }}{% else %}{% for course in profile.courses %}{{ course.course_code }}, {{ course.credits }}, {{ course.course_name }}
+{% endfor %}{% endif %}</textarea>
             <p id="courses-help" class="field-help">One course per line: code, credits, name. For example, CSC 1350, 4, Computer Science I.</p>
         </div>
         <button class="page-button" type="submit">Save profile</button>

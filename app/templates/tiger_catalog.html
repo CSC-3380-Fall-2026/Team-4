@@ -13,7 +13,7 @@
 {% if error %}{{ show_message("error", "Search could not be completed", error, "/catalog", "Try again") }}
 {% elif not courses %}{{ show_message("empty", "No matching courses.", "Try a different search or clear the category filter.", "/catalog", "Clear filters") }}
 {% else %}
-<section class="page-card"><div class="section-heading"><h2>Course results</h2><span class="result-tag">{{ courses | length }} courses</span></div>
+<section class="page-card"><div class="section-heading"><h2>Course results</h2><span class="result-tag">{{ courses | length }} {{ 'course' if courses | length == 1 else 'courses' }}</span></div>
     <div class="table-scroll" role="region" aria-label="Course results" tabindex="0"><table class="page-table"><thead><tr><th scope="col">Code</th><th scope="col">Course</th><th scope="col">Credits</th></tr></thead><tbody>{% for course in courses %}<tr><td>{{ course.course_code }}</td><td>{{ course.course_name }}</td><td>{{ course.credits }}</td></tr>{% endfor %}</tbody></table></div>
 </section>
 {% endif %}

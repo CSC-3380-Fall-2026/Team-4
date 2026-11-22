@@ -113,7 +113,7 @@ def test_students_never_see_each_other(web):
     assert web.put(path, json=other, headers=login("bob")).status_code == 404
     assert add_event(web, schedule_id, "10:00", "11:00", "bob").status_code == 404
     make_schedule(web, "bob")
-    make_schedule(web, "bob")
+    make_schedule(web, "bob", {"name": "Second", "color": "green"})
     assert web.delete(path, headers=login("bob")).status_code == 404
 
 
@@ -227,3 +227,19 @@ def test_unreadable_friend_username_gets_neutral_label(web, fake_db):
     users = web.get("/api/schedule-data", headers=login("bob")).json()["users"]
     assert [user["username"] for user in users[1:]] == ["Friend", "Friend 2"]
     assert all(user["email"] == "" for user in users[1:])
+
+
+def test_schedule_names_must_be_unique(web):
+    """Refuse a second schedule, or a rename, that reuses a name."""
+    first = make_schedule(web)
+    copy = web.post(
+        "/api/schedules", json={"name": "qa schedule", "color": "red"}, headers=login("alice")
+    )
+    assert copy.status_code == 409
+    assert "already have a schedule" in copy.json()["detail"]
+    other = make_schedule(web, "alice", {"name": "Spring", "color": "green"})
+    clash = web.put(f"/api/schedules/{other}", json=BLUE, headers=login("alice"))
+    assert clash.status_code == 409
+    same = web.put(f"/api/schedules/{first}", json=BLUE, headers=login("alice"))
+    assert same.status_code == 200
+    assert make_schedule(web, "bob") != first

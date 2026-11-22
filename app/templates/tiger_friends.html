@@ -39,11 +39,6 @@
                         <label class="sr-only" for="shared-schedule-picker">Schedule to share</label>
                         <select id="shared-schedule-picker" class="cursor-pointer rounded-md border border-neutrals-100 bg-neutrals-50 px-3 py-2 text-sm font-semibold text-neutrals-800 focus:border-purple-300 focus:outline-none font-sans font-[Lato]">
                         </select>
-                        <label class="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-neutrals-700">
-                            Public Sharing
-                            <input id="public-sharing-toggle" type="checkbox" class="peer sr-only" aria-label="Enable public schedule sharing">
-                            <span class="relative h-6 w-11 rounded-full bg-neutrals-200 transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:bg-purple-400 peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-purple-500"></span>
-                        </label>
                     </div>
                 </div>
                 <div class="border-t border-neutrals-100 pt-3">
@@ -103,7 +98,7 @@
             </section>
 {% endblock %}
 {% block scripts %}
-    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=7" defer></script>
     <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=1" defer></script>
-    <script src="{{ url_for('static', path='/js/friends.js') }}?v=15" defer></script>
+    <script src="{{ url_for('static', path='/js/friends.js') }}?v=16" defer></script>
 {% endblock %}

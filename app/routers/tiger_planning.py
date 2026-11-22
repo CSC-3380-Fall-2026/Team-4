@@ -7,12 +7,35 @@ from starlette.datastructures import FormData
 
 from grade_scale import GRADE_POINTS
 from models.tiger_planning import CourseRow, PlanningForm, PlanningResult
+import tiger_auth
 from tiger_auth import Session, require_login
 from tiger_forecast import save_forecast
 from tiger_planning import MAX_ROWS, calculate_plan, read_form
 from tiger_views import render_page, valid_token
 
 router: APIRouter = APIRouter()
+
+
+def saved_start(session: Session) -> PlanningForm:
+    """Start a blank plan from the GPA and hours saved on the profile.
+
+    Args:
+        session: The verified student.
+
+    Returns:
+        A form with the saved current GPA and credit hours filled in, or
+        empty when the profile has none or cannot be read.
+    """
+    form: PlanningForm = PlanningForm(rows=[CourseRow() for _ in range(3)])
+    try:
+        profile = tiger_auth.session_profile(session)
+    except Exception:
+        return form
+    if profile.gpa is not None:
+        form.current_gpa = f"{profile.gpa:.2f}"
+    if profile.completed_credit_hours:
+        form.completed_credits = str(profile.completed_credit_hours)
+    return form
 
 
 @router.get("/planning", response_class=HTMLResponse)
@@ -31,7 +54,7 @@ def planning_page(
     Returns:
         A Planning form with no fabricated calculation results.
     """
-    form: PlanningForm = PlanningForm(rows=[CourseRow() for _ in range(3)])
+    form: PlanningForm = saved_start(session)
     if example:
         form = PlanningForm(
             current_gpa="3.0",
