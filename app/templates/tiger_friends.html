@@ -1,144 +1,184 @@
 {% extends "tiger_base.html" %}
-{% set page_title = "Friends" %}
+{% from "components/page_message.html" import show_message %}
+{% set page_title = "Profile" %}
 {% block content %}
 
-{# ---------- the 3 tabs + invite button ---------- #}
-<div class="friends-tabs">
-    <button type="button" class="friends-tab active" data-tab="friends">Friends <span id="friend-count"></span></button>
-    <button type="button" class="friends-tab" data-tab="requests">Requests <span id="pending-request-count"></span></button>
-    <button type="button" class="friends-tab" data-tab="sharing">Sharing settings</button>
+{% if saved %}{{ show_message("success", "Profile saved", "Your username, GPA, credit hours, and courses were saved.") }}{% endif %}
+{% if error %}{{ show_message("error", "Profile problem", error) }}{% endif %}
 
-    {# this sends the form in the "Who's joining?" card (form="find-friend-form") #}
-    <button class="page-button invite-button" type="submit" form="find-friend-form">
-        <span aria-hidden="true">+</span> Invite a friend
-    </button>
-</div>
+{% if not profile %}
+    {{ show_message("empty", "Log in to see your profile", "Your own account information will appear after you log in.", "/login", "Log in") }}
+{% else %}
 
-{# ---------- tab 1: friends ---------- #}
-<div class="friends-panel" id="tab-friends">
-    <div class="friends-layout">
-        <div class="friends-left">
-            <section class="page-card joining-card" aria-labelledby="your-friends-title">
-                <h2 id="your-friends-title">Who’s joining?</h2>
-                <p class="card-sub">Choose friends to compare schedules.</p>
+{% if profile.data_error %}
+    {{ show_message("error", "Academic information unavailable", "Your account is signed in, but saved academic information could not be loaded. Saving now could overwrite it, so please try again later.", "/profile", "Try again") }}
+{% endif %}
 
-                {# type a friend's exact username here and press Invite a friend (or Enter) #}
-                <form id="find-friend-form">
-                    <label class="visually-hidden" for="friend-username">Friend's username</label>
-                    <input id="friend-username" name="username" type="text" placeholder="Search your friends"
-                           autocomplete="off" required>
-                </form>
-                <p id="friend-search-message" class="hidden text-sm" role="status" aria-live="polite"></p>
+{# The top 2 cards and the right side are the figma. The profiles table has no columns for
+   those fields yet (TODO), so they don't have a name="" and don't get sent.
+   The fields that really save (username, gpa, hours, courses) are in the 3rd card. #}
+{% set name_parts = (profile.username or '').split(' ') %}
+<form method="post" action="/profile" id="profile-form" class="profile-layout" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-                <ul id="friends-list" aria-label="Your friends"></ul>
-                <p id="no-friends" class="hidden friends-empty">Add a friend to start comparing schedules.</p>
-            </section>
+    <div class="profile-left">
+        <section class="page-card">
+            <h2>The basics</h2>
 
-            <section class="share-card">
-                <h2>Share your time,<br>not your whole life.</h2>
-                <button type="button" class="share-link" data-tab="sharing">
-                    Review who can<br>see what <span aria-hidden="true">↗</span>
-                </button>
-            </section>
-        </div>
-
-        <div class="friends-right">
-            <section id="schedule-comparison" class="page-card overlap-card" aria-labelledby="compare-schedules-title">
-                <div class="overlap-top">
-                    <div>
-                        <h2 id="compare-schedules-title">A little overlap goes a long way.</h2>
-                        <p class="card-sub" id="overlap-names">You</p>
-                    </div>
-
-                    <div class="day-picker">
-                        <button type="button" id="day-previous" aria-label="Previous day">‹</button>
-                        <span id="day-label"></span>
-                        <button type="button" id="day-next" aria-label="Next day">›</button>
-                    </div>
+            <div class="field-grid">
+                <div class="form-field">
+                    <label for="first-name">First name</label>
+                    <input id="first-name" type="text" value="{{ name_parts[0] }}" placeholder="Alex" autocomplete="given-name">
+                </div>
+                <div class="form-field">
+                    <label for="last-name">Last name</label>
+                    <input id="last-name" type="text" value="{{ name_parts[1:] | join(' ') }}" placeholder="Morgan" autocomplete="family-name">
                 </div>
 
-                {% include "components/friends_calendar.html" %}
-            </section>
-
-            <section class="plans-section" aria-labelledby="shared-free-time-title">
-                <h2 id="shared-free-time-title">Make it happen</h2>
-                <p class="card-sub" id="free-total">Shared free time this week</p>
-
-                <div id="free-periods" class="plan-cards" role="status">
-                    Shared free-time results will appear here.
+                <div class="form-field">
+                    <label for="email">University email</label>
+                    <input id="email" type="email" value="{{ profile.email }}" readonly>
                 </div>
-            </section>
+                <div class="form-field">
+                    <label for="timezone">Timezone</label>
+                    <select id="timezone">
+                        <option>Eastern Time (US &amp; Canada)</option>
+                        <option>Central Time (US &amp; Canada)</option>
+                        <option>Mountain Time (US &amp; Canada)</option>
+                        <option>Pacific Time (US &amp; Canada)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-card academic-card">
+            <h2>Your academic home</h2>
+
+            <div class="field-grid">
+                <div class="form-field">
+                    <label for="university">University</label>
+                    <input id="university" type="text" placeholder="Northwood University">
+                </div>
+                <div class="form-field">
+                    <label for="degree">Degree program</label>
+                    <select id="degree">
+                        <option>B.S. Computer Science</option>
+                        <option>B.S. Computer Engineering</option>
+                        <option>B.S. Mathematics</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="graduation">Expected graduation</label>
+                    <select id="graduation">
+                        <option>May 2027</option>
+                        <option>December 2027</option>
+                        <option>May 2028</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="scale">Grading scale</label>
+                    <select id="scale">
+                        <option>4.0 scale</option>
+                        <option>4.3 scale</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        {# ---------- not in the figma: the fields the backend really saves ---------- #}
+        {% if not profile.data_error %}
+        <section class="page-card record-card">
+            <h2>Your TigerDrive record</h2>
+
+            <div class="field-grid">
+                <div class="form-field field-wide">
+                    <label for="username">Username</label>
+                    <input id="username" name="username" value="{{ profile.username or '' }}" maxlength="40"
+                           placeholder="Friends find you by this name">
+                </div>
+
+                <div class="form-field">
+                    <label for="gpa">Current cumulative GPA</label>
+                    <input id="gpa" name="gpa"
+                           value="{% if profile.gpa is not none %}{{ '%.2f' | format(profile.gpa) }}{% endif %}"
+                           type="text" inputmode="decimal" maxlength="5" placeholder="For example, 3.25">
+                </div>
+                <div class="form-field">
+                    <label for="hours">Completed GPA credit hours</label>
+                    <input id="hours" name="hours" value="{{ profile.completed_credit_hours }}" type="text"
+                           inputmode="numeric" maxlength="3" placeholder="For example, 60">
+                </div>
+
+                <div class="form-field field-wide">
+                    <label for="courses">Completed courses</label>
+                    <textarea id="courses" name="courses" rows="5" maxlength="5000" aria-describedby="courses-help">{% for course in profile.courses %}{{ course.course_code }}, {{ course.credits }}, {{ course.course_name }}
+{% endfor %}</textarea>
+                    <p id="courses-help" class="field-help">One course per line: code, credits, name. For example, CSC 1350, 4, Computer Science I.</p>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+
+    <div class="profile-right">
+        {# TODO: these 3 switches are not saved yet, sharing is set on the Friends page for now #}
+        <section class="page-card privacy-card">
+            <h2>Your privacy comes first.</h2>
+
+            <label class="switch-row">
+                <span>
+                    <strong>Share availability</strong>
+                    <small>Friends can find free time with you.</small>
+                </span>
+                <input type="checkbox" checked>
+                <i aria-hidden="true"></i>
+            </label>
+            <label class="switch-row">
+                <span>
+                    <strong>Share event details</strong>
+                    <small>Show event titles and locations.</small>
+                </span>
+                <input type="checkbox">
+                <i aria-hidden="true"></i>
+            </label>
+            <label class="switch-row">
+                <span>
+                    <strong>Show academic progress</strong>
+                    <small>Make grades and GPA visible.</small>
+                </span>
+                <input type="checkbox">
+                <i aria-hidden="true"></i>
+            </label>
+        </section>
+
+        {# TODO: transcript upload has no backend yet, so the file is not sent anywhere.
+           the Submit button saves the form the same way Save changes does #}
+        <section class="page-card transcript-card">
+            <h2>Upload your Transcript</h2>
+
+            <label class="upload-button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 15V3"/>
+                    <path d="M7 8l5-5 5 5"/>
+                    <path d="M3 14v6h18v-6"/>
+                </svg>
+                <span>Upload</span>
+                <input class="visually-hidden" type="file" accept=".pdf">
+            </label>
+
+            {% if not profile.data_error %}
+                <button class="page-button" type="submit">Submit</button>
+            {% endif %}
+        </section>
+
+        <div class="profile-actions">
+            <a class="secondary-button" href="/profile">Cancel</a>
+            {% if not profile.data_error %}
+                <button class="page-button" type="submit">Save changes</button>
+            {% endif %}
         </div>
     </div>
-</div>
-
-{# ---------- tab 2: requests ---------- #}
-<div class="friends-panel hidden" id="tab-requests">
-    <section class="page-card" aria-labelledby="pending-requests-title">
-        <h2 id="pending-requests-title">Pending Requests</h2>
-        <ul id="pending-requests" class="request-list" aria-label="Pending friend requests"></ul>
-        <p id="no-pending-requests" class="hidden friends-empty">You’re all caught up.</p>
-    </section>
-</div>
-
-{# ---------- tab 3: sharing settings ---------- #}
-<div class="friends-panel hidden" id="tab-sharing">
-    <section class="page-card sharing-card" aria-labelledby="shared-schedules-title">
-        <div class="sharing-top">
-            <h2 id="shared-schedules-title">Shared Schedules</h2>
-
-            <div class="sharing-controls">
-                <label class="visually-hidden" for="shared-schedule-picker">Schedule to share</label>
-                <select id="shared-schedule-picker" class="soft-select"></select>
-
-                <label class="switch-row switch-inline">
-                    <span><strong>Public Sharing</strong></span>
-                    <input id="public-sharing-toggle" type="checkbox" aria-label="Enable public schedule sharing">
-                    <i aria-hidden="true"></i>
-                </label>
-            </div>
-        </div>
-
-        <p class="card-sub">Friends who can view your schedule:</p>
-        <div class="sharing-row">
-            <div id="schedule-viewers"></div>
-
-            <div class="sharing-controls">
-                <label class="visually-hidden" for="add-schedule-viewer">Select a friend to share with</label>
-                <select id="add-schedule-viewer" class="soft-select">
-                    <option value="">Share with friend...</option>
-                </select>
-                <button id="add-schedule-viewer-button" class="secondary-button" type="button">Add</button>
-            </div>
-        </div>
-        <p id="no-schedule-viewers" class="hidden friends-empty">No friends selected to view this schedule.</p>
-        <p id="sharing-status" class="card-sub" role="status" aria-live="polite"></p>
-    </section>
-
-    <section class="page-card sharing-card">
-        <h2>Free time search</h2>
-        <p class="card-sub">These decide which hours the Friends tab looks at when it finds shared free time.</p>
-
-        <div class="sharing-controls free-controls">
-            <label for="free-time-start">From</label>
-            <input id="free-time-start" class="soft-select" type="time" value="08:00" step="300" aria-label="Free time start">
-            <label for="free-time-end">to</label>
-            <input id="free-time-end" class="soft-select" type="time" value="17:00" step="300" aria-label="Free time end">
-            <label for="minimum-free-duration">Shortest break</label>
-            <select id="minimum-free-duration" class="soft-select" aria-label="Minimum free-time duration">
-                <option value="30">30 min</option>
-                <option value="60">1 hour</option>
-                <option value="90">1 hour 30 min</option>
-                <option value="120">2 hours</option>
-                <option value="180">3 hours</option>
-            </select>
-        </div>
-    </section>
-</div>
-{% endblock %}
-
-{% block scripts %}
-    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
-    <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=2" defer></script>
-    <script src="{{ url_for('static', path='/js/friends.js') }}?v=16" defer></script>
+</form>
+{% endif %}
 {% endblock %}
