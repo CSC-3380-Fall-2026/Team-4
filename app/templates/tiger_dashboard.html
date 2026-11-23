@@ -2,64 +2,182 @@
 {% from "components/page_message.html" import show_message %}
 {% set page_title = "Dashboard" %}
 {% block content %}
-<div class="page-intro">
-    <p class="eyebrow">YOUR WORKSPACE</p>
-    <h2>Your semester at a glance</h2>
-    <p>Check your schedule, explore your GPA goals, and see what's next.</p>
+
+{# ---------- the 4 number boxes at the top ---------- #}
+<div class="stat-row">
+    <section class="stat-tile stat-purple" id="gpa-summary">
+        <p class="stat-label">Cumulative GPA</p>
+        <p class="stat-number">{% if data.gpa is not none %}{{ "%.2f" | format(data.gpa) }}{% else %}—{% endif %}</p>
+        <p class="stat-note">
+            {% if data.forecast and data.gpa is not none %}
+                {% set change = data.forecast.cumulative_gpa - data.gpa %}
+                {{ '↑' if change >= 0 else '↓' }} {{ "%.2f" | format(change | abs) }} projected this semester
+            {% elif data.forecast %}
+                {{ data.forecast.planned_credits }} planned credit hours
+            {% else %}
+                No GPA forecast yet
+            {% endif %}
+        </p>
+    </section>
+
+    <section class="stat-tile stat-gold">
+        <p class="stat-label">Degree progress</p>
+        {# TODO: 120 is just the normal number of hours for a degree, we don't store the real one #}
+        <p class="stat-number">{{ data.completed_hours }} / 120</p>
+        <p class="stat-note" id="dashboard-profile">credits completed · {{ (data.completed_hours * 100 / 120) | round | int }}%</p>
+    </section>
+
+    <section class="stat-tile stat-plain" id="selected-schedule">
+        <p class="stat-label">This semester</p>
+        <p class="stat-number">{{ data.selected.credit_hours if data.selected else 0 }}</p>
+        <p class="stat-note">
+            {% if data.selected %}
+                credits across {{ data.selected.course_count }} classes
+            {% else %}
+                No schedule selected
+            {% endif %}
+        </p>
+    </section>
+
+    {# SAMPLE DATA from the figma. The dashboard does not get friend free time from the backend yet. #}
+    <section class="stat-tile stat-lilac">
+        <p class="stat-label">Shared free time</p>
+        <p class="stat-number">6.5 hrs</p>
+        <p class="stat-note">with your friends this week</p>
+    </section>
 </div>
-<div class="dashboard-grid">
-    <section id="selected-schedule" class="page-card">
-        <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.calendar }}</span><h2>Selected schedule</h2></div>
-        {% if data.selected %}
-            <p class="summary-name">{{ data.selected.name }}</p>
-            <p class="muted">{{ data.selected.semester }}</p>
-            <dl class="metric-pair">
-                <div><dt>Courses</dt><dd>{{ data.selected.course_count }}</dd></div>
-                <div><dt>Credit hours</dt><dd>{{ data.selected.credit_hours }}</dd></div>
-            </dl>
-        {% else %}
-            {{ show_message("empty", "No schedule selected", "Your selected schedule will appear here when one is available.") }}
-        {% endif %}
-        <a class="card-link" href="/schedule">Open Schedule <span aria-hidden="true">→</span></a>
+
+{# ---------- classes + today's schedule ---------- #}
+<div class="dash-middle">
+    <section class="page-card classes-card">
+        <div class="card-top">
+            <h2>Your classes</h2>
+            <a class="card-link" href="/schedule">View all <span aria-hidden="true">↗</span></a>
+        </div>
+
+        {# SAMPLE DATA from the figma. We don't track progress or grades per class yet. #}
+        <table class="classes-table">
+            <thead>
+                <tr>
+                    <th scope="col">COURSE</th>
+                    <th scope="col">PROGRESS</th>
+                    <th scope="col">GRADE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="class-mark mark-lilac"></span><span class="class-code">CS 201</span><span class="class-name">Data Structures</span></td>
+                    <td><span class="progress-track"><span class="progress-fill" style="width: 72%;"></span></span><span class="progress-number">72%</span></td>
+                    <td class="class-grade">A−</td>
+                </tr>
+                <tr>
+                    <td><span class="class-mark mark-yellow"></span><span class="class-code">STAT 210</span><span class="class-name">Applied Statistics</span></td>
+                    <td><span class="progress-track"><span class="progress-fill" style="width: 64%;"></span></span><span class="progress-number">64%</span></td>
+                    <td class="class-grade">B+</td>
+                </tr>
+                <tr>
+                    <td><span class="class-mark mark-lilac"></span><span class="class-code">DES 130</span><span class="class-name">Design Foundations</span></td>
+                    <td><span class="progress-track"><span class="progress-fill" style="width: 82%;"></span></span><span class="progress-number">82%</span></td>
+                    <td class="class-grade">A</td>
+                </tr>
+                <tr>
+                    <td><span class="class-mark mark-pink"></span><span class="class-code">ENG 205</span><span class="class-name">Creative Writing</span></td>
+                    <td><span class="progress-track"><span class="progress-fill" style="width: 70%;"></span></span><span class="progress-number">70%</span></td>
+                    <td class="class-grade">A−</td>
+                </tr>
+            </tbody>
+        </table>
     </section>
-    <section id="gpa-summary" class="page-card">
-        <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.bookmark }}</span><h2>GPA summary</h2></div>
-        {% if data.gpa is not none %}
-            <p class="muted" id="dashboard-profile">Current GPA {{ "%.2f" | format(data.gpa) }} · {{ data.completed_hours }} completed credit hours</p>
-        {% endif %}
-        {% if data.forecast %}
-            <p class="muted">GPA forecast</p>
-            <dl class="metric-pair">
-                <div><dt>Semester GPA</dt><dd id="dashboard-semester">{{ "%.2f" | format(data.forecast.semester_gpa) }}</dd></div>
-                <div><dt>Cumulative GPA</dt><dd id="dashboard-cumulative">{{ "%.2f" | format(data.forecast.cumulative_gpa) }}</dd></div>
-            </dl>
-            <p class="muted">{{ data.forecast.planned_credits }} planned credit hours</p>
-        {% else %}
-            {{ show_message("empty", "No GPA forecast yet", "Enter your current GPA and expected grades in Planning to calculate a forecast.") }}
-        {% endif %}
-        <a class="card-link" href="/planning">Open Planning <span aria-hidden="true">→</span></a>
-    </section>
-    <section id="upcoming-events" class="page-card">
-        <div class="card-heading"><span class="card-icon" aria-hidden="true">{{ icons.calendar }}</span><h2>Upcoming events</h2></div>
+
+    <section class="page-card today-card" id="upcoming-events">
+        <h2>On your schedule</h2>
+
         {% if data.events %}
-            <ol class="event-list">
-                {% for event in data.events %}
-                    <li><strong>{{ event.title }}</strong><time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%b %d · %I:%M %p %Z') }}</time>{% if event.location %}<span>{{ event.location }}</span>{% endif %}</li>
+            <p class="today-date">{{ data.events[0].starts_at.strftime('%a, %b %d') | upper }}</p>
+            <ol class="today-list">
+                {# the figma shows 3, so we only show the next 3 #}
+                {% for event in data.events[:3] %}
+                <li>
+                    <time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%H:%M') }}</time>
+                    <div class="today-item {{ loop.cycle('mark-lilac', 'mark-lilac', 'mark-yellow') }}">
+                        <strong>{{ event.title }}</strong>
+                        {% if event.location %}<span>{{ event.location }}</span>{% endif %}
+                    </div>
+                </li>
                 {% endfor %}
             </ol>
         {% else %}
             {{ show_message("empty", "No upcoming events", "When your schedule has upcoming events, they will appear here.") }}
         {% endif %}
-        <a class="card-link" href="/schedule">View your schedule <span aria-hidden="true">→</span></a>
     </section>
 </div>
-<section class="planning-banner">
-    <div><h2>What could your next semester look like?</h2><p>Try different grades and see how they change your GPA.</p></div>
-    <a class="page-button" href="/planning">Plan my semester</a>
-</section>
-<section id="prerequisite-checker" class="page-card" aria-labelledby="prerequisite-title">
+
+{# ---------- gpa chart, heads up, break together ---------- #}
+<div class="dash-bottom">
+    <section class="growth-card">
+        <h2>Small steps, steady growth.</h2>
+        <p class="growth-sub">Your cumulative GPA over time</p>
+
+        <div class="growth-bars">
+            {# SAMPLE DATA from the figma. Past semester GPAs are not saved anywhere yet. #}
+            <div class="growth-bar"><span>3.42</span><i style="height: 48px;"></i><small>SP 24</small></div>
+            <div class="growth-bar"><span>3.55</span><i style="height: 60px;"></i><small>FA 24</small></div>
+            <div class="growth-bar"><span>3.61</span><i style="height: 72px;"></i><small>SP 25</small></div>
+
+            {# the yellow bar is real: the forecast from Planning if there is one, or the saved GPA #}
+            {% if data.forecast %}
+                {% set newest = data.forecast.cumulative_gpa %}
+            {% elif data.gpa is not none %}
+                {% set newest = data.gpa %}
+            {% else %}
+                {% set newest = 3.68 %}
+            {% endif %}
+            {% set bar_height = 84 + (newest - 3.68) * 140 %}
+            {% if bar_height < 12 %}{% set bar_height = 12 %}{% endif %}
+            {% if bar_height > 100 %}{% set bar_height = 100 %}{% endif %}
+            <div class="growth-bar growth-now">
+                {% if data.forecast %}
+                    <span id="dashboard-cumulative">{{ "%.2f" | format(newest) }}</span>
+                {% else %}
+                    <span>{{ "%.2f" | format(newest) }}</span>
+                {% endif %}
+                <i style="height: {{ bar_height | round | int }}px;"></i>
+                <small>FA 25</small>
+            </div>
+        </div>
+    </section>
+
+    {# SAMPLE DATA from the figma. Assignment due dates are not in the backend yet. #}
+    <section class="page-card headsup-card">
+        <h2>A little heads-up</h2>
+        <ul class="headsup-list">
+            <li>
+                <small>OCT 22</small>
+                <strong>Statistics problem set</strong>
+                <span>STAT 210 · 11:59 PM</span>
+            </li>
+            <li>
+                <small>OCT 24</small>
+                <strong>Portfolio checkpoint</strong>
+                <span>DES 130 · 5:00 PM</span>
+            </li>
+        </ul>
+    </section>
+
+    {# SAMPLE TEXT from the figma. The button goes to the real Friends page. #}
+    <section class="break-card">
+        <p class="break-kicker">MAKE TIME FOR PEOPLE</p>
+        <h2>A break, together?</h2>
+        <p class="break-text">You, Maya, and Jordan are free Tuesday from 2:00–3:30 PM.</p>
+        <a class="page-button" href="/friends">Find a time <span aria-hidden="true">↗</span></a>
+    </section>
+</div>
+
+{# ---------- not in the figma, but it is a working feature so it stays under everything ---------- #}
+<section id="prerequisite-checker" class="page-card prereq-card" aria-labelledby="prerequisite-title">
     <h2 id="prerequisite-title">Check course prerequisites</h2>
-    <p class="muted">Enter a course and the courses you have completed. This does not change your academic record.</p>
+    <p class="card-sub">Enter a course and the courses you have completed. This does not change your academic record.</p>
+
     <form method="get" action="/dashboard#prerequisite-checker">
         <div class="field-grid">
             <div class="form-field">
@@ -68,10 +186,12 @@
             </div>
             <div class="form-field">
                 <label for="completed-courses">Completed courses and grades</label>
-                <textarea id="completed-courses" name="completed" rows="4" maxlength="5000" placeholder="CSC 3102: B">{{ completed }}</textarea>            </div>
+                <textarea id="completed-courses" name="completed" rows="4" maxlength="5000" placeholder="CSC 3102: B">{{ completed }}</textarea>
+            </div>
         </div>
         <button class="page-button" type="submit">Check prerequisites</button>
     </form>
+
     <div id="prereq-result" role="status">
         {% if course_error %}
             {{ show_message("error", "Check your course entries", course_error) }}
