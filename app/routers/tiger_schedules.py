@@ -64,6 +64,9 @@ def shared_free(
 
     Returns:
         Shared free periods by day.
+
+    Raises:
+        HTTPException: 404 when the friend is unknown or is the student.
     """
     data = load_page(session)
     current_user = find_user(data)
@@ -179,6 +182,10 @@ def delete_schedule(
 
     Returns:
         An empty 204 response.
+
+    Raises:
+        HTTPException: 409 when it is the student's last schedule, or 404
+            when it does not exist.
     """
     if len(list_schedules(session)) <= 1:
         raise HTTPException(

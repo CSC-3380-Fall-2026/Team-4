@@ -48,6 +48,11 @@ def send_request(
 
     Returns:
         Dict with a message and the created request row.
+
+    Raises:
+        HTTPException: 422 for a blank username; 400 without your own
+            username or when adding yourself; 404 for an unknown username;
+            409 when a friendship or request already exists.
     """
     username = request.username.strip().lstrip("@").strip()
     if not username:
@@ -96,6 +101,9 @@ def accept_request(
 
     Returns:
         Dict with a confirmation message.
+
+    Raises:
+        HTTPException: 404 when no pending request to the student matches.
     """
     result = (
         session.db.table("friendships")
@@ -123,6 +131,9 @@ def reject_request(
 
     Returns:
         Dict with a confirmation message.
+
+    Raises:
+        HTTPException: 404 when no pending request involving the student matches.
     """
     result = (
         session.db.table("friendships")
@@ -181,6 +192,10 @@ def share_schedule(
 
     Returns:
         Dict with a message and the share row.
+
+    Raises:
+        HTTPException: 404 for a schedule the student doesn't own, or 403
+            when the other student is not an accepted friend.
     """
     schedules = (
         session.db.table("schedules")
@@ -229,6 +244,9 @@ def stop_sharing(
 
     Returns:
         Dict with a confirmation message.
+
+    Raises:
+        HTTPException: 404 when the student owns no such share.
     """
     result = (
         session.db.table("schedule_shares")
@@ -255,6 +273,9 @@ def remove_friend(
 
     Returns:
         Dict with a confirmation message.
+
+    Raises:
+        HTTPException: 404 when no accepted friendship involving the student matches.
     """
     result = (
         session.db.table("friendships")

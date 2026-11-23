@@ -156,6 +156,9 @@ async def submit_account(request: Request, mode: str) -> Response:
 
     Returns:
         A useful form response or a redirect after successful login/logout.
+
+    Raises:
+        HTTPException: 404 for an unknown account action.
     """
     if mode not in ("login", "signup", "logout"):
         raise HTTPException(404, "Account action not found.")

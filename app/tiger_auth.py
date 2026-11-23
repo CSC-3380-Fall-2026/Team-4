@@ -264,7 +264,17 @@ class LoginRequired(Exception):
 
 
 def user_client(token: str) -> Client:
-    """Create a database client whose requests are limited to the token's owner."""
+    """Create a database client whose requests are limited to the token's owner.
+
+    Args:
+        token: The student's verified access token.
+
+    Returns:
+        A client that sends the token with every database request.
+
+    Raises:
+        HTTPException: If account services are unavailable.
+    """
     client: Client = auth_client()
     client.postgrest.auth(token)
     return client
