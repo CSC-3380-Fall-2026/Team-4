@@ -3,7 +3,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from models.tiger_friends import FriendRequestIn, ScheduleShareIn
-from tiger_auth import Session, current_session
+from models.tiger_session import Session
+from tiger_auth import current_session
 from tiger_friends import (
     UNNAMED,
     describe_row,

@@ -22,6 +22,7 @@ from models.tiger_profile import (
     UserAuthSchema,
 )
 from models.tiger_schedule import UserBase
+from models.tiger_session import Session
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -173,7 +174,7 @@ def readable_courses(raw: Any) -> list[dict[str, Any]]:
     return courses
 
 
-def session_card(session: "Session") -> dict[str, Any]:
+def session_card(session: Session) -> dict[str, Any]:
     """Read account and profile data for an already verified session.
 
     Args:
@@ -234,31 +235,6 @@ def token_profile(token: str) -> dict[str, Any]:
     return session_card(session)
 
 
-class Session:
-    """A verified student plus a database client that acts as that student."""
-
-    def __init__(
-        self,
-        user_id: str,
-        email: str,
-        token: str,
-        meta: dict[str, Any] | None = None,
-    ) -> None:
-        """Store the student's identity and build their scoped client.
-
-        Args:
-            user_id: Verified Supabase user ID.
-            email: Verified account email.
-            token: Access token used for database requests.
-            meta: Verified account metadata, such as the username.
-        """
-        self.user_id = user_id
-        self.email = email
-        self.token = token
-        self.meta = meta or {}
-        self.db = user_client(token)
-
-
 class LoginRequired(Exception):
     """Signal that a browser page needs a signed-in student."""
 
@@ -304,7 +280,7 @@ def verify_token(token: str) -> Session | None:
     if user is None:
         return None
     meta: dict[str, Any] = getattr(user, "user_metadata", None) or {}
-    return Session(user.id, user.email or "", token, meta)
+    return Session(user.id, user.email or "", token, user_client(token), meta)
 
 
 def request_token(

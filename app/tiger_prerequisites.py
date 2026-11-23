@@ -1,40 +1,30 @@
-"""Prerequisite checking for supported courses.
-
-Tests import this file as app.tiger_prerequisites, without app/ on the
-import path, so it keeps its own models and imports nothing from app/.
-"""
+"""Prerequisite checking for supported courses."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing_extensions import TypedDict
 
+from fastapi import APIRouter, HTTPException
+
+try:
+    from models.tiger_prerequisites import (
+        CourseResult,
+        PrerequisiteRequest,
+        Requirement,
+    )
+except ModuleNotFoundError:  # tests import this file as app.tiger_prerequisites
+    from app.models.tiger_prerequisites import (
+        CourseResult,
+        PrerequisiteRequest,
+        Requirement,
+    )
 
 DATA_FILE = (
     Path(__file__).resolve().parents[1]
     / "data"
     / "course_prerequisites.json"
 )
-
-
-class Requirement(TypedDict, total=False):
-    """Prerequisite option group with optional grade and registration rules."""
-
-    any_of: list[str]
-    credit_or_registration: bool
-    min_grade: str
-
-
-class CourseResult(TypedDict):
-    """Outcome of evaluating one course's prerequisites."""
-
-    course_code: str
-    satisfied: list[str]
-    missing: list[str]
-    cannot_evaluate: list[str]
-    eligible: bool
-
 
 GRADE_POINTS = {
     "A+": 4.0, "A": 4.0, "A-": 3.7,
@@ -148,19 +138,8 @@ def check_prerequisites(
     )
     return result
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-
 
 router = APIRouter()
-
-
-class PrerequisiteRequest(BaseModel):
-    """Request body for a prerequisite check."""
-
-    course_code: str
-    completed: dict[str, str] = Field(default_factory=dict)
-    registered: set[str] = Field(default_factory=set)
 
 
 @router.post("/courses/check-prerequisites", tags=["Course Catalog"])

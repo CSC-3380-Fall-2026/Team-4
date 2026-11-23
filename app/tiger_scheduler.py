@@ -19,7 +19,7 @@ from models.tiger_schedule import (
     UserBase,
     WEEKDAYS,
 )
-from tiger_auth import Session
+from models.tiger_session import Session
 from tiger_schedule_store import current_semester, list_schedules
 
 DEFAULT_GRADE: float = 0.0

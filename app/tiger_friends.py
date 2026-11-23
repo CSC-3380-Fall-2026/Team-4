@@ -5,7 +5,8 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from tiger_auth import Session, profile_row
+from models.tiger_session import Session
+from tiger_auth import profile_row
 
 logger = logging.getLogger(__name__)
 

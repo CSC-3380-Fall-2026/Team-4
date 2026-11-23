@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 from models.tiger_planning import PlanningResult
-from tiger_auth import Session
+from models.tiger_session import Session
 
 TABLE: str = "forecasts"
 

@@ -5,7 +5,8 @@ from typing import Any, get_args
 
 from fastapi import HTTPException
 
-from tiger_auth import Session, session_profile
+from models.tiger_session import Session
+from tiger_auth import session_profile
 from tiger_friends import friend_names, shared_rows
 from models.tiger_schedule import (
     Classes,

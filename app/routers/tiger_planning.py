@@ -9,7 +9,8 @@ from grade_scale import GRADE_POINTS
 from models.tiger_planning import CourseRow, PlanningForm, PlanningResult
 import tiger_auth
 import tiger_gpa
-from tiger_auth import Session, require_login
+from models.tiger_session import Session
+from tiger_auth import require_login
 from tiger_forecast import save_forecast
 from tiger_planning import MAX_ROWS, calculate_plan, read_form
 from tiger_views import render_page, valid_token

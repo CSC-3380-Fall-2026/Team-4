@@ -12,7 +12,8 @@ import tiger_auth
 import tiger_transcript
 from models.tiger_profile import ProfileUpdate
 from models.tiger_schedule import UserBase
-from tiger_auth import Session, current_session, require_login
+from models.tiger_session import Session
+from tiger_auth import current_session, require_login
 from tiger_views import redirect_to, render_page, valid_token
 
 router: APIRouter = APIRouter()

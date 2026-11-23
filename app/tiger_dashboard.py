@@ -8,7 +8,8 @@ from models.tiger_dashboard import (
     ScheduleSummary,
     UpcomingEvent,
 )
-from tiger_auth import Session, session_profile
+from models.tiger_session import Session
+from tiger_auth import session_profile
 from tiger_forecast import read_forecast
 from models.tiger_schedule import WEEKDAYS, Classes, Schedule, ScheduleEvent
 from tiger_schedule_store import current_semester, list_schedules

@@ -14,7 +14,8 @@ from models.tiger_schedule import (
     SharedFreeTimeRequest,
     SharedFreeTimeResponse,
 )
-from tiger_auth import Session, current_session
+from models.tiger_session import Session
+from tiger_auth import current_session
 from tiger_schedule_store import (
     fetch_schedule,
     insert_schedule,
