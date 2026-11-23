@@ -1,155 +1,308 @@
 {% extends "tiger_base.html" %}
-{% set page_title = "Schedule" %}
+{% from "components/page_message.html" import show_message %}
+{% set page_title = "Planning" %}
+
 {% block content %}
+{% if profile_error %}
+    {{ show_message("error", "Academic record unavailable", profile_error) }}
+{% endif %}
 
-{# #schedule-calendar has to wrap the calendar AND the side cards because
-   schedule-calendar.js looks inside it for the grid and for #schedule-categories #}
-<div id="schedule-calendar" class="schedule-layout">
-    <div class="schedule-main">
-        <div class="schedule-toolbar">
-            {# TODO: only the week view exists right now, Month and Day and the arrows are just the figma buttons #}
-            <div class="view-switch" role="group" aria-label="Calendar view">
-                <button type="button" class="active" aria-pressed="true">Week</button>
-                <button type="button" aria-pressed="false" title="Month view is not built yet">Month</button>
-                <button type="button" aria-pressed="false" title="Day view is not built yet">Day</button>
+{% if errors %}
+<section id="form-errors" class="page-message message-error" role="alert">
+    <strong>Please check your plan</strong>
+    <ul>
+        {% for error in errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+    <p>Your entered values are still in the form below.</p>
+</section>
+{% endif %}
+
+{% if loaded %}
+    {{ show_message(
+        "success",
+        "Courses loaded",
+        "Names and credits came from your saved schedule. Choose an expected grade for each course."
+    ) }}
+{% endif %}
+
+{% if schedule_error %}
+    {{ show_message("error", "Schedules unavailable", schedule_error) }}
+{% endif %}
+
+{% if result and unsaved %}
+    {{ show_message(
+        "error",
+        "Forecast not saved",
+        "The calculation is shown below, but it could not be saved to your account."
+    ) }}
+{% endif %}
+
+<form method="post" action="/planning" id="planning-form" class="planning-top" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    {# ---------- left card: the course rows ---------- #}
+    <section id="sem-planner" class="page-card projector-card">
+        <div class="projector-top">
+            <h2>GPA Projector.</h2>
+
+            {# picking a saved schedule fills the rows with its courses #}
+            {% if schedules %}
+                <label class="visually-hidden" for="planning-schedule">Saved schedule</label>
+                <select id="planning-schedule" name="schedule_id" class="soft-select"
+                        onchange="document.getElementById('load-button').click()">
+                    <option value="">Choose a schedule</option>
+                    {% for schedule in schedules %}
+                        <option value="{{ schedule.id }}" {% if schedule.id == schedule_id %}selected{% endif %}>
+                            {{ schedule.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <button id="load-button" class="visually-hidden" type="submit" name="action"
+                        value="load_schedule" formnovalidate>
+                    Load courses
+                </button>
+            {% else %}
+                <a class="soft-select soft-select-link" href="/schedule">Create a schedule</a>
+            {% endif %}
+        </div>
+
+        <div class="table-scroll" role="region" aria-label="Planned courses" tabindex="0">
+            <table id="sem-table" class="projector-table">
+                <thead>
+                    <tr>
+                        <th scope="col">COURSE</th>
+                        <th scope="col">CREDITS</th>
+                        <th scope="col">CURRENT</th>
+                        <th scope="col">EXPECTED</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in form.rows %}
+                    <tr>
+                        <td>
+                            <label class="visually-hidden" for="course-name-{{ loop.index0 }}">
+                                Course {{ loop.index }} name
+                            </label>
+                            <input id="course-name-{{ loop.index0 }}" class="plain-input" name="course_name"
+                                   value="{{ row.name }}" maxlength="100" placeholder="Course name">
+                        </td>
+
+                        <td>
+                            <label class="visually-hidden" for="course-credit-{{ loop.index0 }}">
+                                Course {{ loop.index }} credits
+                            </label>
+                            <input id="course-credit-{{ loop.index0 }}" class="plain-input credit-input"
+                                   name="course_credit" value="{{ row.credit }}" type="text"
+                                   inputmode="numeric" maxlength="12" placeholder="0">
+                        </td>
+
+                        {# TODO: we don't save a current grade for each class, so this column is a dash for now #}
+                        <td class="current-grade">—</td>
+
+                        <td>
+                            <label class="visually-hidden" for="course-grade-{{ loop.index0 }}">
+                                Course {{ loop.index }} expected grade
+                            </label>
+                            <select id="course-grade-{{ loop.index0 }}" class="grade-select" name="course_grade">
+                                <option value="">Grade</option>
+
+                                {% if row.grade and row.grade not in grades %}
+                                    <option value="{{ row.grade }}" selected>
+                                        Invalid grade: {{ row.grade }}
+                                    </option>
+                                {% endif %}
+
+                                {% for letter, points in grades.items() %}
+                                    <option value="{{ letter }}" {% if row.grade == letter %}selected{% endif %}>
+                                        {{ letter | replace("-", "−") }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+
+                        <td>
+                            <button class="remove-button" type="submit" name="action"
+                                    value="remove:{{ loop.index0 }}" formnovalidate
+                                    aria-label="Remove course {{ loop.index }}">
+                                ×
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# the figma only has the gray note down here. the add button and the target GPA box
+           are extra because the planner needs them to work #}
+        <div class="projector-bottom">
+            <p class="projector-note">Based on the LSU grade scale · Estimates only, not an official transcript.</p>
+
+            <button class="text-link" type="submit" name="action" value="add" formnovalidate
+                    title="You can plan up to {{ max_rows }} courses">
+                <span aria-hidden="true">+</span> Add a course
+            </button>
+
+            <div class="target-field">
+                <label for="target-gpa">Target GPA</label>
+                <input id="target-gpa" name="target_gpa" value="{{ form.target_gpa }}" type="text"
+                       inputmode="decimal" maxlength="32" placeholder="optional">
             </div>
-
-            <button type="button" class="week-arrow" aria-label="Previous week" title="Not built yet">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-            </button>
-            <button type="button" class="week-arrow" aria-label="Next week" title="Not built yet">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-            </button>
         </div>
+    </section>
 
-        {% include "components/schedule_calendar.html" %}
-    </div>
+    {# ---------- right card: the purple what-if box ---------- #}
+    <section id="gpa-calc" class="scenario-card" aria-live="polite">
+        <p class="scenario-kicker">YOUR WHAT-IF SCENARIO</p>
 
-    <aside class="schedule-side">
-        {# SAMPLE TEXT from the figma. This page does not load friends' free time yet, the button goes to Friends. #}
-        <section class="window-card">
-            <p class="window-kicker">A WINDOW FOR CONNECTION</p>
-            <h2>Tuesday looks good.</h2>
-            <p class="window-time">2:00–3:30 PM</p>
-            <p class="window-text">You, Maya Chen, and Jordan Lee are all free for 90 minutes.</p>
-            <a class="window-button" href="/friends">Make a plan</a>
-        </section>
+        <p class="scenario-number" id="planning-results">
+            {% if result %}
+                <span id="semester-result">{{ "%.2f" | format(result.semester_gpa) }}</span>
+            {% else %}
+                —
+            {% endif %}
+        </p>
+        <p class="scenario-label">projected semester GPA</p>
 
-        {# the list is filled in by schedule-calendar.js with one line for each of your schedules #}
-        <section class="legend-card">
-            <ul id="schedule-categories" aria-label="Schedule categories"></ul>
-        </section>
-
-        <div class="float-buttons">
-            <a href="/friends" aria-label="Share with friends">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <circle cx="10" cy="8" r="4"/>
-                    <path d="M2.5 20c0-3.6 3.3-6 7.5-6s7.5 2.4 7.5 6z"/>
-                    <path d="M18.5 3.5v6M15.5 6.5h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-                </svg>
-            </a>
-            <button id="add-event-button" type="button" aria-label="Add event">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13"/></svg>
-            </button>
-        </div>
-    </aside>
-</div>
-
-{# ---------- everything under here is not in the figma, but the page needs it to add and edit events ---------- #}
-<section id="schedule-event-management" class="page-card events-card">
-    <p id="schedule-page-error" class="hidden text-sm text-red-700" role="alert"></p>
-
-    <div class="events-top">
-        <div>
-            <h2>Schedule Events</h2>
-            <p class="card-sub">Manage events in the selected schedule.</p>
-        </div>
-
-        <div id="schedule-form" class="events-controls">
-            <div id="schedule-select" class="events-controls">
-                <div class="picker-wrap">
-                    <select id="schedule-picker" aria-label="Selected schedule"></select>
-                    <svg class="schedule-picker-chevron pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-neutrals-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="m6 9 6 6 6-6"/>
-                    </svg>
-                </div>
-                <button id="schedule-edit" type="button" class="secondary-button" aria-label="Edit selected schedule">Edit Schedule</button>
-                <button id="schedule-add" type="button" class="page-button" aria-label="Add schedule">{{ plus }}</button>
+        <dl class="scenario-rows">
+            <div>
+                <dt>Projected cumulative</dt>
+                <dd class="scenario-big">
+                    {% if result %}
+                        <span id="cumulative-result">{{ "%.2f" | format(result.cumulative_gpa) }}</span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </dd>
             </div>
+            <div>
+                <dt><label for="current-gpa">Current cumulative</label></dt>
+                <dd>
+                    <input id="current-gpa" class="scenario-input" name="current_gpa"
+                           value="{{ form.current_gpa }}" type="text" inputmode="decimal"
+                           maxlength="32" placeholder="0.00" required>
+                </dd>
+            </div>
+            {# this row only shows up after you type a target GPA #}
+            {% if result and (form.target_gpa.strip() or result.target_error) %}
+            <div>
+                <dt>Needed this semester for target</dt>
+                <dd id="required-result">
+                    {% if result.required_gpa is not none %}
+                        {{ "%.2f" | format(result.required_gpa) }}
+                    {% elif result.target_error %}
+                        Unavailable
+                    {% else %}
+                        Enter a target
+                    {% endif %}
+                </dd>
+            </div>
+            {% endif %}
+        </dl>
 
-            <label id="schedule-switch" class="switch-row switch-inline">
-                <span><strong>Show on Calendar</strong></span>
-                <input id="schedule-calendar-toggle" type="checkbox" checked aria-label="Show selected schedule on calendar">
-                <i aria-hidden="true"></i>
-            </label>
+        {% if result and result.target_error %}
+            <p class="scenario-error">{{ result.target_error }}</p>
+        {% endif %}
+
+        <button class="scenario-button" type="submit" name="action" value="calculate"
+                formaction="/planning#planning-results">
+            Save scenario
+        </button>
+
+        <p class="scenario-foot">
+            <label class="visually-hidden" for="completed-credits">Completed GPA credit hours</label>
+            <input id="completed-credits" class="scenario-credits" name="completed_credits"
+                   value="{{ form.completed_credits }}" type="text" inputmode="numeric"
+                   maxlength="32" placeholder="0" required>
+            completed
+            {% if result %}+ {{ result.planned_credits }} in-progress credits{% else %}credits so far{% endif %}
+        </p>
+    </section>
+</form>
+
+<div class="planning-bottom">
+    {# ---------- bottom left: courses from the first saved schedule ---------- #}
+    <section class="page-card spring-card">
+        {% set saved = schedules[0] if schedules else none %}
+        {% set total = namespace(credits=0, classes=0) %}
+        {% if saved %}
+            {% for event in saved.events %}
+                {% if event.credit is defined %}
+                    {% set total.credits = total.credits + event.credit %}
+                    {% set total.classes = total.classes + 1 %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        <div class="spring-top">
+            <div>
+                <h2>A head start on spring</h2>
+                <p class="card-sub">{{ saved.name if saved else 'No saved schedule' }} · Draft plan</p>
+            </div>
+            <p class="spring-credits">{{ total.credits }} credits</p>
         </div>
-    </div>
 
-    <div id="schedule-table" class="table-scroll">
-        <table class="events-table">
-            <thead>
-                <tr>
-                    <th>Event Title</th>
-                    <th>Days</th>
-                    <th>Time</th>
-                    <th>Location (Optional)</th>
-                    <th>Guests</th>
-                    <th>Favorite</th>
-                </tr>
-            </thead>
-            <tbody id="schedule-event-rows">
+        <table class="spring-table">
+            <tbody>
+                {% if saved and total.classes %}
+                    {% for event in saved.events %}
+                        {% if event.credit is defined %}
+                        <tr>
+                            <td>{{ event.department }} {{ event.number }}</td>
+                            <td>{{ event.title }}</td>
+                            <td>{{ event.credit }} credits</td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3">No saved schedules yet. Create a schedule to see its courses here.</td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
-    </div>
-</section>
 
-{# the pop up messages from schedule-ui.js show up in here #}
-<div id="schedule-notice" popover="manual"></div>
-
-{% include "components/add_event_form.html" %}
-{% include "components/edit_event_form.html" %}
-{% include "components/add_schedule_form.html" %}
-{% include "components/edit_schedule_form.html" %}
-
-<section id="schedule-comparison" class="page-card compare-card">
-    <h2 id="schedule-comparison-header">Compare Schedules</h2>
-
-    <div id="schedule-metrics" class="compare-grid">
-        {% for side in ["A", "B"] %}
-        <div id="schedule-{{ side }}" class="compare-side">
-            <label class="visually-hidden" for="schedule-selector-{{ side }}">Schedule {{ side }}</label>
-            <select id="schedule-selector-{{ side }}" class="soft-select"></select>
-
-            <div id="schedule-{{ side }}-metrics" class="compare-numbers">
-                <div id="total-hours-{{ side }}">
-                    <p>Total hours</p>
-                    <p data-comparison-metric="total-hours" class="compare-number">0</p>
-                </div>
-                <div id="days-busy-{{ side }}">
-                    <p>Days Busy</p>
-                    <p data-comparison-metric="days-busy" class="compare-number compare-days">—</p>
-                </div>
-            </div>
+        <div class="spring-bottom">
+            <a class="text-link" href="/schedule"><span aria-hidden="true">+</span> Add a course</a>
+            <a class="text-link" href="/schedule">View in schedule <span aria-hidden="true">↗</span></a>
         </div>
-        {% endfor %}
-    </div>
-</section>
-{% endblock %}
+    </section>
 
-{% block scripts %}
-    <script>
-        // put the purple box on today's date like the figma (0 = Monday in our grid)
-        var todayIndex = (new Date().getDay() + 6) % 7;
-        var todayHeading = document.querySelector('[data-heading-day="' + todayIndex + '"]');
-        if (todayHeading) {
-            todayHeading.classList.add("today");
-        }
-    </script>
-    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-ui.js') }}?v=1" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-calendar.js') }}?v=4" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-events.js') }}?v=5" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-management.js') }}?v=3" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-comparison.js') }}?v=3" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule.js') }}?v=9" defer></script>
+    {# ---------- bottom right: degree progress ---------- #}
+    <section class="page-card picture-card">
+        <div class="picture-top">
+            <h2>The bigger picture</h2>
+            <a href="/catalog" aria-label="Open the course catalog">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+        {# TODO: the degree name and the 3 requirement rows are the sample ones from the figma.
+           only the completed number comes from the real saved credit hours #}
+        <p class="card-sub">B.S. Computer Science</p>
+
+        {% set done = form.completed_credits | int(0) %}
+        {% set percent = (done * 100 / 120) | round | int %}
+        {% if percent > 100 %}{% set percent = 100 %}{% endif %}
+        <div class="picture-track"><span style="width: {{ percent }}%;"></span></div>
+
+        <div class="picture-totals">
+            <strong>{{ done }} completed</strong>
+            <span>120 required</span>
+        </div>
+
+        <dl class="picture-rows">
+            <div><dt>Major requirements</dt><dd>36 / 60</dd></div>
+            <div><dt>General education</dt><dd>26 / 36</dd></div>
+            <div><dt>Open electives</dt><dd>6 / 24</dd></div>
+        </dl>
+
+        <a class="text-link" href="/catalog">See degree requirements <span aria-hidden="true">↗</span></a>
+    </section>
+</div>
 {% endblock %}
