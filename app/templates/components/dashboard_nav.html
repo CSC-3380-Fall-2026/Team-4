@@ -1,34 +1,75 @@
 <nav class="dashboard-nav" aria-label="Main navigation">
     <div id="nav-buttons">
         <a id="title" class="brand" href="/dashboard">
-            <span id="logo" aria-hidden="true">T</span>
-            <span>Tiger Class Drive</span>
+            <span class="fg-brand-slashes" aria-hidden="true">///</span>
+            <span class="fg-brand-name">TIGERDRIVE</span>
         </a>
+
         <div id="nav-tabs">
-            {% for label, path, icon in nav_links if account_active or path == '/catalog' %}
-                <a href="{{ path }}" class="nav-link {{ 'active' if request.url.path == path else '' }}"
-                   {% if request.url.path == path %}aria-current="page"{% endif %}>
-                    <span aria-hidden="true">{{ icons[icon] }}</span>
-                    <span>{{ label }}</span>
+            {% for label, path, icon in nav_links %}
+                {% if path != '/profile' and
+                      (account_active or path == '/catalog') %}
+
+                <a href="{{ path }}"
+                   class="nav-link{% if request.url.path == path %} active{% endif %}"
+                   {% if request.url.path == path %}
+                       aria-current="page"
+                   {% endif %}>
+
+                    <span class="fg-nav-icon" aria-hidden="true">
+                        {{ icons[icon] }}
+                    </span>
+
+                    <span>
+                        {{ 'Courses' if path == '/catalog' else label }}
+                    </span>
                 </a>
+
+                {% endif %}
             {% endfor %}
         </div>
     </div>
+
     <div id="profile-footer">
+        {% set account_name =
+            (profile.username or profile.email)
+            if profile else 'Your account'
+        %}
+
         <div id="profile-info">
-            <p id="profile-name">{{ (profile.username or profile.email) if profile else 'Your account' }}</p>
-            {% if profile %}<p id="profile-email">{{ profile.email }}</p>{% endif %}
+            <span class="fg-avatar" aria-hidden="true">
+                {{ account_name[0] | upper }}
+            </span>
+
+            <div>
+                {% if account_active %}
+                    <a id="profile-name" href="/profile">
+                        {{ account_name }}
+                    </a>
+                {% else %}
+                    <span id="profile-name">{{ account_name }}</span>
+                {% endif %}
+
+                {% if profile %}
+                    <p id="profile-email">{{ profile.email }}</p>
+                {% endif %}
+            </div>
         </div>
+
         <div class="account-links">
             {% if account_active %}
-                <a href="/profile">View profile</a>
                 <form method="post" action="/account/logout">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button class="link-button" type="submit">Log out</button>
+                    <input type="hidden"
+                           name="csrf_token"
+                           value="{{ csrf_token }}">
+
+                    <button class="link-button" type="submit">
+                        Log out
+                    </button>
                 </form>
             {% else %}
-                <a href="/login" {% if request.url.path == '/login' %}aria-current="page"{% endif %}>Log in</a>
-                <a href="/signup" {% if request.url.path == '/signup' %}aria-current="page"{% endif %}>Sign up</a>
+                <a href="/login">Log in</a>
+                <a href="/signup">Sign up</a>
             {% endif %}
         </div>
     </div>
