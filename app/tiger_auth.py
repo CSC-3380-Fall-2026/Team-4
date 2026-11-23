@@ -288,10 +288,6 @@ def get_user(
     return token_profile(credentials.credentials)
 
 
-validateToken = validate_token
-getUser = get_user
-
-
 class Session:
     """A verified student plus a database client that acts as that student."""
 
