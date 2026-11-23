@@ -13,6 +13,8 @@ from pydantic import (
     model_validator,
 )
 
+from models.tiger_friends import Friend
+
 Weekday = Literal[
     "Monday",
     "Tuesday",
@@ -283,6 +285,10 @@ class UserBase(ScheduleModel):
     completed_credit_hours: int = 0
     courses: list[Any] = Field(default_factory=list)
     schedules: list[Schedule] = Field(default_factory=list)
+    # Filled by tiger_friends.load_friends; kept out of profile and schedule JSON.
+    friends: list[Friend] = Field(default_factory=list, exclude=True)
+    incoming_requests: list[Friend] = Field(default_factory=list, exclude=True)
+    outgoing_requests: list[Friend] = Field(default_factory=list, exclude=True)
 
 
 class ScheduleMetrics(ScheduleModel):

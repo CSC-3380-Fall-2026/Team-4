@@ -1,18 +1,18 @@
 """Friends and schedule-sharing JSON API."""
 
+from typing import Any, cast
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from models.tiger_friends import FriendRequestIn, ScheduleShareIn
 from models.tiger_session import Session
 from tiger_auth import current_session
 from tiger_friends import (
-    UNNAMED,
-    describe_row,
     existing_error,
     find_student,
     friend_names,
-    friendship_rows,
     is_friend,
+    load_friends,
     mine_filter,
     other_id,
     own_username,
@@ -161,22 +161,19 @@ def list_shares(session: Session = Depends(current_session)) -> list[dict]:
     Returns:
         Share rows with the friend's username.
     """
-    current = {
-        other_id(row, session.user_id)
-        for row in friendship_rows(session) if row["status"] == "accepted"
-    }
-    rows = (
+    names = {friend.user_id: friend.username for friend in load_friends(session).friends}
+    # The client types rows as generic JSON; share rows are JSON objects.
+    rows = cast(
+        list[dict[str, Any]],
         session.db.table("schedule_shares")
         .select("id,schedule_id,friend_id")
         .eq("owner_id", session.user_id)
         .execute()
-        .data
+        .data,
     )
-    rows = [row for row in rows if row["friend_id"] in current]
-    names = friend_names(session) if rows else {}
     return [
-        {**row, "username": names.get(row["friend_id"], UNNAMED)}
-        for row in rows
+        {**row, "username": names[row["friend_id"]]}
+        for row in rows if row["friend_id"] in names
     ]
 
 
@@ -324,21 +321,8 @@ def list_requests(session: Session = Depends(current_session)) -> dict:
     Returns:
         Dict with incoming and outgoing requests, each naming the other student.
     """
-    me = session.user_id
-    pending = [
-        row for row in friendship_rows(session) if row["status"] == "pending"
-    ]
-    names = friend_names(session) if pending else {}
-    return {
-        "incoming": [
-            describe_row(row, me, names)
-            for row in pending if row["addressee_id"] == me
-        ],
-        "outgoing": [
-            describe_row(row, me, names)
-            for row in pending if row["requester_id"] == me
-        ],
-    }
+    user = load_friends(session)
+    return {"incoming": user.incoming_requests, "outgoing": user.outgoing_requests}
 
 
 @router.get("/list")
@@ -352,21 +336,9 @@ def list_friends(session: Session = Depends(current_session)) -> dict:
         Dict with friends, incoming and outgoing requests, each naming the
         other student.
     """
-    rows = friendship_rows(session)
-    names = friend_names(session) if rows else {}
-    me = session.user_id
-    pending = [row for row in rows if row["status"] == "pending"]
+    user = load_friends(session)
     return {
-        "friends": [
-            describe_row(row, me, names)
-            for row in rows if row["status"] == "accepted"
-        ],
-        "incoming_requests": [
-            describe_row(row, me, names)
-            for row in pending if row["addressee_id"] == me
-        ],
-        "outgoing_requests": [
-            describe_row(row, me, names)
-            for row in pending if row["requester_id"] == me
-        ],
+        "friends": user.friends,
+        "incoming_requests": user.incoming_requests,
+        "outgoing_requests": user.outgoing_requests,
     }

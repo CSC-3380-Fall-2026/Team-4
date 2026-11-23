@@ -5,6 +5,8 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from models.tiger_friends import Friend
+from models.tiger_schedule import UserBase
 from models.tiger_session import Session
 from tiger_auth import profile_row
 
@@ -220,8 +222,8 @@ def shared_rows(session: Session, columns: str = SHARED_COLUMNS) -> list[dict]:
     return results
 
 
-def describe_row(row: dict[str, Any], user_id: str, names: dict[str, str]) -> dict:
-    """Turn a friendship row into what the Friends page shows.
+def describe_row(row: dict[str, Any], user_id: str, names: dict[str, str]) -> Friend:
+    """Turn a friendship row into the other student, as the Friends page shows them.
 
     Args:
         row: Friendship row.
@@ -232,4 +234,28 @@ def describe_row(row: dict[str, Any], user_id: str, names: dict[str, str]) -> di
         The row id, the other student's id, and their username.
     """
     other = other_id(row, user_id)
-    return {"id": row["id"], "user_id": other, "username": names.get(other, UNNAMED)}
+    return Friend(id=row["id"], user_id=other, username=names.get(other, UNNAMED))
+
+
+def load_friends(session: Session) -> UserBase:
+    """Read the signed-in student with their friends and pending requests.
+
+    Args:
+        session: Authenticated session.
+
+    Returns:
+        The student, with friends, incoming_requests and outgoing_requests filled.
+    """
+    me: str = session.user_id
+    rows = friendship_rows(session)
+    names = friend_names(session) if rows else {}
+    user = UserBase(id=me, email=session.email)
+    for row in rows:
+        friend = describe_row(row, me, names)
+        if row["status"] == "accepted":
+            user.friends.append(friend)
+        elif row["status"] == "pending" and row["addressee_id"] == me:
+            user.incoming_requests.append(friend)
+        elif row["status"] == "pending":
+            user.outgoing_requests.append(friend)
+    return user

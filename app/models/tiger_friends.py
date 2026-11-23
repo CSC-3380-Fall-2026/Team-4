@@ -1,6 +1,20 @@
-"""Request bodies for the friends and schedule-sharing API."""
+"""Friends, and request bodies for the friends and schedule-sharing API."""
 
 from pydantic import BaseModel, Field
+
+
+class Friend(BaseModel):
+    """Another student linked to the signed-in one by a friendship row.
+
+    Attributes:
+        id: The friendship row id, which accept, decline and remove take.
+        user_id: The other student's id.
+        username: The other student's username.
+    """
+
+    id: str
+    user_id: str
+    username: str
 
 
 class FriendRequestIn(BaseModel):
