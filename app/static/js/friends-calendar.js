@@ -1,116 +1,123 @@
 (() => {
-    // Build calendar rendering around the shared Friends page state and helpers
-    const createRenderer = ({ state, schedules, usersByUsername, displayName, makeElement }) => {
-        const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        const calendar = document.querySelector("#friends-calendar");
-        const calendarScroll = document.querySelector("#friends-calendar-scroll");
+// Render the current user's schedules as color-coded events on the weekly grid.
+const {
+    scheduleColors,
+    scheduleState,
+    toMinutes,
+    formatTime,
+    createElement,
+} = window.SchedulePrototype;
 
-        const minutes = (time) => {
-            const [hours, mins] = time.split(":").map(Number);
-            return hours * 60 + mins;
-        };
+const calendarStartMinutes = 0;
+const minutesPerRow = 30;
+const rowsPerDay = 48;
+const calendar = document.querySelector("#schedule-calendar");
+const calendarToggle = document.querySelector("#schedule-calendar-toggle");
 
-        const timeLabel = (time) => {
-            const [hours, mins] = time.split(":").map(Number);
-            const period = hours < 12 ? "AM" : "PM";
-            return `${hours % 12 || 12}:${String(mins).padStart(2, "0")} ${period}`;
-        };
+const renderCategories = () => {
+    const categories = calendar.querySelector("#schedule-categories");
+    categories.replaceChildren();
+    scheduleState.schedules.forEach((schedule) => {
+        const item = createElement("li", "flex items-center justify-center gap-1");
+        item.append(
+            createElement("span", `size-2 rounded-full ${scheduleColors[schedule.color].dot}`),
+            document.createTextNode(schedule.name),
+        );
+        categories.append(item);
+    });
+};
 
-        const combinedEvents = () => {
-            const friendUser = usersByUsername.get(state.selectedFriend);
-            if (!friendUser) {
-                return [];
-            }
-            // Compare every schedule for both users, independent of the sharing selection
-            const events = [
-                ...schedules.flatMap((schedule) => schedule.events.map((event) => ({ ...event, owner: "you" }))),
-                ...friendUser.schedules.flatMap((schedule) => schedule.events.map((event) => ({ ...event, owner: "friend" }))),
-            ];
-            const merged = [];
-            events.forEach((event) => {
-                const signature = `${event.title}|${event.start}|${event.end}|${[...event.days].sort().join(",")}`;
-                // Mark matching events from opposite owners as shared rather than duplicating them
-                const sharedEvent = merged.find((item) => (
-                    item.signature === signature && item.owner !== event.owner
-                ));
-                if (sharedEvent) {
-                    sharedEvent.owner = "shared";
-                } else {
-                    merged.push({ ...event, signature });
-                }
-            });
-            return merged;
-        };
+const createCalendarEvent = (schedule, event) => {
+    const color = scheduleColors[schedule.color];
+    const isSelected = schedule.id === scheduleState.selectedScheduleId;
+    const emphasisClasses = isSelected ? "z-20" : "z-10 opacity-60";
+    const eventDuration = toMinutes(event.end) - toMinutes(event.start);
+    // Compact cards keep short events readable without overflowing their time slot.
+    const isCompact = eventDuration <= minutesPerRow * 2;
+    const layoutClasses = isCompact
+        ? "m-0.5 flex min-h-0 min-w-0 items-center overflow-hidden rounded-lg border px-1 text-[9px] leading-none"
+        : "m-0.5 flex min-h-0 min-w-0 flex-col justify-between gap-1 overflow-hidden rounded-lg border px-2 py-1.5 text-xs leading-tight";
+    const card = createElement("article", `calendar-event col-start-1 row-(--event-grid-row) ${emphasisClasses} ${layoutClasses} ${color.event}`);
+    card.dataset.eventId = event.id;
+    card.dataset.scheduleId = schedule.id;
+    card.dataset.start = event.start;
+    card.dataset.end = event.end;
 
-        const renderCalendar = () => {
-            calendar.querySelectorAll(".friends-calendar-day").forEach((day) => day.replaceChildren());
-            combinedEvents().forEach((event) => {
-                const start = Math.max(minutes(event.start), 0);
-                const end = Math.min(minutes(event.end), 24 * 60);
-                if (end <= start) {
+    card.title = `${event.title}, ${formatTime(event.start)} - ${formatTime(event.end)}${event.favorite ? ", favorite" : ""}`;
+    if (isCompact) {
+        card.setAttribute("aria-label", card.title);
+        card.append(createElement("strong", `block truncate font-bold ${color.title}`, `${event.title} · ${formatTime(event.start)}`));
+    } else {
+        const details = createElement("div", "flex flex-col");
+        details.append(createElement("strong", `font-bold ${color.title}`, event.title));
+        details.append(createElement("span", "event-time", `${formatTime(event.start)} - ${formatTime(event.end)}`));
+        card.append(details);
+    }
+    if (event.favorite && !isCompact) {
+        const star = createElement("span", `event-favorite-star text-lg leading-none ${color.favorite}`, "★");
+        star.setAttribute("aria-label", "Favorite event");
+        card.append(star);
+    }
+
+    const startOffset = toMinutes(event.start) - calendarStartMinutes;
+    const endOffset = toMinutes(event.end) - calendarStartMinutes;
+    const firstRow = Math.floor(startOffset / minutesPerRow);
+    const lastRow = Math.ceil(endOffset / minutesPerRow);
+    if (firstRow < 0 || lastRow > rowsPerDay || lastRow <= firstRow) {
+        throw new RangeError("Event time must be within the calendar and have a positive duration.");
+    }
+    card.style.setProperty("--event-grid-row", `${firstRow + 1} / ${lastRow + 1}`);
+    return card;
+};
+
+const renderCalendarEvents = () => {
+    calendar.querySelectorAll(".calendar-day").forEach((day) => day.replaceChildren());
+    scheduleState.schedules.forEach((schedule) => {
+        schedule.events.forEach((event) => {
+            event.days.forEach((dayName) => {
+                const dayColumn = calendar.querySelector(`[data-day-name="${dayName}"]`);
+                if (!dayColumn) {
                     return;
                 }
-
-                event.days.forEach((dayName) => {
-                    const dayIndex = dayNames.indexOf(dayName);
-                    const dayColumn = calendar.querySelector(`[data-weekday="${dayIndex}"]`);
-                    if (!dayColumn) {
-                        return;
-                    }
-                    // Preserve distinct owner colors while sharing the same compact layout.
-                    const colorClasses = event.owner === "you"
-                        ? "border-purple-300 bg-purple-50 text-purple-700"
-                        : event.owner === "friend"
-                            ? "border-yellow-300 bg-yellow-50 text-yellow-800"
-                            : "border-neutrals-300 bg-neutrals-100 text-neutrals-700";
-                    const isCompact = end - start <= 60;
-                    const layoutClasses = isCompact
-                        ? "m-0.5 flex min-h-0 min-w-0 items-center overflow-hidden rounded-md border px-1 text-[9px] leading-none"
-                        : "m-0.5 flex min-h-0 min-w-0 flex-col overflow-hidden rounded-md border px-1.5 py-1 text-[10px] leading-tight";
-                    const card = makeElement("article", `col-start-1 row-(--event-grid-row) z-10 ${layoutClasses} ${colorClasses}`);
-                    card.dataset.start = event.start;
-                    card.dataset.end = event.end;
-                    const ownerName = event.owner === "shared"
-                        ? "Shared"
-                        : event.owner === "you" ? "You" : displayName(state.selectedFriend);
-                    card.title = `${event.title}, ${timeLabel(event.start)} - ${timeLabel(event.end)} (${ownerName})`;
-                    card.setAttribute("aria-label", card.title);
-                    if (isCompact) {
-                        card.append(makeElement("strong", "block truncate font-bold", `${event.title} · ${timeLabel(event.start)}`));
-                    } else {
-                        card.append(
-                            makeElement("strong", "truncate font-bold", event.title),
-                            makeElement("span", "truncate", `${timeLabel(event.start)} - ${timeLabel(event.end)}`),
-                            makeElement("span", "truncate opacity-80", ownerName),
-                        );
-                    }
-                    const firstRow = Math.floor(start / 30);
-                    const lastRow = Math.ceil(end / 30);
-                    card.style.setProperty("--event-grid-row", `${firstRow + 1} / ${lastRow + 1}`);
-                    dayColumn.append(card);
-                });
+                const card = createCalendarEvent(schedule, event);
+                if (schedule.id === scheduleState.selectedScheduleId && !calendarToggle.checked) {
+                    card.classList.add("hidden");
+                }
+                dayColumn.append(card);
             });
-        };
+        });
+    });
+};
 
-        const scrollCalendarToFirstEvent = () => {
-            const firstEvent = [...calendar.querySelectorAll("article[data-start]")]
-                .sort((left, right) => minutes(left.dataset.start) - minutes(right.dataset.start))[0];
-            if (!firstEvent) {
-                return;
-            }
+const initializeCalendar = () => {
+    const scrollContainer = calendar.querySelector(".calendar-scroll");
+    const dayGrid = calendar.querySelector(".calendar-day");
+    if (!scrollContainer || !dayGrid) {
+        return;
+    }
 
-            calendarScroll.scrollTop = 0;
-            const eventOffset = firstEvent.getBoundingClientRect().top
-                - calendarScroll.getBoundingClientRect().top;
-            const stickyHeader = calendar.querySelector(".sticky");
-            calendarScroll.scrollTop = Math.max(
-                0,
-                eventOffset - (stickyHeader?.offsetHeight ?? 0) - 4,
-            );
-        };
+    // Start at the earliest visible event while leaving the sticky weekday row in view.
+    const firstEvent = [...calendar.querySelectorAll(".calendar-event:not(.hidden)")]
+        .sort((left, right) => toMinutes(left.dataset.start) - toMinutes(right.dataset.start))[0];
+    if (!firstEvent) {
+        return;
+    }
 
-        return { renderCalendar, scrollCalendarToFirstEvent };
-    };
+    scrollContainer.scrollTop = 0;
+    const eventOffset = firstEvent.getBoundingClientRect().top
+        - scrollContainer.getBoundingClientRect().top;
+    const stickyHeader = calendar.querySelector(".calendar-day-heading");
+    // 64 = one empty hour (54px) + 10px, so the hour before the first event and its
+    // time label still show at the top like the figma
+    scrollContainer.scrollTop = Math.max(
+        0,
+        eventOffset - (stickyHeader?.offsetHeight ?? 0) - 64,
+    );
+};
 
-    window.FriendsCalendar = { createRenderer };
+Object.assign(window.SchedulePrototype, {
+    renderCategories,
+    renderCalendarEvents,
+    initializeCalendar,
+});
 })();
