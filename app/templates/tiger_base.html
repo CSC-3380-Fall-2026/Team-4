@@ -1,196 +1,189 @@
 <!DOCTYPE html>
-<html lang="en" class="td-figma">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>{{ page_title }} | TigerDrive</title>
 
-    <link rel="icon"
-          href="{{ url_for('static', path='/tiger_icon.svg') }}"
-          type="image/svg+xml">
+    <link rel="icon" href="{{ url_for('static', path='/tiger_icon.svg') }}" type="image/svg+xml">
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', path='/css/app.css') }}">
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', path='/tiger_workspace.css') }}">
-
+    <!-- fonts from the figma file -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossorigin>
-
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap">
+          href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap">
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', path='/tiger_figma.css') }}?v=1">
+    <!-- app.css is the tailwind build, the other two are our own styles -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/tiger_workspace.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', path='/tiger_pages.css') }}?v=2">
 </head>
 
 {% set account_page = page_title in ['Log in', 'Sign up'] %}
 
+{# TODO: these two are typed in by hand for now, nothing in the backend gives us the week number #}
+{% set semester_name = "Fall 2025" %}
+{% set semester_week = "FALL SEMESTER / WEEK 08" %}
+
+{# the name we show in the banner, only there when the page sends a profile #}
+{% set first_name = "" %}
+{% if profile and profile.username %}
+    {% set first_name = profile.username.split(" ")[0] %}
+{% endif %}
+
 <body id="main-body"
-      class="{% block body_class %}tiger-workspace{% endblock %}{% if account_page %} td-auth{% endif %}"
+      class="{% block body_class %}tiger-workspace{% endblock %}{% if account_page %} auth-page{% endif %}"
       data-page="{{ page_title | lower | replace(' ', '-') }}">
 
     <a class="skip-link" href="#content">Skip to page content</a>
 
-    {% if not account_page %}
-        {% block nav %}
-            {% include "components/dashboard_nav.html" %}
-        {% endblock %}
-    {% endif %}
+    {% if account_page %}
 
-    <main id="workspace">
+    {# ---------- log in / sign up layout ---------- #}
+    <main id="workspace" class="auth-layout">
+        <aside class="auth-left" aria-label="TigerDrive">
+            <a class="auth-logo" href="/catalog">
+                <span aria-hidden="true">///</span>TIGERDRIVE
+            </a>
 
-        {% if account_page %}
+            <h2 class="auth-slogan">
+                {% if page_title == 'Log in' %}
+                    A LITTLE MORE<br>
+                    BALANCE. A LOT<br>
+                    MORE YOU.
+                {% else %}
+                    YOUR NEXT<br>
+                    CHAPTER, BETTER<br>
+                    TOGETHER.
+                {% endif %}
+            </h2>
 
-        <div class="fg-auth-layout">
-            <aside class="fg-auth-brand" aria-label="TigerDrive">
-                <a class="fg-auth-logo" href="/catalog">
-                    <span aria-hidden="true">///</span>TIGERDRIVE
-                </a>
+            {# the little yellow week picture #}
+            <div class="week-art" role="img"
+                 aria-label="Picture of a balanced week with classes, work, and free time">
+                <h3>Room for what matters.</h3>
+                <p>YOUR WEEK, IN BALANCE</p>
 
-                <h2 class="fg-auth-slogan">
-                    {% if page_title == 'Log in' %}
-                        A LITTLE MORE<br>
-                        BALANCE. A LOT<br>
-                        MORE YOU.
-                    {% else %}
-                        YOUR NEXT<br>
-                        CHAPTER, BETTER<br>
-                        TOGETHER.
-                    {% endif %}
-                </h2>
-
-                <div class="fg-week-art"
-                     role="img"
-                     aria-label="Illustration of a balanced week with classes, work, and free time">
-
-                    <h3>Room for what matters.</h3>
-                    <p>YOUR WEEK, IN BALANCE</p>
-
-                    <div class="fg-week-days" aria-hidden="true">
-                        <div>
-                            <span>MON</span>
-                            <div class="fg-day-track">
-                                <span class="fg-art-class">Class</span>
-                            </div>
+                <div class="week-art-days" aria-hidden="true">
+                    <div>
+                        <span>MON</span>
+                        <div class="week-art-track">
+                            <span class="art-block art-class" style="top: 0; height: 57px;">Class</span>
                         </div>
-
-                        <div>
-                            <span>TUE</span>
-                            <div class="fg-day-track">
-                                <span class="fg-art-free">Free<br>together</span>
-                            </div>
+                    </div>
+                    <div>
+                        <span>TUE</span>
+                        <div class="week-art-track">
+                            <span class="art-block art-free" style="top: 58px; height: 63px;">Free<br>together</span>
                         </div>
-
-                        <div>
-                            <span>WED</span>
-                            <div class="fg-day-track">
-                                <span class="fg-art-work">Work</span>
-                            </div>
+                    </div>
+                    <div>
+                        <span>WED</span>
+                        <div class="week-art-track">
+                            <span class="art-block art-work" style="top: 0; height: 86px;">Work</span>
                         </div>
-
-                        <div>
-                            <span>THU</span>
-                            <div class="fg-day-track">
-                                <span class="fg-art-class fg-art-later">Class</span>
-                            </div>
+                    </div>
+                    <div>
+                        <span>THU</span>
+                        <div class="week-art-track">
+                            <span class="art-block art-class" style="top: 28px; height: 57px;">Class</span>
                         </div>
-
-                        <div>
-                            <span>FRI</span>
-                            <div class="fg-day-track">
-                                <span class="fg-art-personal">Your time</span>
-                            </div>
+                    </div>
+                    <div>
+                        <span>FRI</span>
+                        <div class="week-art-track">
+                            <span class="art-block art-time" style="top: 91px; height: 54px;">Your time</span>
                         </div>
                     </div>
                 </div>
-            </aside>
+            </div>
+        </aside>
 
-            <section class="fg-auth-main" aria-label="{{ page_title }}">
-                <div class="fg-auth-spacer" aria-hidden="true"></div>
+        <section class="auth-right" aria-label="{{ page_title }}">
+            <header class="page-banner auth-banner">
+                <div>
+                    <h1>
+                        {% if page_title == 'Log in' %}
+                            PICK UP WHERE YOU LEFT OFF.
+                        {% else %}
+                            MAKE ROOM FOR MORE.
+                        {% endif %}
+                    </h1>
+                    <p>{{ 'WELCOME BACK' if page_title == 'Log in' else "LET'S GET YOU STARTED" }}</p>
+                </div>
+                <span class="banner-stripes" aria-hidden="true"><i></i><i></i><i></i></span>
+            </header>
 
-                <header class="fg-auth-heading">
-                    <div>
-                        <h1>
-                            {% if page_title == 'Log in' %}
-                                PICK UP WHERE YOU LEFT OFF.
-                            {% else %}
-                                MAKE ROOM FOR MORE.
-                            {% endif %}
-                        </h1>
+            <div id="content" class="auth-content">
+                {% block auth_content %}{% endblock %}
+            </div>
+        </section>
+    </main>
 
-                        <p>
-                            {{ 'WELCOME BACK' if page_title == 'Log in'
-                               else "LET'S GET YOU STARTED" }}
-                        </p>
-                    </div>
+    {% else %}
 
-                    <span class="fg-stripes" aria-hidden="true">
-                        <i></i><i></i><i></i>
-                    </span>
-                </header>
+    {# ---------- normal pages with the sidebar ---------- #}
+    {% block nav %}
+        {% include "components/dashboard_nav.html" %}
+    {% endblock %}
 
-        {% else %}
-
-        <div class="fg-topline">
-            <nav class="fg-breadcrumb" aria-label="Breadcrumb">
+    <main id="workspace">
+        <div class="top-bar">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
                 <a href="/dashboard">Workspace</a>
                 <span aria-hidden="true">/</span>
-                <span aria-current="page">{{ page_title }}</span>
+                <span aria-current="page">{{ 'Courses' if page_title == 'Course Catalog' else page_title }}</span>
             </nav>
 
-            <div class="fg-top-actions">
+            <div class="top-bar-right">
                 {% block top_link %}{% endblock %}
-
-                {% if semester_label is defined and semester_label %}
-                    <span>{{ semester_label }}</span>
-                {% elif data is defined and data.selected %}
-                    <span>{{ data.selected.semester }}</span>
+                {% if page_title == 'Friends' %}
+                    <span class="top-semester top-semester-dark">{{ semester_name }} <span aria-hidden="true">⌄</span></span>
+                    <a class="top-help" href="/profile">Help &amp; support</a>
+                {% else %}
+                    <span class="top-semester">
+                        {% if data is defined and data.selected and data.selected.semester %}
+                            {{ data.selected.semester }}
+                        {% else %}
+                            {{ semester_name }}
+                        {% endif %}
+                    </span>
                 {% endif %}
             </div>
         </div>
 
         {% set headlines = {
-            'Dashboard': "You're making progress.",
-            'Schedule': 'Your week, in perspective.',
+            'Dashboard': "YOU'RE MAKING PROGRESS",
+            'Schedule': 'YOUR WEEK, IN PERSPECTIVE.',
             'Planning': 'Plan Ahead',
-            'Course Catalog': 'Discover something new.',
-            'Friends': 'Good company. Perfect timing.',
+            'Course Catalog': 'DISCOVER SOMETHING NEW.',
+            'Friends': 'GOOD COMPANY. PERFECT TIMING.',
             'Profile': 'Welcome Back'
         } %}
 
-        <header id="top-bar">
-            <div class="fg-heading-text">
+        <header id="top-bar" class="page-banner">
+            <div>
                 <h1>
-                    {{ headlines.get(page_title, page_title) }}
+                    {% if page_title == 'Dashboard' %}
+                        {{ headlines['Dashboard'] }}{% if first_name %}, {{ first_name | upper }}{% endif %}.
+                    {% elif page_title == 'Profile' %}
+                        {{ headlines['Profile'] }}{% if first_name %}, {{ first_name }}{% endif %}
+                    {% else %}
+                        {{ headlines.get(page_title, page_title) }}
+                    {% endif %}
                 </h1>
-
-                {% if semester_caption is defined and semester_caption %}
-                    <p class="fg-heading-caption">{{ semester_caption }}</p>
-                {% endif %}
+                <p>{{ semester_week }}</p>
             </div>
-
-            <span class="fg-stripes" aria-hidden="true">
-                <i></i><i></i><i></i>
-            </span>
+            <span class="banner-stripes" aria-hidden="true"><i></i><i></i><i></i></span>
         </header>
-
-        {% endif %}
 
         <div id="content">
             {% block content %}{% endblock %}
         </div>
-
-        {% if account_page %}
-            </section>
-        </div>
-        {% endif %}
-
     </main>
+
+    {% endif %}
 
     {% block scripts %}{% endblock %}
 </body>
