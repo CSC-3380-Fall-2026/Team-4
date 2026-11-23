@@ -1,39 +1,27 @@
-"""Schedule page APIs backed by each signed-in student's Supabase data."""
+"""Schedule metrics, conflicts, presets, and shared free time logic."""
 
 from copy import deepcopy
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import HTTPException, status
 
-from tiger_auth import Session, current_session
-from tiger_catalog import load_courses
+import tiger_catalog
 from models.tiger_schedule import (
     Classes,
     CoursePreset,
     CourseSelection,
     Schedule,
-    ScheduleDefinition,
-    ScheduleEvent,
     ScheduleEventData,
     ScheduleMetrics,
     SchedulePageData,
     SharedFreeTimeDay,
     SharedFreeTimePeriod,
-    SharedFreeTimeRequest,
     SharedFreeTimeResponse,
     UserBase,
     WEEKDAYS,
 )
-from tiger_schedule_store import (
-    current_semester,
-    fetch_schedule,
-    insert_schedule,
-    list_schedules,
-    load_page,
-    remove_schedule,
-    save_schedule,
-)
+from tiger_auth import Session
+from tiger_schedule_store import current_semester, list_schedules
 
-router: APIRouter = APIRouter(prefix="/api", tags=["Schedules"])
 DEFAULT_GRADE: float = 0.0
 
 
@@ -59,16 +47,16 @@ def preset_for(course: dict) -> CoursePreset:
     )
 
 
-def _course_presets() -> list[CoursePreset]:
+def course_presets() -> list[CoursePreset]:
     """Build course presets from the course catalog.
 
     Returns:
         One preset per catalog course.
     """
-    return [preset_for(course) for course in load_courses()]
+    return [preset_for(course) for course in tiger_catalog.load_courses()]
 
 
-def _find_user(data: SchedulePageData) -> UserBase:
+def find_user(data: SchedulePageData) -> UserBase:
     """Find the current user in the page data.
 
     Args:
@@ -89,8 +77,7 @@ def _find_user(data: SchedulePageData) -> UserBase:
     return user
 
 
-
-def _find_event(schedule: Schedule, event_id: str) -> int:
+def find_event(schedule: Schedule, event_id: str) -> int:
     """Find an event's index within a schedule.
 
     Args:
@@ -116,7 +103,7 @@ def _find_event(schedule: Schedule, event_id: str) -> int:
     return index
 
 
-def _check_conflicts(
+def check_conflicts(
     schedule: Schedule,
     proposed_event: ScheduleEventData,
     skip_id: str | None = None,
@@ -191,7 +178,7 @@ def page_data(data: SchedulePageData) -> SchedulePageData:
         Page data including per-schedule metrics.
     """
     result = deepcopy(data)
-    current_user = _find_user(result)
+    current_user = find_user(result)
 
     result.metrics = {
         schedule.id: schedule_metrics(schedule)
@@ -313,83 +300,6 @@ def free_time(
     return SharedFreeTimeResponse(days=available_days)
 
 
-@router.get("/schedule-data", response_model=SchedulePageData)
-def schedule_data(session: Session = Depends(current_session)) -> SchedulePageData:
-    """Return the student's page data with metrics.
-
-    Args:
-        session: Verified student and their database client.
-
-    Returns:
-        The student, friends' shared schedules, and metrics.
-    """
-    return page_data(load_page(session))
-
-
-@router.post("/shared-free-time", response_model=SharedFreeTimeResponse)
-def shared_free(
-    query: SharedFreeTimeRequest,
-    session: Session = Depends(current_session),
-) -> SharedFreeTimeResponse:
-    """Find free time shared with a friend.
-
-    Args:
-        query: Friend username, time window, and minimum duration.
-        session: Verified student and their database client.
-
-    Returns:
-        Shared free periods by day.
-    """
-    data = load_page(session)
-    current_user = _find_user(data)
-
-    friend = next(
-        (
-            user
-            for user in data.users
-            if user.username == query.friend_username
-        ),
-        None,
-    )
-
-    if friend is None or friend.id == current_user.id:
-        raise HTTPException(status_code=404, detail="Friend not found.")
-
-    return free_time(
-        current_user,
-        friend,
-        query.start_time,
-        query.end_time,
-        query.minimum_duration,
-    )
-
-
-@router.get("/course-presets", response_model=list[CoursePreset])
-def search_presets(
-    query: str = "",
-    session: Session = Depends(current_session),
-) -> list[CoursePreset]:
-    """Search the catalog courses.
-
-    Args:
-        query: Text to match, or empty for all.
-        session: Verified student.
-
-    Returns:
-        Matching course presets.
-    """
-    search_term = query.strip().casefold()
-
-    return [
-        course
-        for course in _course_presets()
-        if not search_term
-        or search_term in " ".join(
-            [course.title, course.course_name, course.category]
-        ).casefold()
-    ]
-
-
 def check_name(session: Session, name: str, skip_id: str | None = None) -> None:
     """Refuse a schedule name the student already uses.
 
@@ -411,113 +321,6 @@ def check_name(session: Session, name: str, skip_id: str | None = None) -> None:
             )
 
 
-@router.post(
-    "/schedules",
-    response_model=Schedule,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_schedule(
-    definition: ScheduleDefinition,
-    session: Session = Depends(current_session),
-) -> Schedule:
-    """Create an empty schedule for the current student.
-
-    Args:
-        definition: Name and color for the schedule.
-        session: Verified student and their database client.
-
-    Returns:
-        The new schedule.
-    """
-    check_name(session, definition.name)
-    return insert_schedule(session, definition)
-
-
-@router.put("/schedules/{schedule_id}", response_model=Schedule)
-def update_schedule(
-    schedule_id: str,
-    definition: ScheduleDefinition,
-    session: Session = Depends(current_session),
-) -> Schedule:
-    """Rename or recolor a schedule.
-
-    Args:
-        schedule_id: ID of the schedule.
-        definition: New name and color.
-        session: Verified student and their database client.
-
-    Returns:
-        The updated schedule.
-    """
-    schedule = fetch_schedule(session, schedule_id)
-    check_name(session, definition.name, schedule_id)
-
-    schedule.name = definition.name
-    schedule.color = definition.color
-    save_schedule(session, schedule)
-
-    return schedule
-
-
-@router.delete(
-    "/schedules/{schedule_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-def delete_schedule(
-    schedule_id: str,
-    session: Session = Depends(current_session),
-) -> Response:
-    """Delete a schedule, keeping at least one.
-
-    Args:
-        schedule_id: ID of the schedule.
-        session: Verified student and their database client.
-
-    Returns:
-        An empty 204 response.
-    """
-    if len(list_schedules(session)) <= 1:
-        raise HTTPException(
-            status_code=409,
-            detail="At least one schedule must remain.",
-        )
-
-    remove_schedule(session, schedule_id)
-
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.post(
-    "/schedules/{schedule_id}/events",
-    response_model=ScheduleEvent,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_event(
-    schedule_id: str,
-    event: ScheduleEventData,
-    session: Session = Depends(current_session),
-) -> ScheduleEvent:
-    """Add an event to a schedule.
-
-    Args:
-        schedule_id: ID of the schedule.
-        event: Event data.
-        session: Verified student and their database client.
-
-    Returns:
-        The created event.
-    """
-    schedule = fetch_schedule(session, schedule_id)
-    created = ScheduleEvent(**event.model_dump())
-
-    _check_conflicts(schedule, created)
-
-    schedule.events.append(created)
-    save_schedule(session, schedule)
-
-    return created
-
-
 def find_preset(course_id: str) -> CoursePreset:
     """Look up a catalog course by id.
 
@@ -531,7 +334,7 @@ def find_preset(course_id: str) -> CoursePreset:
         HTTPException: With status 404 when the course is unknown.
     """
     course = next(
-        (item for item in _course_presets() if item.course_id == course_id),
+        (item for item in course_presets() if item.course_id == course_id),
         None,
     )
     if course is None:
@@ -560,107 +363,3 @@ def class_event(course: CoursePreset, selection: CourseSelection) -> Classes:
         credit=course.credit,
         **meeting,
     )
-
-
-@router.post(
-    "/schedules/{schedule_id}/courses",
-    response_model=Classes,
-    status_code=status.HTTP_201_CREATED,
-)
-def add_course(
-    schedule_id: str,
-    selection: CourseSelection,
-    session: Session = Depends(current_session),
-) -> Classes:
-    """Add a catalog course, with the chosen meeting times, to a schedule.
-
-    Args:
-        schedule_id: ID of the schedule.
-        selection: The chosen course and its meeting times.
-        session: Verified student and their database client.
-
-    Returns:
-        The created class entry.
-    """
-    schedule = fetch_schedule(session, schedule_id)
-    event = class_event(find_preset(selection.course_id), selection)
-
-    _check_conflicts(schedule, event)
-
-    schedule.events.append(event)
-    save_schedule(session, schedule)
-
-    return event
-
-
-@router.put(
-    "/schedules/{schedule_id}/events/{event_id}",
-    response_model=Classes | ScheduleEvent,
-)
-def update_event(
-    schedule_id: str,
-    event_id: str,
-    event: ScheduleEventData,
-    session: Session = Depends(current_session),
-) -> Classes | ScheduleEvent:
-    """Update an event in a schedule.
-
-    Args:
-        schedule_id: ID of the schedule.
-        event_id: ID of the event.
-        event: New event data.
-        session: Verified student and their database client.
-
-    Returns:
-        The updated event.
-    """
-    schedule = fetch_schedule(session, schedule_id)
-    event_index = _find_event(schedule, event_id)
-    existing = schedule.events[event_index]
-
-    updated = type(existing)(
-        **{
-            **existing.model_dump(),
-            **event.model_dump(),
-            "id": event_id,
-        },
-    )
-
-    _check_conflicts(
-        schedule,
-        updated,
-        skip_id=event_id,
-    )
-
-    schedule.events[event_index] = updated
-    save_schedule(session, schedule)
-
-    return updated
-
-
-@router.delete(
-    "/schedules/{schedule_id}/events/{event_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-def delete_event(
-    schedule_id: str,
-    event_id: str,
-    session: Session = Depends(current_session),
-) -> Response:
-    """Delete an event from a schedule.
-
-    Args:
-        schedule_id: ID of the schedule.
-        event_id: ID of the event.
-        session: Verified student and their database client.
-
-    Returns:
-        An empty 204 response.
-    """
-    schedule = fetch_schedule(session, schedule_id)
-    event_index = _find_event(schedule, event_id)
-
-    del schedule.events[event_index]
-    save_schedule(session, schedule)
-
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
