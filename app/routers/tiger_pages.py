@@ -1,7 +1,6 @@
 """Connect page URLs without changing the existing catalog or GPA API URLs."""
 
 from datetime import datetime, timedelta
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -9,6 +8,7 @@ from lucide import lucide_icon
 
 import tiger_auth
 import tiger_catalog
+from models.tiger_profile import AccountCard
 from models.tiger_session import Session
 from tiger_auth import require_login
 from grade_scale import GRADE_POINTS
@@ -128,7 +128,7 @@ def profile_page(
     Returns:
         The student's profile page.
     """
-    profile: dict[str, Any] = tiger_auth.session_card(session)
+    profile: AccountCard = tiger_auth.session_card(session)
     return render_page(
         request,
         "tiger_profile.html",

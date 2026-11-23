@@ -17,6 +17,13 @@ class Friend(BaseModel):
     username: str
 
 
+class Student(BaseModel):
+    """The signed-in student, as GET /api/friends/me returns them."""
+
+    user_id: str
+    username: str | None
+
+
 class FriendRequestIn(BaseModel):
     """Request body naming the user to befriend."""
 

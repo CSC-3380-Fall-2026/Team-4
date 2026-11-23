@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from models.tiger_friends import FriendRequestIn, ScheduleShareIn
+from models.tiger_friends import FriendRequestIn, ScheduleShareIn, Student
 from models.tiger_session import Session
 from tiger_auth import current_session
 from tiger_friends import (
@@ -24,16 +24,16 @@ router: APIRouter = APIRouter(prefix="/api/friends", tags=["friends"])
 
 
 @router.get("/me")
-def friends_account(session: Session = Depends(current_session)) -> dict:
+def friends_account(session: Session = Depends(current_session)) -> Student:
     """Confirm the authenticated account used by Friends APIs.
 
     Args:
         session: Authenticated session.
 
     Returns:
-        Dict holding the user id and username.
+        The signed-in student's user id and username.
     """
-    return {"user_id": session.user_id, "username": own_username(session)}
+    return Student(user_id=session.user_id, username=own_username(session))
 
 
 @router.post("/requests", status_code=201)

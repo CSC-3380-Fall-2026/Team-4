@@ -33,4 +33,34 @@ class ProfileRecord(ParsedTranscript):
     username: str | None = None
 
 
+class AccountCard(ProfileRecord):
+    """The signed-in student's account plus saved profile.
+
+    Attributes:
+        id: The student's user id.
+        email: The student's email address.
+        username: The student's username, empty when not set.
+        data_error: True when the saved profile could not be read.
+    """
+
+    id: str
+    email: str
+    username: str = ""  # pyright: ignore[reportIncompatibleVariableOverride]
+    data_error: bool = False
+
+
+class TokenResponse(BaseModel):
+    """The access token returned by a successful JSON login."""
+
+    access_token: str
+    token_type: str = "bearer"
+
+
+class SignupResponse(BaseModel):
+    """Confirmation that a signup was requested, with next steps."""
+
+    created: bool
+    message: str
+
+
 ProfileUpdate = ProfileRecord

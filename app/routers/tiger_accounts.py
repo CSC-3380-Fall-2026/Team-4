@@ -1,7 +1,5 @@
 """Account forms for the browser, and the JSON account API."""
 
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials
@@ -10,7 +8,12 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
 
 import tiger_auth
-from models.tiger_profile import UserAuthSchema
+from models.tiger_profile import (
+    AccountCard,
+    SignupResponse,
+    TokenResponse,
+    UserAuthSchema,
+)
 from tiger_views import redirect_to, render_page, set_cookie, valid_token
 
 router: APIRouter = APIRouter()
@@ -20,14 +23,14 @@ router.add_api_route("/validateToken", tiger_auth.validate_token, methods=["GET"
 
 
 @router.post("/login")
-def login_api(credentials: UserAuthSchema) -> dict[str, str]:
+def login_api(credentials: UserAuthSchema) -> TokenResponse:
     """Sign in through the JSON API.
 
     Args:
         credentials: Student email and password.
 
     Returns:
-        The access token and its type.
+        The access token and its type, as a TokenResponse.
 
     Raises:
         HTTPException: 401 when the email or password is wrong.
@@ -35,18 +38,18 @@ def login_api(credentials: UserAuthSchema) -> dict[str, str]:
     message, accepted = tiger_auth.login(credentials)
     if not accepted:
         raise HTTPException(401, message)
-    return {"access_token": message, "token_type": "bearer"}
+    return TokenResponse(access_token=message)
 
 
 @router.post("/signup")
-def signup_api(credentials: UserAuthSchema) -> dict[str, Any]:
+def signup_api(credentials: UserAuthSchema) -> SignupResponse:
     """Register through the JSON API.
 
     Args:
         credentials: Student email and chosen password.
 
     Returns:
-        Confirmation that the account was requested, with next steps.
+        A SignupResponse confirming the account was requested, with next steps.
 
     Raises:
         HTTPException: 400 when registration is refused.
@@ -54,20 +57,20 @@ def signup_api(credentials: UserAuthSchema) -> dict[str, Any]:
     message, accepted = tiger_auth.signup(credentials)
     if not accepted:
         raise HTTPException(400, message)
-    return {"created": True, "message": message}
+    return SignupResponse(created=True, message=message)
 
 
 @router.get("/getUser")
 def get_user(
     credentials: HTTPAuthorizationCredentials = Depends(tiger_auth.security),
-) -> dict[str, Any]:
+) -> AccountCard:
     """Return only the profile owned by the verified API caller.
 
     Args:
         credentials: Bearer token identifying the caller.
 
     Returns:
-        The caller's own account and profile information.
+        The caller's own account and profile as an AccountCard.
     """
     return tiger_auth.token_profile(credentials.credentials)
 

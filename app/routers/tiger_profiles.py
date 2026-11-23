@@ -10,7 +10,7 @@ from starlette.exceptions import HTTPException
 
 import tiger_auth
 import tiger_transcript
-from models.tiger_profile import ProfileUpdate
+from models.tiger_profile import AccountCard, ProfileUpdate
 from models.tiger_schedule import UserBase
 from models.tiger_session import Session
 from tiger_auth import current_session, require_login
@@ -191,7 +191,7 @@ def show_error(
 
 def draft_profile(
     session: Session, parsed: tiger_transcript.ParsedTranscript
-) -> dict[str, Any]:
+) -> AccountCard:
     """Merge a parsed transcript onto the student's saved profile for review.
 
     Args:
@@ -199,14 +199,16 @@ def draft_profile(
         parsed: GPA, credit hours, and courses read from a transcript.
 
     Returns:
-        A profile dict with the parsed fields ready to show for review;
+        An AccountCard with the parsed fields ready to show for review;
         nothing is saved to the database yet.
     """
-    profile: dict[str, Any] = tiger_auth.session_card(session)
-    profile["gpa"] = parsed.gpa
-    profile["completed_credit_hours"] = parsed.completed_credit_hours
-    profile["courses"] = [course.model_dump() for course in parsed.courses]
-    return profile
+    return tiger_auth.session_card(session).model_copy(
+        update={
+            "gpa": parsed.gpa,
+            "completed_credit_hours": parsed.completed_credit_hours,
+            "courses": parsed.courses,
+        }
+    )
 
 
 def body_size(request: Request) -> int:

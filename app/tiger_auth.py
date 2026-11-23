@@ -17,6 +17,7 @@ from supabase import Client, ClientOptions, create_client
 from tiger_views import redirect_to
 
 from models.tiger_profile import (
+    AccountCard,
     ProfileCourse,
     ProfileRecord,
     UserAuthSchema,
@@ -174,7 +175,7 @@ def readable_courses(raw: Any) -> list[dict[str, Any]]:
     return courses
 
 
-def session_card(session: Session) -> dict[str, Any]:
+def session_card(session: Session) -> AccountCard:
     """Read account and profile data for an already verified session.
 
     Args:
@@ -183,15 +184,11 @@ def session_card(session: Session) -> dict[str, Any]:
     Returns:
         Account information plus owned profile fields when available.
     """
-    profile: dict[str, Any] = {
-        "id": session.user_id,
-        "username": session.meta.get("username") or "",
-        "email": session.email,
-        "gpa": None,
-        "completed_credit_hours": 0,
-        "courses": [],
-        "data_error": False,
-    }
+    card: AccountCard = AccountCard(
+        id=session.user_id,
+        email=session.email,
+        username=session.meta.get("username") or "",
+    )
     try:
         # The client types rows as generic JSON; profile rows are JSON objects.
         rows = cast(
@@ -208,16 +205,23 @@ def session_card(session: Session) -> dict[str, Any]:
             row: ProfileRecord = ProfileRecord.model_validate(
                 {**saved, "courses": []}
             )
-            profile["username"] = row.username or profile["username"]
-            profile["gpa"] = row.gpa
-            profile["completed_credit_hours"] = row.completed_credit_hours
-            profile["courses"] = readable_courses(saved.get("courses"))
+            card = card.model_copy(
+                update={
+                    "username": row.username or card.username,
+                    "gpa": row.gpa,
+                    "completed_credit_hours": row.completed_credit_hours,
+                    "courses": [
+                        ProfileCourse(**course)
+                        for course in readable_courses(saved.get("courses"))
+                    ],
+                }
+            )
     except Exception:
-        profile["data_error"] = True
-    return profile
+        card = card.model_copy(update={"data_error": True})
+    return card
 
 
-def token_profile(token: str) -> dict[str, Any]:
+def token_profile(token: str) -> AccountCard:
     """Read account and profile data using a verified token and its owner ID.
 
     Args:
