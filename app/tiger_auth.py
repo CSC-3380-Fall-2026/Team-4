@@ -417,18 +417,18 @@ def session_profile(session: Session) -> UserBase:
     )
 
 
-def save_profile(session: Session, fields: dict[str, Any]) -> UserBase:
+def save_profile(session: Session, profile: ProfileRecord) -> UserBase:
     """Store validated profile fields for the session's own student.
 
     Args:
         session: The verified student and their database client.
-        fields: Username, GPA, credit hours, and courses to save.
+        profile: Username, GPA, credit hours, and courses to save.
 
     Returns:
         The profile as saved.
     """
     row: dict[str, Any] = {
-        **fields,
+        **profile.model_dump(),
         "id": session.user_id,
         "email": session.email,
         "updated_at": datetime.now(timezone.utc).isoformat(),
