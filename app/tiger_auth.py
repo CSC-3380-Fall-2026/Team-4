@@ -225,6 +225,21 @@ def readable_courses(raw: Any) -> list[dict[str, Any]]:
     return courses
 
 
+def nav_profile(session: "Session") -> dict[str, str]:
+    """Build the name and email shown at the bottom of the sidebar.
+
+    Args:
+        session: The verified student from require_login.
+
+    Returns:
+        The username and email, without reading the database again.
+    """
+    return {
+        "username": session.meta.get("username") or "",
+        "email": session.email,
+    }
+
+
 def session_card(session: "Session") -> dict[str, Any]:
     """Read account and profile data for an already verified session.
 
