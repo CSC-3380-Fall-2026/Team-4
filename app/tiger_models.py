@@ -4,11 +4,13 @@ import re
 from typing import Any, Literal
 from uuid import uuid4
 
+from models.tiger_profile import ProfileCourse
 from pydantic import (
     BaseModel,
     ConfigDict,
     EmailStr,
     Field,
+    PrivateAttr,
     field_validator,
     model_validator,
 )
@@ -26,6 +28,7 @@ Weekday = Literal[
 ScheduleColor = Literal[
     "blue", "green", "orange", "purple", "red", "yellow", "pink", "teal"
 ]
+
 
 def to_camel(value: str) -> str:
     """Convert a snake_case name to camelCase.
@@ -48,11 +51,13 @@ class ScheduleModel(BaseModel):
         populate_by_name=True,
     )
 
+
 class UserAuthSchema(BaseModel):
     """Email and password submitted for login or signup."""
 
     email: EmailStr
     password: str
+
 
 class ScheduleEventData(ScheduleModel):
     """Validated fields shared by every schedule event."""
@@ -143,7 +148,9 @@ class ScheduleEventData(ScheduleModel):
 
     @field_validator("guests", mode="before")
     @classmethod
-    def normalize_guests(cls: type["ScheduleEventData"], guests: list[str] | str) -> list[str]:
+    def normalize_guests(
+        cls: type["ScheduleEventData"], guests: list[str] | str
+    ) -> list[str]:
         """Split and clean the guest list.
 
         Args:
@@ -156,10 +163,12 @@ class ScheduleEventData(ScheduleModel):
             guests = guests.split(",")
         return [guest.strip() for guest in guests if guest.strip()]
 
+
 class ScheduleEvent(ScheduleEventData):
     """A schedule event with a unique ID."""
 
     id: str = Field(default_factory=lambda: str(uuid4()))
+
 
 class Classes(ScheduleEvent):
     """A scheduled class event with course and grade details."""
@@ -169,7 +178,8 @@ class Classes(ScheduleEvent):
     grade: float
     semester: str
     category: str
-    credit: int = Field(gt=0)  ##credit hours are stored explicitly, never derived from meeting times
+    credit: int = Field(gt=0)
+
 
 class ScrapedCourse(BaseModel):
     """A course scraped from the catalog."""
@@ -181,6 +191,7 @@ class ScrapedCourse(BaseModel):
     category: str
     source_url: str
 
+
 class ConcentrationRequirements(BaseModel):
     """Courses and notes required for a concentration."""
 
@@ -189,6 +200,7 @@ class ConcentrationRequirements(BaseModel):
     other_requirements: list[dict[str, Any]] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
     required_credit_hours: int | None = None
+
 
 class CoursePreset(ScheduleModel):
     """A real catalog course offered for adding to a schedule."""
@@ -202,6 +214,7 @@ class CoursePreset(ScheduleModel):
     category: str
     semester: str
 
+
 class Schedule(ScheduleModel):
     """A named, colored schedule holding events."""
 
@@ -209,6 +222,12 @@ class Schedule(ScheduleModel):
     name: str = Field(min_length=1, max_length=60)
     color: ScheduleColor
     events: list[Classes | ScheduleEvent] = Field(default_factory=list)
+
+    # Preserve stored entries this version cannot read.
+    _kept: dict[str, list[Any]] = PrivateAttr(default_factory=dict)
+
+    # Track the saved version to avoid overwriting newer edits.
+    _version: str | None = PrivateAttr(default=None)
 
     @field_validator("name")
     @classmethod
@@ -225,6 +244,7 @@ class Schedule(ScheduleModel):
         if not value:
             raise ValueError("Schedule title cannot be blank.")
         return value
+
 
 class ScheduleDefinition(ScheduleModel):
     """The name and color used to create a schedule."""
@@ -248,10 +268,12 @@ class ScheduleDefinition(ScheduleModel):
             raise ValueError("Schedule title cannot be blank.")
         return value
 
+
 class CourseSelection(ScheduleEventData):
     """A catalog course plus the meeting times the student chose for it."""
 
     course_id: str
+
 
 class UserBase(ScheduleModel):
     """A user profile with GPA, courses, and schedules."""
@@ -264,11 +286,13 @@ class UserBase(ScheduleModel):
     courses: list[Any] = Field(default_factory=list)
     schedules: list[Schedule] = Field(default_factory=list)
 
+
 class ScheduleMetrics(ScheduleModel):
     """Summary totals for one schedule."""
 
     total_hours: int
     days_busy: str
+
 
 class SharedFreeTimeRequest(ScheduleModel):
     """Search window and friend for shared free time."""
@@ -327,16 +351,19 @@ class SharedFreeTimePeriod(ScheduleModel):
     start: str
     end: str
 
+
 class SharedFreeTimeDay(ScheduleModel):
     """Free time periods for one weekday."""
 
     day: Weekday
     periods: list[SharedFreeTimePeriod]
 
+
 class SharedFreeTimeResponse(ScheduleModel):
     """Shared free time grouped by weekday."""
 
     days: list[SharedFreeTimeDay]
+
 
 class ProfileUpdate(BaseModel):
     """Editable profile fields submitted by a student."""
@@ -344,7 +371,8 @@ class ProfileUpdate(BaseModel):
     username: str | None = None
     gpa: float | None = Field(default=None, ge=0, le=4.3)
     completed_credit_hours: int = Field(default=0, ge=0)
-    courses: list[Any] = Field(default_factory=list)
+    courses: list[ProfileCourse] = Field(default_factory=list)
+
 
 class SchedulePageData(ScheduleModel):
     """Data needed to render the schedule page."""
@@ -352,4 +380,3 @@ class SchedulePageData(ScheduleModel):
     current_user_id: str | int
     users: list[UserBase]
     metrics: dict[str, ScheduleMetrics]
-

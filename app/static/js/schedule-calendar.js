@@ -107,9 +107,11 @@ const initializeCalendar = () => {
     const eventOffset = firstEvent.getBoundingClientRect().top
         - scrollContainer.getBoundingClientRect().top;
     const stickyHeader = calendar.querySelector(".calendar-day-heading");
+    // 64 = one empty hour (54px) + 10px, so the hour before the first event and its
+    // time label still show at the top like the figma
     scrollContainer.scrollTop = Math.max(
         0,
-        eventOffset - (stickyHeader?.offsetHeight ?? 0) - 4,
+        eventOffset - (stickyHeader?.offsetHeight ?? 0) - 64,
     );
 };
 
