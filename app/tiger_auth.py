@@ -244,14 +244,15 @@ def session_card(session: "Session") -> dict[str, Any]:
             .execute()
             .data,
         )
-        if rows and rows[0]["id"] == session.user_id:
+        saved: dict[str, Any] = rows[0] if rows else {}
+        if saved.get("id") == session.user_id:
             row: ProfileRecord = ProfileRecord.model_validate(
-                {**rows[0], "courses": []}
+                {**saved, "courses": []}
             )
             profile["username"] = row.username or profile["username"]
             profile["gpa"] = row.gpa
             profile["completed_credit_hours"] = row.completed_credit_hours
-            profile["courses"] = readable_courses(rows[0].get("courses"))
+            profile["courses"] = readable_courses(saved.get("courses"))
     except Exception:
         profile["data_error"] = True
     return profile
@@ -441,6 +442,28 @@ def signed_out() -> RedirectResponse:
     return response
 
 
+def profile_row(session: Session, columns: str = "*") -> dict[str, Any]:
+    """Read columns of the session owner's profile row.
+
+    Args:
+        session: The verified student and their database client.
+        columns: PostgREST column list to select.
+
+    Returns:
+        The row, or an empty dict when the student has no profile yet.
+    """
+    # The client types rows as generic JSON; profile rows are JSON objects.
+    rows = cast(
+        list[dict[str, Any]],
+        session.db.table("profiles")
+        .select(columns)
+        .eq("id", session.user_id)
+        .execute()
+        .data,
+    )
+    return rows[0] if rows else {}
+
+
 def session_profile(session: Session) -> UserBase:
     """Read the session owner's saved profile row.
 
@@ -450,16 +473,7 @@ def session_profile(session: Session) -> UserBase:
     Returns:
         The saved profile, or defaults when no row exists.
     """
-    # The client types rows as generic JSON; profile rows are JSON objects.
-    rows = cast(
-        list[dict[str, Any]],
-        session.db.table("profiles")
-        .select("*")
-        .eq("id", session.user_id)
-        .execute()
-        .data,
-    )
-    row: dict[str, Any] = rows[0] if rows else {}
+    row: dict[str, Any] = profile_row(session)
     return UserBase(
         id=session.user_id,
         username=row.get("username"),

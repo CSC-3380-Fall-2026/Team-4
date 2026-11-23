@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from models.tiger_friends import FriendRequestIn, ScheduleShareIn
-from tiger_auth import Session, current_session
+from tiger_auth import Session, current_session, profile_row
 
 router = APIRouter(prefix="/api/friends", tags=["friends"])
 logger = logging.getLogger(__name__)
@@ -15,19 +15,25 @@ UNNAMED: str = "Student"
 
 
 
-def pair_filter(left: str, right: str) -> str:
-    """Build a filter matching a friendship row between two students.
+def pair_filter(
+    left: str,
+    right: str,
+    columns: tuple[str, str] = ("requester_id", "addressee_id"),
+) -> str:
+    """Build a filter matching a row between two students in either direction.
 
     Args:
         left: First student id.
         right: Second student id.
+        columns: The two student-id columns; friendship columns by default.
 
     Returns:
         A PostgREST or_() filter for either direction.
     """
+    first, second = columns
     return (
-        f"and(requester_id.eq.{left},addressee_id.eq.{right}),"
-        f"and(requester_id.eq.{right},addressee_id.eq.{left})"
+        f"and({first}.eq.{left},{second}.eq.{right}),"
+        f"and({first}.eq.{right},{second}.eq.{left})"
     )
 
 
@@ -92,14 +98,7 @@ def own_username(session: Session) -> str | None:
     Returns:
         The username, or None when it has not been set.
     """
-    rows = (
-        session.db.table("profiles")
-        .select("username")
-        .eq("id", session.user_id)
-        .execute()
-        .data
-    )
-    return (rows[0].get("username") or None) if rows else None
+    return profile_row(session, "username").get("username") or None
 
 
 def friend_names(session: Session) -> dict[str, str]:
@@ -411,14 +410,10 @@ def remove_friend(
     if not result.data:
         raise HTTPException(404, "Friendship not found.")
     former = other_id(result.data[0], session.user_id)
-    me = session.user_id
     (
         session.db.table("schedule_shares")
         .delete()
-        .or_(
-            f"and(owner_id.eq.{me},friend_id.eq.{former}),"
-            f"and(owner_id.eq.{former},friend_id.eq.{me})"
-        )
+        .or_(pair_filter(session.user_id, former, ("owner_id", "friend_id")))
         .execute()
     )
     return {"message": "Friend removed."}
