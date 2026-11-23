@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -14,7 +13,7 @@ from tiger_auth import Session, require_login
 from grade_scale import GRADE_POINTS
 from tiger_prerequisites import CourseResult, check_prerequisites
 from models.tiger_dashboard import DashboardData
-from tiger_dashboard import dashboard_data
+from tiger_dashboard import ZONE, dashboard_data
 from tiger_views import redirect_to, render_page
 
 router: APIRouter = APIRouter()
@@ -87,7 +86,7 @@ def schedule_page(
     Returns:
         A schedule page with the current week's headings.
     """
-    today: datetime = datetime.now(ZoneInfo("America/Chicago"))
+    today: datetime = datetime.now(ZONE)
     week_start: datetime = today - timedelta(days=today.weekday())
     week_days: list[dict[str, str]] = []
     for index in range(7):

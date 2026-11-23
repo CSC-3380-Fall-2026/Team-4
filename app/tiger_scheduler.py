@@ -169,12 +169,7 @@ def schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
     }
 
     total_minutes = sum(
-        (
-            int(event.end[:2]) * 60
-            + int(event.end[3:])
-            - int(event.start[:2]) * 60
-            - int(event.start[3:])
-        ) * len(event.days)
+        (_to_minutes(event.end) - _to_minutes(event.start)) * len(event.days)
         for event in schedule.events
     )
 

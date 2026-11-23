@@ -28,10 +28,9 @@ def occurrence(event: ScheduleEvent, day: date) -> UpcomingEvent:
     Returns:
         The event with a Chicago-time start.
     """
-    hour, minute = (int(part) for part in event.start.split(":"))
     return UpcomingEvent(
         title=event.title,
-        starts_at=datetime.combine(day, time(hour, minute), tzinfo=ZONE),
+        starts_at=datetime.combine(day, time.fromisoformat(event.start), tzinfo=ZONE),
         location=event.location,
     )
 
