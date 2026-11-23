@@ -18,7 +18,12 @@ class Friend(BaseModel):
 
 
 class Student(BaseModel):
-    """The signed-in student, as GET /api/friends/me returns them."""
+    """The signed-in student, as GET /api/friends/me returns them.
+
+    Attributes:
+        user_id: The student's user id.
+        username: The student's username, None when not set.
+    """
 
     user_id: str
     username: str | None

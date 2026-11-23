@@ -154,7 +154,7 @@ def validate_token(token: str) -> bool:
     return result is not None and result.user is not None
 
 
-def readable_courses(raw: Any) -> list[dict[str, Any]]:
+def readable_courses(raw: Any) -> list[ProfileCourse]:
     """Keep the saved courses that have the expected shape.
 
     One malformed entry must not hide the whole profile, or the student
@@ -164,12 +164,12 @@ def readable_courses(raw: Any) -> list[dict[str, Any]]:
         raw: The profile's stored courses value.
 
     Returns:
-        Valid course dicts; anything else is skipped.
+        Valid courses; anything else is skipped.
     """
-    courses: list[dict[str, Any]] = []
+    courses: list[ProfileCourse] = []
     for item in raw if isinstance(raw, list) else []:
         try:
-            courses.append(ProfileCourse.model_validate(item).model_dump())
+            courses.append(ProfileCourse.model_validate(item))
         except ValidationError:
             continue
     return courses
@@ -187,7 +187,7 @@ def session_card(session: Session) -> AccountCard:
     card: AccountCard = AccountCard(
         id=session.user_id,
         email=session.email,
-        username=session.meta.get("username") or "",
+        username=str(session.meta.get("username") or ""),
     )
     try:
         # The client types rows as generic JSON; profile rows are JSON objects.
@@ -210,10 +210,7 @@ def session_card(session: Session) -> AccountCard:
                     "username": row.username or card.username,
                     "gpa": row.gpa,
                     "completed_credit_hours": row.completed_credit_hours,
-                    "courses": [
-                        ProfileCourse(**course)
-                        for course in readable_courses(saved.get("courses"))
-                    ],
+                    "courses": readable_courses(saved.get("courses")),
                 }
             )
     except Exception:
@@ -428,7 +425,7 @@ def save_profile(session: Session, profile: ProfileRecord) -> UserBase:
         The profile as saved.
     """
     row: dict[str, Any] = {
-        **profile.model_dump(),
+        **profile.model_dump(include=set(ProfileRecord.model_fields)),
         "id": session.user_id,
         "email": session.email,
         "updated_at": datetime.now(timezone.utc).isoformat(),
