@@ -7,7 +7,7 @@ import re
 from bs4 import BeautifulSoup
 from bs4.element import Tag, NavigableString 
 from pathlib import Path
-from tiger_models import ConcentrationRequirements, ScrapedCourse 
+from models.tiger_catalog import ConcentrationRequirements, ScrapedCourse 
 
 URL = "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
 

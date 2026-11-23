@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 from tiger_auth import Session, session_profile
 from tiger_friends import friend_names, shared_rows
-from tiger_models import (
+from models.tiger_schedule import (
     Classes,
     Schedule,
     ScheduleDefinition,

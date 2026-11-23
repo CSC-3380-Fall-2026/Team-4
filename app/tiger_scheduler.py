@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from tiger_auth import Session, current_session
 from tiger_catalog import load_courses
-from tiger_models import (
+from models.tiger_schedule import (
     Classes,
     CoursePreset,
     CourseSelection,

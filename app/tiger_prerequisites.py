@@ -1,4 +1,8 @@
-"""Prerequisite checking for supported courses."""
+"""Prerequisite checking for supported courses.
+
+Tests import this file as app.tiger_prerequisites, without app/ on the
+import path, so it keeps its own models and imports nothing from app/.
+"""
 
 from __future__ import annotations
 

@@ -3,10 +3,9 @@
 import re
 from io import BytesIO
 
-from pydantic import BaseModel, Field
 from pypdf import PdfReader
 
-from models.tiger_profile import ProfileCourse
+from models.tiger_profile import ParsedTranscript, ProfileCourse
 
 MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
 MAX_PAGES: int = 20
@@ -31,13 +30,6 @@ CUMULATIVE_PATTERN: re.Pattern[str] = re.compile(
 )
 SKIP_PREFIXES: tuple[str, ...] = ("communication intensive",)
 
-
-class ParsedTranscript(BaseModel):
-    """Draft profile fields read from an unofficial transcript."""
-
-    gpa: float | None = Field(default=None, ge=0, le=4.3)
-    completed_credit_hours: int = Field(default=0, ge=0)
-    courses: list[ProfileCourse] = Field(default_factory=list)
 
 
 def read_pages(data: bytes) -> str:

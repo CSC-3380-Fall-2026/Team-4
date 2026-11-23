@@ -4,8 +4,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-
+from models.tiger_friends import FriendRequestIn, ScheduleShareIn
 from tiger_auth import Session, current_session
 
 router = APIRouter(prefix="/api/friends", tags=["friends"])
@@ -14,18 +13,6 @@ logger = logging.getLogger(__name__)
 SHARED_COLUMNS: str = "id,name,semester,sections"
 UNNAMED: str = "Student"
 
-
-class FriendRequestIn(BaseModel):
-    """Request body naming the user to befriend."""
-
-    username: str = Field(min_length=1, max_length=100)
-
-
-class ScheduleShareIn(BaseModel):
-    """Request body naming a schedule and the friend to share it with."""
-
-    schedule_id: str
-    friend_id: str
 
 
 def pair_filter(left: str, right: str) -> str:

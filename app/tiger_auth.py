@@ -14,8 +14,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import ValidationError
 from supabase import Client, ClientOptions, create_client
 
-from tiger_models import ProfileUpdate, UserAuthSchema, UserBase
-from models.tiger_profile import ProfileCourse, ProfileRecord
+from models.tiger_profile import (
+    ProfileCourse,
+    ProfileRecord,
+    ProfileUpdate,
+    UserAuthSchema,
+)
+from models.tiger_schedule import UserBase
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 load_dotenv(Path(__file__).resolve().parent / ".env")

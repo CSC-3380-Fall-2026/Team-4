@@ -8,7 +8,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
 
 import tiger_auth
-from tiger_models import UserAuthSchema
+from models.tiger_profile import UserAuthSchema
 from tiger_views import render_page, valid_token
 
 router: APIRouter = APIRouter()
