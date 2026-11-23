@@ -1,123 +1,133 @@
 (() => {
-// Render the current user's schedules as color-coded events on the weekly grid.
-const {
-    scheduleColors,
-    scheduleState,
-    toMinutes,
-    formatTime,
-    createElement,
-} = window.SchedulePrototype;
+    // Draws the "A little overlap goes a long way" chart on the Friends page.
+    // It shows one day at a time: one row for you and one row for the friend you checked.
+    const createRenderer = ({ state, schedules, usersByUsername, displayName, makeElement }) => {
+        const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const chart = document.querySelector("#friends-calendar");
+        const dayLabel = document.querySelector("#day-label");
+        const namesLabel = document.querySelector("#overlap-names");
+        const startInput = document.querySelector("#free-time-start");
+        const endInput = document.querySelector("#free-time-end");
 
-const calendarStartMinutes = 0;
-const minutesPerRow = 30;
-const rowsPerDay = 48;
-const calendar = document.querySelector("#schedule-calendar");
-const calendarToggle = document.querySelector("#schedule-calendar-toggle");
+        const minutes = (time) => {
+            const [hours, mins] = time.split(":").map(Number);
+            return hours * 60 + mins;
+        };
 
-const renderCategories = () => {
-    const categories = calendar.querySelector("#schedule-categories");
-    categories.replaceChildren();
-    scheduleState.schedules.forEach((schedule) => {
-        const item = createElement("li", "flex items-center justify-center gap-1");
-        item.append(
-            createElement("span", `size-2 rounded-full ${scheduleColors[schedule.color].dot}`),
-            document.createTextNode(schedule.name),
-        );
-        categories.append(item);
-    });
-};
+        // 780 -> "1 PM"
+        const hourLabel = (totalMinutes) => {
+            const hours = Math.floor(totalMinutes / 60);
+            const period = hours < 12 ? "AM" : "PM";
+            return `${hours % 12 || 12} ${period}`;
+        };
 
-const createCalendarEvent = (schedule, event) => {
-    const color = scheduleColors[schedule.color];
-    const isSelected = schedule.id === scheduleState.selectedScheduleId;
-    const emphasisClasses = isSelected ? "z-20" : "z-10 opacity-60";
-    const eventDuration = toMinutes(event.end) - toMinutes(event.start);
-    // Compact cards keep short events readable without overflowing their time slot.
-    const isCompact = eventDuration <= minutesPerRow * 2;
-    const layoutClasses = isCompact
-        ? "m-0.5 flex min-h-0 min-w-0 items-center overflow-hidden rounded-lg border px-1 text-[9px] leading-none"
-        : "m-0.5 flex min-h-0 min-w-0 flex-col justify-between gap-1 overflow-hidden rounded-lg border px-2 py-1.5 text-xs leading-tight";
-    const card = createElement("article", `calendar-event col-start-1 row-(--event-grid-row) ${emphasisClasses} ${layoutClasses} ${color.event}`);
-    card.dataset.eventId = event.id;
-    card.dataset.scheduleId = schedule.id;
-    card.dataset.start = event.start;
-    card.dataset.end = event.end;
+        // "14:00" -> "2:00"
+        const shortTime = (time) => {
+            const [hours, mins] = time.split(":").map(Number);
+            return `${hours % 12 || 12}:${String(mins).padStart(2, "0")}`;
+        };
 
-    card.title = `${event.title}, ${formatTime(event.start)} - ${formatTime(event.end)}${event.favorite ? ", favorite" : ""}`;
-    if (isCompact) {
-        card.setAttribute("aria-label", card.title);
-        card.append(createElement("strong", `block truncate font-bold ${color.title}`, `${event.title} · ${formatTime(event.start)}`));
-    } else {
-        const details = createElement("div", "flex flex-col");
-        details.append(createElement("strong", `font-bold ${color.title}`, event.title));
-        details.append(createElement("span", "event-time", `${formatTime(event.start)} - ${formatTime(event.end)}`));
-        card.append(details);
-    }
-    if (event.favorite && !isCompact) {
-        const star = createElement("span", `event-favorite-star text-lg leading-none ${color.favorite}`, "★");
-        star.setAttribute("aria-label", "Favorite event");
-        card.append(star);
-    }
+        // The real date of the picked weekday in this week (state.selectedDay 0 = Monday)
+        const pickedDate = () => {
+            const today = new Date();
+            const daysSinceMonday = (today.getDay() + 6) % 7;
+            const date = new Date(today);
+            date.setDate(today.getDate() - daysSinceMonday + state.selectedDay);
+            return date;
+        };
 
-    const startOffset = toMinutes(event.start) - calendarStartMinutes;
-    const endOffset = toMinutes(event.end) - calendarStartMinutes;
-    const firstRow = Math.floor(startOffset / minutesPerRow);
-    const lastRow = Math.ceil(endOffset / minutesPerRow);
-    if (firstRow < 0 || lastRow > rowsPerDay || lastRow <= firstRow) {
-        throw new RangeError("Event time must be within the calendar and have a positive duration.");
-    }
-    card.style.setProperty("--event-grid-row", `${firstRow + 1} / ${lastRow + 1}`);
-    return card;
-};
+        const eventsOn = (userSchedules, dayName) => userSchedules
+            .flatMap((schedule) => schedule.events)
+            .filter((event) => event.days.includes(dayName));
 
-const renderCalendarEvents = () => {
-    calendar.querySelectorAll(".calendar-day").forEach((day) => day.replaceChildren());
-    scheduleState.schedules.forEach((schedule) => {
-        schedule.events.forEach((event) => {
-            event.days.forEach((dayName) => {
-                const dayColumn = calendar.querySelector(`[data-day-name="${dayName}"]`);
-                if (!dayColumn) {
-                    return;
-                }
-                const card = createCalendarEvent(schedule, event);
-                if (schedule.id === scheduleState.selectedScheduleId && !calendarToggle.checked) {
-                    card.classList.add("hidden");
-                }
-                dayColumn.append(card);
+        const renderCalendar = () => {
+            const dayName = dayNames[state.selectedDay];
+            const windowStart = minutes(startInput.value || "08:00");
+            let windowEnd = minutes(endInput.value || "17:00");
+            if (windowEnd <= windowStart) {
+                windowEnd = windowStart + 60;
+            }
+            const windowLength = windowEnd - windowStart;
+
+            const friendUser = usersByUsername.get(state.selectedFriend);
+            const freeDay = state.freeDays.find((item) => item.day === dayName);
+            const freePeriods = freeDay ? freeDay.periods : [];
+
+            dayLabel.textContent = pickedDate().toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
             });
-        });
-    });
-};
+            namesLabel.textContent = friendUser
+                ? `You + ${displayName(state.selectedFriend)}`
+                : "You";
 
-const initializeCalendar = () => {
-    const scrollContainer = calendar.querySelector(".calendar-scroll");
-    const dayGrid = calendar.querySelector(".calendar-day");
-    if (!scrollContainer || !dayGrid) {
-        return;
-    }
+            // Turn a start and end time into a left and width percent on the track
+            const placeBar = (bar, start, end) => {
+                const from = Math.max(start, windowStart);
+                const to = Math.min(end, windowEnd);
+                if (to <= from) {
+                    return false;
+                }
+                bar.style.left = `${((from - windowStart) / windowLength) * 100}%`;
+                bar.style.width = `${((to - from) / windowLength) * 100}%`;
+                return true;
+            };
 
-    // Start at the earliest visible event while leaving the sticky weekday row in view.
-    const firstEvent = [...calendar.querySelectorAll(".calendar-event:not(.hidden)")]
-        .sort((left, right) => toMinutes(left.dataset.start) - toMinutes(right.dataset.start))[0];
-    if (!firstEvent) {
-        return;
-    }
+            const makeRow = (name, events, showTimes) => {
+                const row = makeElement("div", "overlap-row");
+                row.append(makeElement("span", "overlap-name", name));
+                const track = makeElement("div", "overlap-track");
 
-    scrollContainer.scrollTop = 0;
-    const eventOffset = firstEvent.getBoundingClientRect().top
-        - scrollContainer.getBoundingClientRect().top;
-    const stickyHeader = calendar.querySelector(".calendar-day-heading");
-    // 64 = one empty hour (54px) + 10px, so the hour before the first event and its
-    // time label still show at the top like the figma
-    scrollContainer.scrollTop = Math.max(
-        0,
-        eventOffset - (stickyHeader?.offsetHeight ?? 0) - 64,
-    );
-};
+                events.forEach((event) => {
+                    const bar = makeElement("span", "overlap-busy");
+                    bar.title = `${event.title}, ${shortTime(event.start)} - ${shortTime(event.end)}`;
+                    if (placeBar(bar, minutes(event.start), minutes(event.end))) {
+                        track.append(bar);
+                    }
+                });
+                freePeriods.forEach((period) => {
+                    // only the top row gets the time written on the gold part, like the figma
+                    const text = showTimes ? `${shortTime(period.start)}–${shortTime(period.end)}` : undefined;
+                    const bar = makeElement("span", "overlap-free", text);
+                    if (placeBar(bar, minutes(period.start), minutes(period.end))) {
+                        track.append(bar);
+                    }
+                });
 
-Object.assign(window.SchedulePrototype, {
-    renderCategories,
-    renderCalendarEvents,
-    initializeCalendar,
-});
+                row.append(track);
+                return row;
+            };
+
+            chart.replaceChildren();
+
+            const hours = makeElement("div", "overlap-hours");
+            for (let time = windowStart; time < windowEnd; time += 60) {
+                const label = makeElement("span", "", hourLabel(time));
+                label.style.left = `${((time - windowStart) / windowLength) * 100}%`;
+                hours.append(label);
+            }
+            chart.append(hours);
+
+            const rows = makeElement("div", "overlap-rows");
+            // the light gold stripe that runs behind every row where everyone is free
+            freePeriods.forEach((period) => {
+                const band = makeElement("span", "overlap-band");
+                if (placeBar(band, minutes(period.start), minutes(period.end))) {
+                    const bandTrack = makeElement("div", "overlap-band-track");
+                    bandTrack.append(band);
+                    rows.append(bandTrack);
+                }
+            });
+            rows.append(makeRow("You", eventsOn(schedules, dayName), true));
+            if (friendUser) {
+                rows.append(makeRow(displayName(state.selectedFriend), eventsOn(friendUser.schedules, dayName), false));
+            }
+            chart.append(rows);
+        };
+
+        return { renderCalendar };
+    };
+
+    window.FriendsCalendar = { createRenderer };
 })();
