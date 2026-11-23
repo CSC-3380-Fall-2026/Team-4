@@ -1,8 +1,8 @@
-"""Calculate GPA with the existing formulas and compatible API addresses."""
+"""Calculate GPA with the existing formulas; routers/tiger_planning.py serves them."""
 
 import math
 
-from fastapi import APIRouter, HTTPException
+from fastapi import HTTPException
 
 from grade_scale import GRADE_POINTS
 from models.tiger_planning import (
@@ -11,7 +11,6 @@ from models.tiger_planning import (
     RequiredGPARequest,
 )
 
-router: APIRouter = APIRouter()
 MAX_GPA: float = 4.3
 
 
@@ -35,7 +34,6 @@ def check_history(current_gpa: float, completed_credits: int) -> None:
         )
 
 
-@router.post("/calculateTotalCredits")
 def total_credits(classes: list[GpaCourse]) -> int:
     """Add the positive credit hours for the supplied courses.
 
@@ -58,7 +56,6 @@ def total_credits(classes: list[GpaCourse]) -> int:
     return credits
 
 
-@router.post("/calculateGPA")
 def semester_gpa(classes: list[GpaCourse]) -> float:
     """Return a credit-weighted GPA for the supplied courses.
 
@@ -82,7 +79,6 @@ def semester_gpa(classes: list[GpaCourse]) -> float:
     return min(MAX_GPA, quality_points / credit_hours)
 
 
-@router.post("/calculateCumulativeGPA")
 def cumulative_gpa(data: CumulativeGPARequest) -> float:
     """Combine previous quality points with the planned semester.
 
@@ -104,7 +100,6 @@ def cumulative_gpa(data: CumulativeGPARequest) -> float:
     return min(MAX_GPA, (previous_points + semester_points) / combined_credits)
 
 
-@router.post("/calculateRequiredGPA")
 def required_gpa(data: RequiredGPARequest) -> float:
     """Calculate the semester GPA needed to reach a cumulative target.
 
@@ -142,7 +137,6 @@ def required_gpa(data: RequiredGPARequest) -> float:
     return min(MAX_GPA, max(0.0, needed_gpa))
 
 
-@router.post("/getClasses")
 def saved_classes() -> list[GpaCourse]:
     """Report that saved-course retrieval still requires its database connection.
 

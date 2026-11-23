@@ -1,6 +1,8 @@
-"""Connect HTML account forms to the team's existing account operations."""
+"""Account forms for the browser, and the JSON account API."""
 
-from fastapi import APIRouter, HTTPException, Request
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import ValidationError
@@ -13,6 +15,61 @@ from tiger_views import redirect_to, render_page, set_cookie, valid_token
 
 router: APIRouter = APIRouter()
 MIN_PASSWORD: int = 8
+router.add_api_route("/logout", tiger_auth.logout, methods=["POST"])
+router.add_api_route("/validateToken", tiger_auth.validate_token, methods=["GET"])
+
+
+@router.post("/login")
+def login_api(credentials: UserAuthSchema) -> dict[str, str]:
+    """Sign in through the JSON API.
+
+    Args:
+        credentials: Student email and password.
+
+    Returns:
+        The access token and its type.
+
+    Raises:
+        HTTPException: 401 when the email or password is wrong.
+    """
+    message, accepted = tiger_auth.login(credentials)
+    if not accepted:
+        raise HTTPException(401, message)
+    return {"access_token": message, "token_type": "bearer"}
+
+
+@router.post("/signup")
+def signup_api(credentials: UserAuthSchema) -> dict[str, Any]:
+    """Register through the JSON API.
+
+    Args:
+        credentials: Student email and chosen password.
+
+    Returns:
+        Confirmation that the account was requested, with next steps.
+
+    Raises:
+        HTTPException: 400 when registration is refused.
+    """
+    message, accepted = tiger_auth.signup(credentials)
+    if not accepted:
+        raise HTTPException(400, message)
+    return {"created": True, "message": message}
+
+
+@router.get("/getUser")
+def get_user(
+    credentials: HTTPAuthorizationCredentials = Depends(tiger_auth.security),
+) -> dict[str, Any]:
+    """Return only the profile owned by the verified API caller.
+
+    Args:
+        credentials: Bearer token identifying the caller.
+
+    Returns:
+        The caller's own account and profile information.
+    """
+    return tiger_auth.token_profile(credentials.credentials)
 
 
 def account_page(

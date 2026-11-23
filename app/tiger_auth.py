@@ -8,7 +8,7 @@ import requests
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import ValidationError
@@ -19,14 +19,12 @@ from tiger_views import redirect_to
 from models.tiger_profile import (
     ProfileCourse,
     ProfileRecord,
-    ProfileUpdate,
     UserAuthSchema,
 )
 from models.tiger_schedule import UserBase
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 load_dotenv(Path(__file__).resolve().parent / ".env")
-router: APIRouter = APIRouter()
 security: HTTPBearer = HTTPBearer()
 optional_security: HTTPBearer = HTTPBearer(auto_error=False)
 AUTH_COOKIE: str = "tiger_access"
@@ -112,45 +110,6 @@ def signup(credentials: UserAuthSchema) -> tuple[str, bool]:
     )
 
 
-@router.post("/login")
-def login_api(credentials: UserAuthSchema) -> dict[str, str]:
-    """Sign in through the JSON API.
-
-    Args:
-        credentials: Student email and password.
-
-    Returns:
-        The access token and its type.
-
-    Raises:
-        HTTPException: 401 when the email or password is wrong.
-    """
-    message, accepted = login(credentials)
-    if not accepted:
-        raise HTTPException(401, message)
-    return {"access_token": message, "token_type": "bearer"}
-
-
-@router.post("/signup")
-def signup_api(credentials: UserAuthSchema) -> dict[str, Any]:
-    """Register through the JSON API.
-
-    Args:
-        credentials: Student email and chosen password.
-
-    Returns:
-        Confirmation that the account was requested, with next steps.
-
-    Raises:
-        HTTPException: 400 when registration is refused.
-    """
-    message, accepted = signup(credentials)
-    if not accepted:
-        raise HTTPException(400, message)
-    return {"created": True, "message": message}
-
-
-@router.post("/logout")
 def logout(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> bool:
@@ -177,7 +136,6 @@ def logout(
         return False
 
 
-@router.get("/validateToken")
 def validate_token(token: str) -> bool:
     """Validate an access token with Supabase.
 
@@ -274,21 +232,6 @@ def token_profile(token: str) -> dict[str, Any]:
     if session is None:
         raise HTTPException(401, "Please log in again.")
     return session_card(session)
-
-
-@router.get("/getUser")
-def get_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict[str, Any]:
-    """Return only the profile owned by the verified API caller.
-
-    Args:
-        credentials: Bearer token identifying the caller.
-
-    Returns:
-        The caller's own account and profile information.
-    """
-    return token_profile(credentials.credentials)
 
 
 class Session:
@@ -484,12 +427,6 @@ def session_profile(session: Session) -> UserBase:
     )
 
 
-@router.get("/api/profile")
-def get_profile(session: Session = Depends(current_session)) -> UserBase:
-    """Return only the signed-in student's saved profile."""
-    return session_profile(session)
-
-
 def save_profile(session: Session, fields: dict[str, Any]) -> UserBase:
     """Store validated profile fields for the session's own student.
 
@@ -508,24 +445,3 @@ def save_profile(session: Session, fields: dict[str, Any]) -> UserBase:
     }
     session.db.table("profiles").upsert(row).execute()
     return session_profile(session)
-
-
-@router.put("/api/profile")
-def update_profile(
-    update: ProfileUpdate, session: Session = Depends(current_session)
-) -> UserBase:
-    """Save the signed-in student's username, GPA, credit hours, and courses.
-
-    Args:
-        update: New profile values.
-        session: The verified student making the request.
-    """
-    return save_profile(
-        session,
-        {
-            "username": (update.username or "").strip() or None,
-            "gpa": update.gpa,
-            "completed_credit_hours": update.completed_credit_hours,
-            "courses": [course.model_dump() for course in update.courses],
-        },
-    )

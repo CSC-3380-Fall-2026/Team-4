@@ -1,4 +1,4 @@
-"""Save a student's profile from the HTML profile form."""
+"""Save a student's profile from the HTML form or the JSON profile API."""
 
 from typing import Any
 
@@ -10,7 +10,9 @@ from starlette.exceptions import HTTPException
 
 import tiger_auth
 import tiger_transcript
-from tiger_auth import Session, require_login
+from models.tiger_profile import ProfileUpdate
+from models.tiger_schedule import UserBase
+from tiger_auth import Session, current_session, require_login
 from tiger_views import redirect_to, render_page, valid_token
 
 router: APIRouter = APIRouter()
@@ -313,3 +315,40 @@ async def save_profile(
         message, status = save_error(error)
         return show_error(request, session, message, status, data)
     return redirect_to("/profile?saved=1")
+
+
+@router.get("/api/profile")
+def get_profile(session: Session = Depends(current_session)) -> UserBase:
+    """Return only the signed-in student's saved profile.
+
+    Args:
+        session: The verified student making the request.
+
+    Returns:
+        The student's saved profile.
+    """
+    return tiger_auth.session_profile(session)
+
+
+@router.put("/api/profile")
+def update_profile(
+    update: ProfileUpdate, session: Session = Depends(current_session)
+) -> UserBase:
+    """Save the signed-in student's username, GPA, credit hours, and courses.
+
+    Args:
+        update: New profile values.
+        session: The verified student making the request.
+
+    Returns:
+        The profile as saved.
+    """
+    return tiger_auth.save_profile(
+        session,
+        {
+            "username": (update.username or "").strip() or None,
+            "gpa": update.gpa,
+            "completed_credit_hours": update.completed_credit_hours,
+            "courses": [course.model_dump() for course in update.courses],
+        },
+    )

@@ -8,12 +8,21 @@ from starlette.datastructures import FormData
 from grade_scale import GRADE_POINTS
 from models.tiger_planning import CourseRow, PlanningForm, PlanningResult
 import tiger_auth
+import tiger_gpa
 from tiger_auth import Session, require_login
 from tiger_forecast import save_forecast
 from tiger_planning import MAX_ROWS, calculate_plan, read_form
 from tiger_views import render_page, valid_token
 
 router: APIRouter = APIRouter()
+# The GPA calculators are plain functions that also serve as JSON endpoints.
+router.add_api_route("/calculateTotalCredits", tiger_gpa.total_credits, methods=["POST"])
+router.add_api_route("/calculateGPA", tiger_gpa.semester_gpa, methods=["POST"])
+router.add_api_route(
+    "/calculateCumulativeGPA", tiger_gpa.cumulative_gpa, methods=["POST"]
+)
+router.add_api_route("/calculateRequiredGPA", tiger_gpa.required_gpa, methods=["POST"])
+router.add_api_route("/getClasses", tiger_gpa.saved_classes, methods=["POST"])
 
 
 def saved_start(session: Session) -> PlanningForm:

@@ -2,9 +2,7 @@
 
 import json
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
-
-router: APIRouter= APIRouter()
+from fastapi import HTTPException
 
 DATA_FILE = ( Path(__file__).resolve().parents[1] / "data" / "course_requirements.json" )
 
@@ -126,7 +124,6 @@ def load_courses() -> list[dict]:
     return courses
 
 
-@router.get("/courses", tags=["Course Catalog"])
 def search_courses(query: str = "", category: str = "") -> list[dict]:
     """Search courses by text and optional category.
 
