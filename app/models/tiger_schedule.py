@@ -229,32 +229,6 @@ class CourseSelection(ScheduleEventData):
     course_id: str
 
 
-class Schedule(ScheduleModel):
-    """A named, colored schedule holding events."""
-
-    id: str = Field(default_factory=lambda: str(uuid4()))
-    name: str = Field(min_length=1, max_length=60)
-    color: ScheduleColor
-    events: list[Classes | ScheduleEvent] = Field(default_factory=list)
-    # Stored entries this version can't read, written back unchanged on save.
-    _kept: dict[str, list[Any]] = PrivateAttr(default_factory=dict)
-    # The row's updated_at when loaded, used to refuse overwriting newer edits.
-    _version: str | None = PrivateAttr(default=None)
-
-    @field_validator("name")
-    @classmethod
-    def strip_name(cls: type["Schedule"], value: str) -> str:
-        """Strip and require a non-blank schedule name.
-
-        Args:
-            value: The submitted value.
-
-        Returns:
-            The cleaned value.
-        """
-        return required_text(value, "Schedule title cannot be blank.")
-
-
 class ScheduleDefinition(ScheduleModel):
     """The name and color used to create a schedule."""
 
@@ -273,6 +247,17 @@ class ScheduleDefinition(ScheduleModel):
             The cleaned value.
         """
         return required_text(value, "Schedule title cannot be blank.")
+
+
+class Schedule(ScheduleDefinition):
+    """A named, colored schedule holding events."""
+
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    events: list[Classes | ScheduleEvent] = Field(default_factory=list)
+    # Stored entries this version can't read, written back unchanged on save.
+    _kept: dict[str, list[Any]] = PrivateAttr(default_factory=dict)
+    # The row's updated_at when loaded, used to refuse overwriting newer edits.
+    _version: str | None = PrivateAttr(default=None)
 
 
 class UserBase(ScheduleModel):
