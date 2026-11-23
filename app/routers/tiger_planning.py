@@ -138,7 +138,7 @@ def check_form(request: Request, data: FormData) -> tuple[list[str], int]:
     Returns:
         Error messages and status code; empty errors with 200 if valid.
     """
-    if not valid_token(request, str(data.get("csrf_token", ""))):
+    if not valid_token(request, data):
         return [
             "This form expired. Your entries are kept; please submit again."
         ], 403

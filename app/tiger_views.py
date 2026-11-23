@@ -1,10 +1,11 @@
 """Render William's shared navigation with project-relative template paths."""
 
+from collections.abc import Mapping
 from pathlib import Path
 import secrets
 
 from fastapi import Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from lucide import lucide_icon
 from markupsafe import Markup
@@ -64,26 +65,61 @@ def render_page(
         status_code=status_code,
     )
     response.headers["Cache-Control"] = "no-store"
+    set_cookie(response, request, CSRF_COOKIE, token)
+    return response
+
+
+def set_cookie(
+    response: Response,
+    request: Request,
+    name: str,
+    value: str,
+    max_age: int | None = None,
+) -> None:
+    """Set an HTTP-only, same-site cookie, secure whenever the site is HTTPS.
+
+    Args:
+        response: Response that carries the cookie.
+        request: Current request, used to detect HTTPS.
+        name: Cookie name.
+        value: Cookie value.
+        max_age: Lifetime in seconds, or None for a browser-session cookie.
+    """
     response.set_cookie(
-        CSRF_COOKIE,
-        token,
+        name,
+        value,
+        max_age=max_age,
         httponly=True,
         secure=request.url.scheme == "https",
         samesite="lax",
     )
+
+
+def redirect_to(url: str) -> RedirectResponse:
+    """Redirect a form or page request without letting the browser cache it.
+
+    Args:
+        url: Address to send the browser to.
+
+    Returns:
+        An uncached 303 redirect.
+    """
+    response: RedirectResponse = RedirectResponse(url, status_code=303)
+    response.headers["Cache-Control"] = "no-store"
     return response
 
 
-def valid_token(request: Request, token: str) -> bool:
-    """Check a browser form token before changing browser account state.
+def valid_token(request: Request, form: Mapping[str, object]) -> bool:
+    """Check a submitted form's token before changing browser account state.
 
     Args:
         request: Request carrying the corresponding form-token cookie.
-        token: Hidden token submitted with the form.
+        form: Submitted form fields, including the hidden csrf_token.
 
     Returns:
         Whether the nonempty submitted token matches the browser cookie.
     """
+    token: str = str(form.get("csrf_token", ""))
     expected: str = request.cookies.get(CSRF_COOKIE, "")
     return bool(
         expected

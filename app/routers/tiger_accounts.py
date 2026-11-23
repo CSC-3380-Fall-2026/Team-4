@@ -9,7 +9,7 @@ from starlette.datastructures import FormData
 
 import tiger_auth
 from models.tiger_profile import UserAuthSchema
-from tiger_views import render_page, valid_token
+from tiger_views import redirect_to, render_page, set_cookie, valid_token
 
 router: APIRouter = APIRouter()
 MIN_PASSWORD: int = 8
@@ -104,7 +104,7 @@ async def submit_account(request: Request, mode: str) -> Response:
         raise HTTPException(404, "Account action not found.")
     data: FormData = await request.form(max_files=0, max_fields=8)
     email: str = str(data.get("email", "")).strip()
-    if not valid_token(request, str(data.get("csrf_token", ""))):
+    if not valid_token(request, data):
         return account_page(
             request,
             "login" if mode == "logout" else mode,
@@ -164,16 +164,8 @@ async def submit_account(request: Request, mode: str) -> Response:
         )
     if mode == "signup":
         return account_page(request, mode, email, message=message)
-    response: RedirectResponse = RedirectResponse("/dashboard", status_code=303)
-    response.set_cookie(
-        tiger_auth.AUTH_COOKIE,
-        message,
-        max_age=3600,
-        httponly=True,
-        secure=request.url.scheme == "https",
-        samesite="lax",
-    )
-    response.headers["Cache-Control"] = "no-store"
+    response: RedirectResponse = redirect_to("/dashboard")
+    set_cookie(response, request, tiger_auth.AUTH_COOKIE, message, 3600)
     return response
 
 
@@ -195,7 +187,4 @@ async def signout_page(request: Request) -> RedirectResponse:
             await run_in_threadpool(tiger_auth.logout, credentials)
         except HTTPException:
             pass
-    response: RedirectResponse = RedirectResponse("/login", status_code=303)
-    response.delete_cookie(tiger_auth.AUTH_COOKIE)
-    response.headers["Cache-Control"] = "no-store"
-    return response
+    return tiger_auth.signed_out()

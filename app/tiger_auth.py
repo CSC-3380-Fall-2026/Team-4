@@ -14,6 +14,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import ValidationError
 from supabase import Client, ClientOptions, create_client
 
+from tiger_views import redirect_to
+
 from models.tiger_profile import (
     ProfileCourse,
     ProfileRecord,
@@ -425,9 +427,17 @@ def login_redirect(request: Request, error: Exception) -> RedirectResponse:
     Returns:
         An uncached 303 redirect to /login.
     """
-    response: RedirectResponse = RedirectResponse("/login", status_code=303)
+    return signed_out()
+
+
+def signed_out() -> RedirectResponse:
+    """Send the browser to /login with its login cookie removed.
+
+    Returns:
+        An uncached 303 redirect to /login that deletes the login cookie.
+    """
+    response: RedirectResponse = redirect_to("/login")
     response.delete_cookie(AUTH_COOKIE)
-    response.headers["Cache-Control"] = "no-store"
     return response
 
 

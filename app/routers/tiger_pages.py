@@ -15,7 +15,7 @@ from grade_scale import GRADE_POINTS
 from tiger_prerequisites import CourseResult, check_prerequisites
 from models.tiger_dashboard import DashboardData
 from tiger_dashboard import dashboard_data
-from tiger_views import render_page
+from tiger_views import redirect_to, render_page
 
 router: APIRouter = APIRouter()
 
@@ -33,9 +33,7 @@ def home_page(
     Returns:
         An uncached redirect to the canonical dashboard URL.
     """
-    response: RedirectResponse = RedirectResponse("/dashboard", status_code=303)
-    response.headers["Cache-Control"] = "no-store"
-    return response
+    return redirect_to("/dashboard")
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

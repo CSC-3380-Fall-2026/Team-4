@@ -3,7 +3,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, Response
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException
@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException
 import tiger_auth
 import tiger_transcript
 from tiger_auth import Session, require_login
-from tiger_views import render_page, valid_token
+from tiger_views import redirect_to, render_page, valid_token
 
 router: APIRouter = APIRouter()
 TOO_LARGE: str = "That PDF is too large (5 MB limit)."
@@ -258,7 +258,7 @@ async def upload_transcript(
         return show_error(
             request, session, "Upload one PDF using the form below.", 400
         )
-    if not valid_token(request, str(form.get("csrf_token", ""))):
+    if not valid_token(request, form):
         return show_error(
             request, session, "This form expired. Please try again.", 403
         )
@@ -299,7 +299,7 @@ async def save_profile(
     """
     form = await request.form(max_files=0, max_fields=12)
     data: dict[str, str] = {key: str(value) for key, value in form.items()}
-    if not valid_token(request, data.get("csrf_token", "")):
+    if not valid_token(request, data):
         return show_error(
             request, session, "This form expired. Please try again.", 403
         )
@@ -312,8 +312,4 @@ async def save_profile(
     except Exception as error:
         message, status = save_error(error)
         return show_error(request, session, message, status, data)
-    response: RedirectResponse = RedirectResponse(
-        "/profile?saved=1", status_code=303
-    )
-    response.headers["Cache-Control"] = "no-store"
-    return response
+    return redirect_to("/profile?saved=1")
