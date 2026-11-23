@@ -176,6 +176,7 @@ def planning_page(
         profile_error=profile_error,
         unsaved=False,
         loaded=False,
+        profile=tiger_auth.nav_profile(session),
     )
 
 
@@ -228,4 +229,5 @@ async def submit_plan(
         profile_error="",
         unsaved=unsaved,
         loaded=loaded,
+        profile=tiger_auth.nav_profile(session),
     )
