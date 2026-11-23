@@ -10,19 +10,10 @@ from models.tiger_dashboard import (
 )
 from tiger_auth import Session, session_profile
 from tiger_forecast import read_forecast
-from tiger_models import Classes, Schedule, ScheduleEvent
+from tiger_models import WEEKDAYS, Classes, Schedule, ScheduleEvent
 from tiger_schedule_store import current_semester, list_schedules
 
 ZONE: ZoneInfo = ZoneInfo("America/Chicago")
-WEEKDAYS: tuple[str, ...] = (
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-)
 WEEKS: int = 6
 LIMIT: int = 6
 

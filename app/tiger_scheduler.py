@@ -21,6 +21,7 @@ from tiger_models import (
     SharedFreeTimeRequest,
     SharedFreeTimeResponse,
     UserBase,
+    WEEKDAYS,
 )
 from tiger_schedule_store import (
     current_semester,
@@ -161,15 +162,6 @@ def schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
     Returns:
         The schedule's metrics.
     """
-    weekdays = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    ]
     busy_days = {
         day
         for event in schedule.events
@@ -189,7 +181,7 @@ def schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
     return ScheduleMetrics(
         total_hours=(total_minutes + 59) // 60,
         days_busy=", ".join(
-            day[:3] for day in weekdays if day in busy_days
+            day[:3] for day in WEEKDAYS if day in busy_days
         ) or "—",
     )
 
@@ -268,18 +260,9 @@ def free_time(
         for event in schedule.events
     ]
 
-    weekdays: list[Weekday] = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    ]
     available_days = []
 
-    for day in weekdays:
+    for day in WEEKDAYS:
         busy_intervals = sorted(
             (
                 max(_to_minutes(event.start), range_start),

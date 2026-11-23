@@ -1,7 +1,7 @@
 """Typed models shared by application routes and services."""
 
 import re
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 from uuid import uuid4
 
 from models.tiger_profile import ProfileCourse
@@ -24,6 +24,7 @@ Weekday = Literal[
     "Saturday",
     "Sunday",
 ]
+WEEKDAYS: tuple[Weekday, ...] = get_args(Weekday)
 
 ScheduleColor = Literal[
     "blue", "green", "orange", "purple", "red", "yellow", "pink", "teal"
