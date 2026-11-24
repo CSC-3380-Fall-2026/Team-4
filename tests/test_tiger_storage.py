@@ -395,3 +395,60 @@ def test_semester_uses_campus_time(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(tiger_schedules_store, "datetime", Frozen)
     monkeypatch.setattr(tiger_schedules_store, "date", Frozen)
     assert tiger_schedules_store.current_semester() == "Spring 2026"
+
+
+def course(code: str, credit: int, day: str) -> Classes:
+    """Build a class entry as the Schedule page stores it.
+
+    Args:
+        code: Course code, such as "CSC 3380".
+        credit: Credit hours.
+        day: Meeting day.
+
+    Returns:
+        The class.
+    """
+    department, number = code.split()
+    return Classes(
+        title=code, days=[day], start="10:00", end="11:00", department=department,
+        number=int(number), grade=0.0, semester="Fall 2026", category="Core", credit=credit,
+    )
+
+
+def load_into_plan(fake_db: FakeDatabase, events: list[ScheduleEvent]) -> httpx.Response:
+    """Save a schedule for alice and press "Load courses" on the planner.
+
+    Args:
+        fake_db: Fake Supabase.
+        events: The schedule's events.
+
+    Returns:
+        The planner response.
+    """
+    add_schedule(fake_db, "alice", "Fall plan", events)
+    schedule_id = fake_db.rows("schedules")[-1]["id"]
+    values = {**sample_plan(), "action": "load_schedule", "schedule_id": schedule_id}
+    return submit_plan(browser("token-alice"), values)
+
+
+def test_planner_loads_schedule_courses(fake_db: FakeDatabase) -> None:
+    """Loading a schedule fills one row per course with its credits."""
+    response = load_into_plan(
+        fake_db, [course("CSC 3380", 3, "Monday"), course("MATH 2057", 4, "Tuesday")]
+    )
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.text, "html.parser")
+    assert [f["value"] for f in soup.select("[name=course_name]")] == ["CSC 3380", "MATH 2057"]
+    assert [f["value"] for f in soup.select("[name=course_credit]")] == ["3", "4"]
+
+
+def test_planner_duplicate_course_keeps_rows(fake_db: FakeDatabase) -> None:
+    """A schedule listing a course twice is refused and the typed rows stay."""
+    response = load_into_plan(
+        fake_db, [course("CSC 3380", 3, "Monday"), course("CSC 3380", 3, "Tuesday")]
+    )
+    assert response.status_code == 409
+    assert "multiple entries for the same course" in response.text
+    soup = BeautifulSoup(response.text, "html.parser")
+    names = [f["value"] for f in soup.select("[name=course_name]")]
+    assert names == sample_plan()["course_name"]
