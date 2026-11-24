@@ -18,7 +18,7 @@ import tiger_auth
 from fake_supabase import FakeDatabase
 from test_connor_pages import sample_plan, submit_plan
 from tiger_dashboard import upcoming_events
-from tiger_models import Classes, Schedule, ScheduleEvent
+from models.tiger_schedule import Classes, Schedule, ScheduleEvent
 from tiger_schedule_store import to_row
 
 PROTECTED: list[str] = [
