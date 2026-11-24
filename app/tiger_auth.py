@@ -130,22 +130,6 @@ def logout(
         return False
 
 
-def validate_token(token: str) -> bool:
-    """Validate an access token with Supabase.
-
-    Args:
-        token: Access token to verify.
-
-    Returns:
-        True only when Supabase returns a verified user.
-    """
-    try:
-        result = auth_client().auth.get_user(token)
-    except Exception:
-        return False
-    return result is not None and result.user is not None
-
-
 class LoginRequired(Exception):
     """Signal that a browser page needs a signed-in student."""
 

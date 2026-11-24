@@ -9,7 +9,6 @@ from models.tiger_session import Session
 
 logger = logging.getLogger(__name__)
 
-SHARED_COLUMNS: str = "id,name,semester,sections"
 UNNAMED: str = "Student"
 
 
@@ -127,7 +126,7 @@ def is_friend(session: Session, other: str) -> bool:
     return bool(rows)
 
 
-def shared_rows(session: Session, columns: str = SHARED_COLUMNS) -> list[dict]:
+def shared_rows(session: Session, columns: str) -> list[dict]:
     """Return schedules shared with the student by accepted friends.
 
     Args:

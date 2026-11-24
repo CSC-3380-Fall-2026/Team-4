@@ -1,6 +1,6 @@
 """Account forms for the browser, and the JSON account API."""
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import ValidationError
@@ -13,8 +13,6 @@ from models.tiger_accounts import (
     TokenResponse,
     UserAuthSchema,
 )
-from models.tiger_profiles import AccountCard
-from routers import tiger_profiles
 from tiger_views import redirect_to, render_page, set_cookie, valid_token
 
 MIN_PASSWORD: int = 8
@@ -78,7 +76,6 @@ async def signout_page(request: Request) -> RedirectResponse:
 
 router: APIRouter = APIRouter()
 router.add_api_route("/logout", tiger_auth.logout, methods=["POST"])
-router.add_api_route("/validateToken", tiger_auth.validate_token, methods=["GET"])
 
 
 @router.post("/login")
@@ -117,21 +114,6 @@ def signup_api(credentials: UserAuthSchema) -> SignupResponse:
     if not accepted:
         raise HTTPException(400, message)
     return SignupResponse(created=True, message=message)
-
-
-@router.get("/getUser")
-def get_user(
-    credentials: HTTPAuthorizationCredentials = Depends(tiger_auth.security),
-) -> AccountCard:
-    """Return only the profile owned by the verified API caller.
-
-    Args:
-        credentials: Bearer token identifying the caller.
-
-    Returns:
-        The caller's own account and profile as an AccountCard.
-    """
-    return tiger_profiles.token_profile(credentials.credentials)
 
 
 @router.get("/login", response_class=HTMLResponse)

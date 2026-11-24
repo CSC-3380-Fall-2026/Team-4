@@ -10,7 +10,6 @@ from starlette.datastructures import UploadFile
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException
 
-import tiger_auth
 from models.tiger_profiles import (
     AccountCard,
     ProfileCourse,
@@ -153,24 +152,6 @@ def session_card(session: Session) -> AccountCard:
     except Exception:
         card = card.model_copy(update={"data_error": True})
     return card
-
-
-def token_profile(token: str) -> AccountCard:
-    """Read account and profile data using a verified token and its owner ID.
-
-    Args:
-        token: Browser or API access token to verify with Supabase.
-
-    Returns:
-        Account information plus owned profile fields when available.
-
-    Raises:
-        HTTPException: If the token is invalid or account services are unavailable.
-    """
-    session: Session | None = tiger_auth.verify_token(token)
-    if session is None:
-        raise HTTPException(401, "Please log in again.")
-    return session_card(session)
 
 
 def write_profile(session: Session, profile: ProfileRecord) -> UserBase:

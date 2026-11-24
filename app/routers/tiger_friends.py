@@ -14,7 +14,6 @@ from routers.tiger_friends_store import (
     mine_filter,
     other_id,
     pair_filter,
-    shared_rows,
 )
 from routers import tiger_profiles
 from routers.tiger_profiles import profile_row
@@ -373,19 +372,6 @@ def remove_friend(
         .execute()
     )
     return {"message": "Friend removed."}
-
-
-@api.get("/shared-with-me")
-def shared_schedules(session: Session = Depends(current_session)) -> list[dict]:
-    """Return only course sections from schedules shared by accepted friends.
-
-    Args:
-        session: Authenticated session.
-
-    Returns:
-        List of dicts with owner id and schedule.
-    """
-    return shared_rows(session)
 
 
 @api.get("/requests")

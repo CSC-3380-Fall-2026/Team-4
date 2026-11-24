@@ -166,7 +166,21 @@ def test_decline_and_cancel(web: TestClient) -> None:
     assert lists(web, "blake")["incoming_requests"] == []
 
 
-def test_share_only_with_friends(web: TestClient) -> None:
+def shared_with(web: TestClient, uid: str) -> list[str]:
+    """List the ids of friends' schedules a student can see.
+
+    Args:
+        web: Test client.
+        uid: Student id.
+
+    Returns:
+        Schedule ids from the schedule page data, friends only.
+    """
+    users = web.get("/api/schedule-data", headers=login(uid)).json()["users"]
+    return [schedule["id"] for user in users[1:] for schedule in user["schedules"]]
+
+
+def test_share_with_friends_only(web: TestClient) -> None:
     """Share a schedule with a friend, once, and list who can see it."""
     schedule_id = make_schedule(web, "alex")
     body = {"schedule_id": schedule_id, "friend_id": "blake"}
@@ -182,12 +196,11 @@ def test_share_only_with_friends(web: TestClient) -> None:
     assert [(s["schedule_id"], s["username"]) for s in shares] == [
         (schedule_id, "blaketiger")
     ]
-    seen = web.get("/api/friends/shared-with-me", headers=login("blake")).json()
-    assert [row["schedule"]["id"] for row in seen] == [schedule_id]
-    assert web.get("/api/friends/shared-with-me", headers=login("casey")).json() == []
+    assert shared_with(web, "blake") == [schedule_id]
+    assert shared_with(web, "casey") == []
 
 
-def test_stop_sharing(web: TestClient) -> None:
+def test_stop_sharing_hides(web: TestClient) -> None:
     """Stop sharing hides the schedule from the friend."""
     befriend(web)
     schedule_id = make_schedule(web, "alex")
@@ -202,10 +215,10 @@ def test_stop_sharing(web: TestClient) -> None:
     assert web.delete(
         f"/api/friends/shares/{share['id']}", headers=login("alex")
     ).status_code == 200
-    assert web.get("/api/friends/shared-with-me", headers=login("blake")).json() == []
+    assert shared_with(web, "blake") == []
 
 
-def test_remove_friend_stops_sharing(web: TestClient, fake_db: FakeDatabase) -> None:
+def test_unfriend_stops_sharing(web: TestClient, fake_db: FakeDatabase) -> None:
     """Removing a friend ends the friendship and the remover's shares."""
     friendship = befriend(web)
     schedule_id = make_schedule(web, "alex")
@@ -218,7 +231,7 @@ def test_remove_friend_stops_sharing(web: TestClient, fake_db: FakeDatabase) -> 
     assert web.delete(f"/api/friends/{friendship}", headers=login("alex")).status_code == 200
     assert lists(web, "blake")["friends"] == []
     assert fake_db.rows("schedule_shares") == []
-    assert web.get("/api/friends/shared-with-me", headers=login("blake")).json() == []
+    assert shared_with(web, "blake") == []
 
 
 def test_friends_api_requires_login(web: TestClient) -> None:
