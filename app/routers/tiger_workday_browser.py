@@ -6,6 +6,7 @@ inside read_workday and the app starts without it.
 
 import importlib.util
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -29,6 +30,7 @@ HEADER_TITLE: str = '[data-automation-id="pageHeaderTitleText"]'
 # Only the signed-in Workday app has its menu or grids; sign-in and Duo pages
 # can share the Workday URL prefix, so the URL alone can't tell.
 SIGNED_IN: str = f'[data-automation-id="navigationItem"], {GRID_ROW}'
+LOG: logging.Logger = logging.getLogger(__name__)
 SYNCED_KEY: str = "workday_synced_at"
 
 
@@ -215,8 +217,10 @@ def read_workday(user_id: str) -> dict[str, Any]:
             raise WorkdayError(
                 "The Workday window was closed before the sync finished."
             ) from error
-        reason = str(error).splitlines()[0]
-        raise WorkdayError(f"Chromium could not open Workday: {reason}") from error
+        LOG.warning("Workday browser step failed.", exc_info=True)
+        raise WorkdayError(
+            "Chromium could not open Workday. Check that Playwright's Chromium is installed."
+        ) from error
     saved = folder / "last_sync.json"
     saved.write_text(json.dumps(raw), encoding="utf-8")
     saved.chmod(0o600)
