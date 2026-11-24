@@ -7,9 +7,8 @@
             <div class="week-corner calendar-day-heading" aria-hidden="true"></div>
 
             {% for day in week_days %}
-            <div class="calendar-day-heading{% if loop.index0 > 4 %} weekend-heading{% endif %}" data-heading-day="{{ loop.index0 }}">
-                <span>{{ day.name[:3] | upper }}</span>
-                <strong>{{ day.date.split(' ')[1] | int }}</strong>
+            <div class="calendar-day-heading" data-heading-day="{{ loop.index0 }}">
+                <strong>{{ day.name[:3] | upper }}</strong>
             </div>
             {% endfor %}
 
@@ -20,7 +19,7 @@
             </div>
 
             {% for day in week_days %}
-            <div class="calendar-day{% if loop.index0 > 4 %} weekend{% endif %}" data-day-name="{{ day.name }}" aria-label="{{ day.name }}">
+            <div class="calendar-day" data-day-name="{{ day.name }}" aria-label="{{ day.name }}">
             </div>
             {% endfor %}
         </div>

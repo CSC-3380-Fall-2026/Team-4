@@ -1,10 +1,31 @@
-{# the "A little overlap goes a long way" chart. friends-calendar.js draws the rows inside #friends-calendar #}
-<div id="friends-calendar-scroll" class="overlap-chart">
-    <div id="friends-calendar" aria-label="Schedule comparison for one day"></div>
+{# 7-day weekly schedule comparison grid with hours on the vertical axis and MON-SUN across the top #}
+{% set comparison_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] %}
+<div id="friends-calendar-scroll" class="calendar-scroll friends-grid-scroll" aria-label="Weekly schedule comparison; scroll to see the full day" tabindex="0">
+    <div id="friends-calendar" class="week-grid friends-week-grid" aria-label="Weekly schedule comparison">
+        <div class="week-corner calendar-day-heading" aria-hidden="true"></div>
+
+        {% for day_name in comparison_days %}
+        <div class="calendar-day-heading" data-friends-heading-day="{{ loop.index0 }}">
+            <strong>{{ day_name[:3] | upper }}</strong>
+        </div>
+        {% endfor %}
+
+        <div class="week-times" aria-label="Times">
+            {% for hour in range(0, 24) %}
+            <span>{{ (hour % 12) or 12 }} {{ 'AM' if hour < 12 else 'PM' }}</span>
+            {% endfor %}
+        </div>
+
+        {% for day_name in comparison_days %}
+        <div class="calendar-day friends-calendar-day" data-weekday="{{ loop.index0 }}" data-day-name="{{ day_name }}" aria-label="{{ day_name }}">
+        </div>
+        {% endfor %}
+    </div>
 </div>
 
 <div class="overlap-legend" aria-label="Chart legend">
-    <span><i class="dot-busy"></i>Busy</span>
+    <span><i class="dot-busy"></i>You</span>
+    <span><i class="dot-friend-busy"></i>Friend</span>
     <span><i class="dot-free"></i>Free together</span>
     <span class="overlap-zone">Times shown in Central Time</span>
 </div>

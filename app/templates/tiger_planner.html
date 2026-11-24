@@ -39,270 +39,238 @@
     ) }}
 {% endif %}
 
-<form method="post" action="/planning" id="planning-form" class="planning-top" novalidate>
+{# ---------- completed courses list ---------- #}
+<section id="completed-courses" class="page-card planning-section-card">
+    <div class="planning-card-header">
+        <div>
+            <h2>Completed Courses</h2>
+            <p class="card-sub"><strong>{{ form.completed_credits or 0 }}</strong> credits completed</p>
+        </div>
+        <a class="secondary-button" href="/profile">Update in Profile</a>
+    </div>
+
+    <div class="table-scroll" role="region" aria-label="Completed courses" tabindex="0">
+        <table id="course-table" class="planning-data-table">
+            <thead>
+                <tr>
+                    <th scope="col">Course</th>
+                    <th scope="col">Course Name</th>
+                    <th scope="col">Credits</th>
+                    <th scope="col">Term</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>CSC 1350</strong></td>
+                    <td>Computer Science I for Majors</td>
+                    <td>4 cr</td>
+                    <td>Completed</td>
+                </tr>
+                <tr>
+                    <td><strong>MATH 1550</strong></td>
+                    <td>Differential and Integral Calculus</td>
+                    <td>5 cr</td>
+                    <td>Completed</td>
+                </tr>
+                <tr>
+                    <td><strong>ENGL 1001</strong></td>
+                    <td>English Composition</td>
+                    <td>3 cr</td>
+                    <td>Completed</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<form method="post" action="/planning" id="planning-form" class="planning-stack" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-    {# ---------- left card: the course rows ---------- #}
-    <section id="sem-planner" class="page-card projector-card">
-        <div class="projector-top">
-            <h2>GPA Projector.</h2>
-
-            {# picking a saved schedule fills the rows with its courses #}
-            {% if schedules %}
-                <label class="visually-hidden" for="planning-schedule">Saved schedule</label>
-                <select id="planning-schedule" name="schedule_id" class="soft-select"
-                        onchange="document.getElementById('load-button').click()">
-                    <option value="">Choose a schedule</option>
-                    {% for schedule in schedules %}
-                        <option value="{{ schedule.id }}" {% if schedule.id == schedule_id %}selected{% endif %}>
-                            {{ schedule.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <button id="load-button" class="visually-hidden" type="submit" name="action"
-                        value="load_schedule" formnovalidate>
-                    Load courses
-                </button>
-            {% else %}
-                <a class="soft-select soft-select-link" href="/schedule">Create a schedule</a>
-            {% endif %}
-        </div>
-
-        <div class="table-scroll" role="region" aria-label="Planned courses" tabindex="0">
-            <table id="sem-table" class="projector-table">
-                <thead>
-                    <tr>
-                        <th scope="col">COURSE</th>
-                        <th scope="col">CREDITS</th>
-                        <th scope="col">CURRENT</th>
-                        <th scope="col">EXPECTED</th>
-                        <th scope="col"><span class="visually-hidden">Actions</span></th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {% for row in form.rows %}
-                    <tr>
-                        <td>
-                            <label class="visually-hidden" for="course-name-{{ loop.index0 }}">
-                                Course {{ loop.index }} name
-                            </label>
-                            <input id="course-name-{{ loop.index0 }}" class="plain-input" name="course_name"
-                                   value="{{ row.name }}" maxlength="100" placeholder="Course name">
-                        </td>
-
-                        <td>
-                            <label class="visually-hidden" for="course-credit-{{ loop.index0 }}">
-                                Course {{ loop.index }} credits
-                            </label>
-                            <input id="course-credit-{{ loop.index0 }}" class="plain-input credit-input"
-                                   name="course_credit" value="{{ row.credit }}" type="text"
-                                   inputmode="numeric" maxlength="12" placeholder="0">
-                        </td>
-
-                        {# TODO: we don't save a current grade for each class, so this column is a dash for now #}
-                        <td class="current-grade">—</td>
-
-                        <td>
-                            <label class="visually-hidden" for="course-grade-{{ loop.index0 }}">
-                                Course {{ loop.index }} expected grade
-                            </label>
-                            <select id="course-grade-{{ loop.index0 }}" class="grade-select" name="course_grade">
-                                <option value="">Grade</option>
-
-                                {% if row.grade and row.grade not in grades %}
-                                    <option value="{{ row.grade }}" selected>
-                                        Invalid grade: {{ row.grade }}
-                                    </option>
-                                {% endif %}
-
-                                {% for letter, points in grades.items() %}
-                                    <option value="{{ letter }}" {% if row.grade == letter %}selected{% endif %}>
-                                        {{ letter | replace("-", "−") }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </td>
-
-                        <td>
-                            <button class="remove-button" type="submit" name="action"
-                                    value="remove:{{ loop.index0 }}" formnovalidate
-                                    aria-label="Remove course {{ loop.index }}">
-                                ×
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        {# the figma only has the gray note down here. the add button and the target GPA box
-           are extra because the planner needs them to work #}
-        <div class="projector-bottom">
-            <p class="projector-note">Based on the LSU grade scale · Estimates only, not an official transcript.</p>
-
-            <button class="text-link" type="submit" name="action" value="add" formnovalidate
-                    title="You can plan up to {{ max_rows }} courses">
-                <span aria-hidden="true">+</span> Add a course
-            </button>
-
-            <div class="target-field">
-                <label for="target-gpa">Target GPA</label>
-                <input id="target-gpa" name="target_gpa" value="{{ form.target_gpa }}" type="text"
-                       inputmode="decimal" maxlength="32" placeholder="optional">
+    {# ---------- GPA stats based on completed courses ---------- #}
+    <section id="gpa-overview" class="page-card planning-section-card">
+        <div class="planning-card-header">
+            <div>
+                <h2>GPA Overview</h2>
+                <p class="card-sub">Your cumulative academic record used for semester and target GPA calculations.</p>
             </div>
         </div>
+
+        <div id="gpa-metrics" class="gpa-stat-grid">
+            <div class="gpa-stat-box">
+                <label for="current-gpa">Current cumulative GPA</label>
+                <input id="current-gpa" name="current_gpa"
+                       value="{{ form.current_gpa }}" type="text" inputmode="decimal"
+                       maxlength="32" placeholder="0.00" required>
+            </div>
+
+            <div class="gpa-stat-box">
+                <label for="completed-credits">Completed GPA credit hours</label>
+                <input id="completed-credits" name="completed_credits"
+                       value="{{ form.completed_credits }}" type="text" inputmode="numeric"
+                       maxlength="32" placeholder="0" required>
+            </div>
+        </div>
+
+        <p class="field-help">
+            Use attempted credits that count toward GPA, including courses with an F. If you have no completed GPA credits, enter 0 in both fields.
+        </p>
     </section>
 
-    {# ---------- right card: the purple what-if box ---------- #}
-    <section id="gpa-calc" class="scenario-card" aria-live="polite">
-        <p class="scenario-kicker">YOUR WHAT-IF SCENARIO</p>
+    {# ---------- semester planner + target GPA calculator side by side ---------- #}
+    <div id="planner" class="planner-grid">
+        <section id="sem-planner" class="page-card projector-card">
+            <div class="planning-card-header">
+                <div>
+                    <h2>Semester Plan</h2>
+                    <p class="card-sub">Enter your courses this semester and select an expected grade for each class.</p>
+                </div>
+                <button class="secondary-button" type="submit" name="action" value="add" formnovalidate
+                        title="You can plan up to {{ max_rows }} courses">
+                    <span aria-hidden="true">+</span> Add Course
+                </button>
+            </div>
 
-        <p class="scenario-number" id="planning-results">
-            {% if result %}
-                <span id="semester-result">{{ "%.2f" | format(result.semester_gpa) }}</span>
-            {% else %}
-                —
-            {% endif %}
-        </p>
-        <p class="scenario-label">projected semester GPA</p>
+            <div class="table-scroll" role="region" aria-label="Planned courses" tabindex="0">
+                <table id="sem-table" class="planning-data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Course</th>
+                            <th scope="col">Credits</th>
+                            <th scope="col">Expected Grade</th>
+                            <th scope="col"><span class="visually-hidden">Actions</span></th>
+                        </tr>
+                    </thead>
 
-        <dl class="scenario-rows">
-            <div>
-                <dt>Projected cumulative</dt>
-                <dd class="scenario-big">
-                    {% if result %}
-                        <span id="cumulative-result">{{ "%.2f" | format(result.cumulative_gpa) }}</span>
+                    <tbody>
+                        {% for row in form.rows %}
+                        <tr>
+                            <td>
+                                <label class="visually-hidden" for="course-name-{{ loop.index0 }}">
+                                    Course {{ loop.index }} name
+                                </label>
+                                <input id="course-name-{{ loop.index0 }}" class="table-text-input" name="course_name"
+                                       value="{{ row.name }}" maxlength="100" placeholder="e.g. CSC 3380">
+                            </td>
+
+                            <td>
+                                <label class="visually-hidden" for="course-credit-{{ loop.index0 }}">
+                                    Course {{ loop.index }} credits
+                                </label>
+                                <input id="course-credit-{{ loop.index0 }}" class="table-text-input credit-input"
+                                       name="course_credit" value="{{ row.credit }}" type="text"
+                                       inputmode="numeric" maxlength="12" placeholder="3">
+                            </td>
+
+                            <td>
+                                <label class="visually-hidden" for="course-grade-{{ loop.index0 }}">
+                                    Course {{ loop.index }} expected grade
+                                </label>
+                                <select id="course-grade-{{ loop.index0 }}" class="grade-select" name="course_grade">
+                                    <option value="">Choose grade</option>
+
+                                    {% if row.grade and row.grade not in grades %}
+                                        <option value="{{ row.grade }}" selected>
+                                            Invalid grade: {{ row.grade }}
+                                        </option>
+                                    {% endif %}
+
+                                    {% for letter, points in grades.items() %}
+                                        <option value="{{ letter }}" {% if row.grade == letter %}selected{% endif %}>
+                                            {{ letter }} ({{ "%.1f" | format(points) }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+
+                            <td>
+                                <button class="remove-button" type="submit" name="action"
+                                        value="remove:{{ loop.index0 }}" formnovalidate
+                                        aria-label="Remove course {{ loop.index }}">
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="sem-metrics" class="gpa-stat-grid sem-results-grid" aria-live="polite">
+                <div class="gpa-result-box">
+                    <span class="gpa-result-label">Expected Semester GPA</span>
+                    <strong class="gpa-result-value">
+                        {% if result %}
+                            <span id="semester-result">{{ "%.2f" | format(result.semester_gpa) }}</span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+                </div>
+
+                <div class="gpa-result-box">
+                    <span class="gpa-result-label">New Cumulative GPA</span>
+                    <strong class="gpa-result-value">
+                        {% if result %}
+                            <span id="cumulative-result">{{ "%.2f" | format(result.cumulative_gpa) }}</span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+
+            <p class="field-help">Based on the LSU grade scale · Up to {{ max_rows }} courses. Completely blank rows are ignored.</p>
+        </section>
+
+        {# ---------- right side: target GPA calculator ---------- #}
+        <section id="gpa-calc" class="page-card target-calc-card" aria-live="polite">
+            <h2>Target GPA Calculator</h2>
+            <p class="card-sub">Enter your target cumulative GPA and current credit load to see what GPA you need this semester.</p>
+
+            <div class="target-calc-inputs">
+                <div class="form-field">
+                    <label for="target-gpa">Target cumulative GPA</label>
+                    <input id="target-gpa" name="target_gpa" value="{{ form.target_gpa }}" type="text"
+                           inputmode="decimal" maxlength="32" placeholder="e.g. 3.50">
+                </div>
+
+                <div class="form-field">
+                    <label for="current-credit-load">Current credit load</label>
+                    <input id="current-credit-load" type="text" inputmode="numeric"
+                           value="{% if result %}{{ result.planned_credits }}{% endif %}"
+                           placeholder="Calculated from semester courses">
+                </div>
+            </div>
+
+            <button class="page-button target-calc-button" type="submit" name="action" value="calculate"
+                    formaction="/planning#planning-results">
+                Calculate GPA
+            </button>
+
+            <div id="planning-results" class="target-output-box">
+                <span class="target-output-label">Semester GPA needed:</span>
+                <strong class="target-output-number" id="required-result">
+                    {% if result and result.required_gpa is not none %}
+                        {{ "%.2f" | format(result.required_gpa) }}
+                    {% elif result and result.target_error %}
+                        Unavailable
                     {% else %}
                         —
                     {% endif %}
-                </dd>
-            </div>
-            <div>
-                <dt><label for="current-gpa">Current cumulative</label></dt>
-                <dd>
-                    <input id="current-gpa" class="scenario-input" name="current_gpa"
-                           value="{{ form.current_gpa }}" type="text" inputmode="decimal"
-                           maxlength="32" placeholder="0.00" required>
-                </dd>
-            </div>
-            {# this row only shows up after you type a target GPA #}
-            {% if result and (form.target_gpa.strip() or result.target_error) %}
-            <div>
-                <dt>Needed this semester for target</dt>
-                <dd id="required-result">
-                    {% if result.required_gpa is not none %}
-                        {{ "%.2f" | format(result.required_gpa) }}
-                    {% elif result.target_error %}
-                        Unavailable
-                    {% else %}
-                        Enter a target
-                    {% endif %}
-                </dd>
-            </div>
-            {% endif %}
-        </dl>
-
-        {% if result and result.target_error %}
-            <p class="scenario-error">{{ result.target_error }}</p>
-        {% endif %}
-
-        <button class="scenario-button" type="submit" name="action" value="calculate"
-                formaction="/planning#planning-results">
-            Save scenario
-        </button>
-
-        <p class="scenario-foot">
-            <label class="visually-hidden" for="completed-credits">Completed GPA credit hours</label>
-            <input id="completed-credits" class="scenario-credits" name="completed_credits"
-                   value="{{ form.completed_credits }}" type="text" inputmode="numeric"
-                   maxlength="32" placeholder="0" required>
-            completed
-            {% if result %}+ {{ result.planned_credits }} in-progress credits{% else %}credits so far{% endif %}
-        </p>
-    </section>
-</form>
-
-<div class="planning-bottom">
-    {# ---------- bottom left: courses from the first saved schedule ---------- #}
-    <section class="page-card spring-card">
-        {% set saved = schedules[0] if schedules else none %}
-        {% set total = namespace(credits=0, classes=0) %}
-        {% if saved %}
-            {% for event in saved.events %}
-                {% if event.credit is defined %}
-                    {% set total.credits = total.credits + event.credit %}
-                    {% set total.classes = total.classes + 1 %}
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-
-        <div class="spring-top">
-            <div>
-                <h2>A head start on spring</h2>
-                <p class="card-sub">{{ saved.name if saved else 'No saved schedule' }} · Draft plan</p>
-            </div>
-            <p class="spring-credits">{{ total.credits }} credits</p>
-        </div>
-
-        <table class="spring-table">
-            <tbody>
-                {% if saved and total.classes %}
-                    {% for event in saved.events %}
-                        {% if event.credit is defined %}
-                        <tr>
-                            <td>{{ event.department }} {{ event.number }}</td>
-                            <td>{{ event.title }}</td>
-                            <td>{{ event.credit }} credits</td>
-                        </tr>
-                        {% endif %}
-                    {% endfor %}
+                </strong>
+                {% if result and result.target_error %}
+                    <p class="target-error">{{ result.target_error }}</p>
                 {% else %}
-                    <tr>
-                        <td colspan="3">No saved schedules yet. Create a schedule to see its courses here.</td>
-                    </tr>
+                    <p class="field-help">
+                        {% if result %}
+                            Based on {{ form.completed_credits }} completed hours, {{ form.current_gpa }} cumulative GPA, and {{ result.planned_credits }} current credits.
+                        {% else %}
+                            Enter your courses and target GPA above, then press Calculate GPA.
+                        {% endif %}
+                    </p>
                 {% endif %}
-            </tbody>
-        </table>
-
-        <div class="spring-bottom">
-            <a class="text-link" href="/schedule"><span aria-hidden="true">+</span> Add a course</a>
-            <a class="text-link" href="/schedule">View in schedule <span aria-hidden="true">↗</span></a>
-        </div>
-    </section>
-
-    {# ---------- bottom right: degree progress ---------- #}
-    <section class="page-card picture-card">
-        <div class="picture-top">
-            <h2>The bigger picture</h2>
-            <a href="/catalog" aria-label="Open the course catalog">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M9 5l7 7-7 7"/>
-                </svg>
-            </a>
-        </div>
-        {# TODO: the degree name and the 3 requirement rows are the sample ones from the figma.
-           only the completed number comes from the real saved credit hours #}
-        <p class="card-sub">B.S. Computer Science</p>
-
-        {% set done = form.completed_credits | int(0) %}
-        {% set percent = (done * 100 / 120) | round | int %}
-        {% if percent > 100 %}{% set percent = 100 %}{% endif %}
-        <div class="picture-track"><span style="width: {{ percent }}%;"></span></div>
-
-        <div class="picture-totals">
-            <strong>{{ done }} completed</strong>
-            <span>120 required</span>
-        </div>
-
-        <dl class="picture-rows">
-            <div><dt>Major requirements</dt><dd>36 / 60</dd></div>
-            <div><dt>General education</dt><dd>26 / 36</dd></div>
-            <div><dt>Open electives</dt><dd>6 / 24</dd></div>
-        </dl>
-
-        <a class="text-link" href="/catalog">See degree requirements <span aria-hidden="true">↗</span></a>
-    </section>
-</div>
+            </div>
+        </section>
+    </div>
+</form>
 {% endblock %}

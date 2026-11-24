@@ -3,17 +3,16 @@
 {% set page_title = "Dashboard" %}
 {% block content %}
 
-{# ---------- the 4 number boxes at the top ---------- #}
+{# ---------- top summary cards ---------- #}
 <div class="stat-row">
     <section class="stat-tile stat-purple" id="gpa-summary">
         <p class="stat-label">Cumulative GPA</p>
         <p class="stat-number">{% if data.gpa is not none %}{{ "%.2f" | format(data.gpa) }}{% else %}—{% endif %}</p>
         <p class="stat-note">
-            {% if data.forecast and data.gpa is not none %}
-                {% set change = data.forecast.cumulative_gpa - data.gpa %}
-                {{ '↑' if change >= 0 else '↓' }} {{ "%.2f" | format(change | abs) }} projected this semester
-            {% elif data.forecast %}
-                {{ data.forecast.planned_credits }} planned credit hours
+            {% if data.forecast %}
+                Projected cumulative: <strong id="dashboard-cumulative">{{ "%.2f" | format(data.forecast.cumulative_gpa) }}</strong>
+                · Semester: <strong id="dashboard-semester">{{ "%.2f" | format(data.forecast.semester_gpa) }}</strong>
+                ({{ data.forecast.planned_credits }} planned credit hours)
             {% else %}
                 No GPA forecast yet
             {% endif %}
@@ -21,84 +20,77 @@
     </section>
 
     <section class="stat-tile stat-gold">
-        <p class="stat-label">Degree progress</p>
-        {# TODO: 120 is just the normal number of hours for a degree, we don't store the real one #}
-        <p class="stat-number">{{ data.completed_hours }} / 120</p>
-        <p class="stat-note" id="dashboard-profile">credits completed · {{ (data.completed_hours * 100 / 120) | round | int }}%</p>
-    </section>
-
-    <section class="stat-tile stat-plain" id="selected-schedule">
-        <p class="stat-label">This semester</p>
-        <p class="stat-number">{{ data.selected.credit_hours if data.selected else 0 }}</p>
-        <p class="stat-note">
-            {% if data.selected %}
-                credits across {{ data.selected.course_count }} classes
-            {% else %}
-                No schedule selected
-            {% endif %}
+        <p class="stat-label">Completed Credits</p>
+        <p class="stat-number">{{ data.completed_hours }}</p>
+        <p class="stat-note" id="dashboard-profile">
+            {% if data.gpa is not none %}Current GPA {{ "%.2f" | format(data.gpa) }} · {% endif %}{{ data.completed_hours }} completed credit hours
         </p>
     </section>
 
-    {# SAMPLE DATA from the figma. The dashboard does not get friend free time from the backend yet. #}
-    <section class="stat-tile stat-lilac">
-        <p class="stat-label">Shared free time</p>
-        <p class="stat-number">6.5 hrs</p>
-        <p class="stat-note">with your friends this week</p>
+    <section class="stat-tile stat-plain" id="selected-schedule">
+        <p class="stat-label">Selected Schedule</p>
+        {% if data.selected %}
+            <p class="stat-number">{{ data.selected.credit_hours }} cr</p>
+            <p class="stat-note">
+                {{ data.selected.name }} ({{ data.selected.semester }}) · Courses {{ data.selected.course_count }} · Credit hours {{ data.selected.credit_hours }}
+            </p>
+        {% else %}
+            <p class="stat-number">0</p>
+            <p class="stat-note">No schedule selected</p>
+        {% endif %}
     </section>
 </div>
 
-{# ---------- classes + today's schedule ---------- #}
+{# ---------- classes + upcoming schedule ---------- #}
 <div class="dash-middle">
     <section class="page-card classes-card">
         <div class="card-top">
-            <h2>Your classes</h2>
-            <a class="card-link" href="/schedule">View all <span aria-hidden="true">↗</span></a>
+            <h2>Your Classes</h2>
+            <a class="card-link" href="/schedule">View schedule <span aria-hidden="true">↗</span></a>
         </div>
 
-        {# SAMPLE DATA from the figma. We don't track progress or grades per class yet. #}
         <table class="classes-table">
             <thead>
                 <tr>
                     <th scope="col">COURSE</th>
-                    <th scope="col">PROGRESS</th>
-                    <th scope="col">GRADE</th>
+                    <th scope="col">MEETING TIME</th>
+                    <th scope="col">CREDITS</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td><span class="class-mark mark-lilac"></span><span class="class-code">CS 201</span><span class="class-name">Data Structures</span></td>
-                    <td><span class="progress-track"><span class="progress-fill" style="width: 72%;"></span></span><span class="progress-number">72%</span></td>
-                    <td class="class-grade">A−</td>
+                    <td><span class="class-mark mark-lilac"></span><span class="class-code">CSC 3102</span><span class="class-name">Advanced Data Structures</span></td>
+                    <td class="class-time-col">Days &amp; times TBA</td>
+                    <td class="class-credits-col">3 cr</td>
                 </tr>
                 <tr>
-                    <td><span class="class-mark mark-yellow"></span><span class="class-code">STAT 210</span><span class="class-name">Applied Statistics</span></td>
-                    <td><span class="progress-track"><span class="progress-fill" style="width: 64%;"></span></span><span class="progress-number">64%</span></td>
-                    <td class="class-grade">B+</td>
+                    <td><span class="class-mark mark-yellow"></span><span class="class-code">CSC 3380</span><span class="class-name">Object Oriented Design</span></td>
+                    <td class="class-time-col">Days &amp; times TBA</td>
+                    <td class="class-credits-col">3 cr</td>
                 </tr>
                 <tr>
-                    <td><span class="class-mark mark-lilac"></span><span class="class-code">DES 130</span><span class="class-name">Design Foundations</span></td>
-                    <td><span class="progress-track"><span class="progress-fill" style="width: 82%;"></span></span><span class="progress-number">82%</span></td>
-                    <td class="class-grade">A</td>
+                    <td><span class="class-mark mark-lilac"></span><span class="class-code">CSC 3501</span><span class="class-name">Computer Organization &amp; Design</span></td>
+                    <td class="class-time-col">Days &amp; times TBA</td>
+                    <td class="class-credits-col">3 cr</td>
                 </tr>
                 <tr>
-                    <td><span class="class-mark mark-pink"></span><span class="class-code">ENG 205</span><span class="class-name">Creative Writing</span></td>
-                    <td><span class="progress-track"><span class="progress-fill" style="width: 70%;"></span></span><span class="progress-number">70%</span></td>
-                    <td class="class-grade">A−</td>
+                    <td><span class="class-mark mark-pink"></span><span class="class-code">CSC 4402</span><span class="class-name">Intro to Database Management</span></td>
+                    <td class="class-time-col">Days &amp; times TBA</td>
+                    <td class="class-credits-col">3 cr</td>
                 </tr>
             </tbody>
         </table>
     </section>
 
     <section class="page-card today-card" id="upcoming-events">
-        <h2>On your schedule</h2>
+        <h2>On Your Schedule</h2>
 
         {% if data.events %}
-            <p class="today-date">{{ data.events[0].starts_at.strftime('%a, %b %d') | upper }}</p>
-            <ol class="today-list">
-                {# the figma shows 3, so we only show the next 3 #}
-                {% for event in data.events[:3] %}
+            <p class="today-date" id="upcoming-date-heading">NEXT 24 HOURS</p>
+            <ol class="today-list" id="upcoming-events-list">
+                {% for event in data.events %}
                 <li>
-                    <time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%H:%M') }}</time>
+                    <time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%I:%M %p').lstrip('0') }}</time>
                     <div class="today-item {{ loop.cycle('mark-lilac', 'mark-lilac', 'mark-yellow') }}">
                         <strong>{{ event.title }}</strong>
                         {% if event.location %}<span>{{ event.location }}</span>{% endif %}
@@ -106,76 +98,30 @@
                 </li>
                 {% endfor %}
             </ol>
+            <div id="no-events-24h" class="page-message message-empty" style="display: none;">
+                <strong>No upcoming events</strong>
+                <p>No scheduled events in the next 24 hours.</p>
+            </div>
         {% else %}
             {{ show_message("empty", "No upcoming events", "When your schedule has upcoming events, they will appear here.") }}
         {% endif %}
     </section>
 </div>
 
-{# ---------- gpa chart, heads up, break together ---------- #}
+{# ---------- free time checker ---------- #}
 <div class="dash-bottom">
-    <section class="growth-card">
-        <h2>Small steps, steady growth.</h2>
-        <p class="growth-sub">Your cumulative GPA over time</p>
-
-        <div class="growth-bars">
-            {# SAMPLE DATA from the figma. Past semester GPAs are not saved anywhere yet. #}
-            <div class="growth-bar"><span>3.42</span><i style="height: 48px;"></i><small>SP 24</small></div>
-            <div class="growth-bar"><span>3.55</span><i style="height: 60px;"></i><small>FA 24</small></div>
-            <div class="growth-bar"><span>3.61</span><i style="height: 72px;"></i><small>SP 25</small></div>
-
-            {# the yellow bar is real: the forecast from Planning if there is one, or the saved GPA #}
-            {% if data.forecast %}
-                {% set newest = data.forecast.cumulative_gpa %}
-            {% elif data.gpa is not none %}
-                {% set newest = data.gpa %}
-            {% else %}
-                {% set newest = 3.68 %}
-            {% endif %}
-            {% set bar_height = 84 + (newest - 3.68) * 140 %}
-            {% if bar_height < 12 %}{% set bar_height = 12 %}{% endif %}
-            {% if bar_height > 100 %}{% set bar_height = 100 %}{% endif %}
-            <div class="growth-bar growth-now">
-                {% if data.forecast %}
-                    <span id="dashboard-cumulative">{{ "%.2f" | format(newest) }}</span>
-                {% else %}
-                    <span>{{ "%.2f" | format(newest) }}</span>
-                {% endif %}
-                <i style="height: {{ bar_height | round | int }}px;"></i>
-                <small>FA 25</small>
-            </div>
+    <section class="page-card break-card w-full">
+        <div>
+            <h2>Free Time Checker</h2>
+            <p class="break-text">Compare your schedule with friends to find open blocks when everyone is free.</p>
         </div>
-    </section>
-
-    {# SAMPLE DATA from the figma. Assignment due dates are not in the backend yet. #}
-    <section class="page-card headsup-card">
-        <h2>A little heads-up</h2>
-        <ul class="headsup-list">
-            <li>
-                <small>OCT 22</small>
-                <strong>Statistics problem set</strong>
-                <span>STAT 210 · 11:59 PM</span>
-            </li>
-            <li>
-                <small>OCT 24</small>
-                <strong>Portfolio checkpoint</strong>
-                <span>DES 130 · 5:00 PM</span>
-            </li>
-        </ul>
-    </section>
-
-    {# SAMPLE TEXT from the figma. The button goes to the real Friends page. #}
-    <section class="break-card">
-        <p class="break-kicker">MAKE TIME FOR PEOPLE</p>
-        <h2>A break, together?</h2>
-        <p class="break-text">You, Maya, and Jordan are free Tuesday from 2:00–3:30 PM.</p>
         <a class="page-button" href="/friends">Find a time <span aria-hidden="true">↗</span></a>
     </section>
 </div>
 
-{# ---------- not in the figma, but it is a working feature so it stays under everything ---------- #}
+{# ---------- prerequisite checker ---------- #}
 <section id="prerequisite-checker" class="page-card prereq-card" aria-labelledby="prerequisite-title">
-    <h2 id="prerequisite-title">Check course prerequisites</h2>
+    <h2 id="prerequisite-title">Check Course Prerequisites</h2>
     <p class="card-sub">Enter a course and the courses you have completed. This does not change your academic record.</p>
 
     <form method="get" action="/dashboard#prerequisite-checker">
@@ -186,7 +132,7 @@
             </div>
             <div class="form-field">
                 <label for="completed-courses">Completed courses and grades</label>
-                <textarea id="completed-courses" name="completed" rows="4" maxlength="5000" placeholder="CSC 3102: B">{{ completed }}</textarea>
+                <textarea id="completed-courses" name="completed" rows="1" maxlength="5000" placeholder="CSC 3102: B">{{ completed }}</textarea>
             </div>
         </div>
         <button class="page-button" type="submit">Check prerequisites</button>
@@ -212,4 +158,94 @@
         {% endif %}
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        var list = document.getElementById("upcoming-events-list");
+        if (!list) {
+            return;
+        }
+        var now = Date.now();
+        var cutoff = now + 24 * 60 * 60 * 1000;
+        var visibleCount = 0;
+        list.querySelectorAll("li").forEach(function (item) {
+            var timeEl = item.querySelector("time[datetime]");
+            if (!timeEl) {
+                return;
+            }
+            var eventTime = new Date(timeEl.getAttribute("datetime")).getTime();
+            if (isNaN(eventTime) || eventTime < now || eventTime > cutoff) {
+                item.style.display = "none";
+            } else {
+                visibleCount += 1;
+            }
+        });
+        if (visibleCount === 0) {
+            list.style.display = "none";
+            var emptyMsg = document.getElementById("no-events-24h");
+            if (emptyMsg) {
+                emptyMsg.style.display = "block";
+            }
+            return;
+        }
+
+        var colorHex = {
+            purple: "#7c4dff",
+            yellow: "#d9a116",
+            pink: "#c959a8",
+            orange: "#e67e22",
+            blue: "#3b7ddd",
+            green: "#389e48",
+            red: "#d64545",
+            teal: "#26998e"
+        };
+
+        fetch("/api/schedule-data", { credentials: "same-origin" })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+                if (!data || !Array.isArray(data.users)) {
+                    return;
+                }
+                var me = data.users.find(function (u) { return u.id === data.currentUserId; });
+                if (!me || !Array.isArray(me.schedules)) {
+                    return;
+                }
+                var colorByKey = {};
+                var colorByTitle = {};
+                me.schedules.forEach(function (sched) {
+                    var hex = colorHex[sched.color] || "#7c4dff";
+                    (sched.events || []).forEach(function (ev) {
+                        var title = (ev.title || "").trim();
+                        var start = (ev.start || "").trim();
+                        if (title) {
+                            colorByKey[title + "|" + start] = hex;
+                            if (!colorByTitle[title]) {
+                                colorByTitle[title] = hex;
+                            }
+                        }
+                    });
+                });
+
+                list.querySelectorAll("li").forEach(function (item) {
+                    var titleEl = item.querySelector(".today-item strong");
+                    var timeEl = item.querySelector("time[datetime]");
+                    var barEl = item.querySelector(".today-item");
+                    if (!titleEl || !barEl) {
+                        return;
+                    }
+                    var title = titleEl.textContent.trim();
+                    var dt = timeEl ? (timeEl.getAttribute("datetime") || "") : "";
+                    var hhmmMatch = dt.match(/T(\d{2}:\d{2})/);
+                    var hhmm = hhmmMatch ? hhmmMatch[1] : "";
+                    var hex = colorByKey[title + "|" + hhmm] || colorByTitle[title];
+                    if (hex) {
+                        barEl.style.borderLeftColor = hex;
+                    }
+                });
+            })
+            .catch(function () {});
+    })();
+</script>
 {% endblock %}

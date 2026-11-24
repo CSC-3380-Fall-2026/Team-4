@@ -59,19 +59,7 @@
     </div>
 
     <div id="profile-footer">
-        {# TODO: reminders are not saved anywhere yet, this is the placeholder text from the figma #}
-        <div class="reminder-card">
-            <p class="reminder-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/>
-                    <path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>
-                </svg>
-                Reminder
-            </p>
-            <p class="reminder-text">lorem ipsum dolor sit amet consectetur adipiscing elit at in optio quo magna</p>
-        </div>
-
-        {% set account_name = (profile.username or profile.email) if profile else 'Your account' %}
+        {% set account_name = profile.email if (profile and profile.email) else 'Your account' %}
 
         <div id="profile-info">
             <div class="profile-row">
@@ -84,21 +72,21 @@
                 {% endif %}
             </div>
 
-            {% if profile and profile.email %}
-                <p id="profile-email">{{ profile.email }}</p>
-            {% endif %}
-        </div>
+            <div class="profile-meta-row">
+                <p id="profile-email">{{ profile.email if (profile and profile.email) else '' }}</p>
 
-        <div class="account-links">
-            {% if account_active %}
-                <form method="post" action="/account/logout">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button class="link-button" type="submit">Log out</button>
-                </form>
-            {% else %}
-                <a href="/login">Log in</a>
-                <a href="/signup">Sign up</a>
-            {% endif %}
+                <div class="account-links">
+                    {% if account_active %}
+                        <form method="post" action="/account/logout">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button class="link-button" type="submit">Log out</button>
+                        </form>
+                    {% else %}
+                        <a href="/login">Log in</a>
+                        <a href="/signup">Sign up</a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </nav>
