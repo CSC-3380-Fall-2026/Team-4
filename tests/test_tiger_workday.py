@@ -178,3 +178,47 @@ def test_deleted_class_stays_deleted(workday: dict) -> None:
     tiger_schedules_store.save_schedule(session, schedule)
     assert run()["classes_added"] == 0
     assert term_events() == WORKDAY_EVENTS[:1]
+
+
+def fall_rows(pages: dict) -> list[dict]:
+    """Return the current fall term's enrolled-course rows.
+
+    Args:
+        pages: The made-up Workday pages.
+
+    Returns:
+        The rows of "My Enrolled Courses" for the fall term.
+    """
+    return next(
+        t for t in pages["courses"]
+        if t["semester"].startswith("2025 Fall") and t["title"] == "My Enrolled Courses"
+    )["rows"]
+
+
+def test_same_section_name_two_courses(workday: dict) -> None:
+    """Two courses whose sections share a short name are both imported."""
+    rows = fall_rows(workday)
+    rows[0]["Section"] = "001"
+    rows.append({
+        "Course Listing": "MATH 2057 - Multidimensional Calculus", "Credit Hours": "3",
+        "Section": "001", "Instructional Format": "Lecture",
+        "Meeting Patterns": "Tuesday Thursday | 9:00 AM - 10:20 AM | Lockett Hall 0015",
+        "Registration Status": "Registered",
+    })
+    assert run()["classes_added"] == 3
+
+
+def test_old_marker_keys_still_count(workday: dict, fake_db: FakeDatabase) -> None:
+    """Sections an earlier sync stored under the old key are not added again."""
+    run()
+    row = fake_db.rows("schedules")[0]
+    marker = next(item for item in row["commitments"] if "workday_imported" in item)
+    assert marker["workday_imported"] == [
+        "CSC 3102 CSC 3102-001 - Advanced Data Structures",
+        "CSC 3102 CSC 3102-L01 - Advanced Data Structures",
+    ]
+    marker["workday_imported"] = [
+        "CSC 3102-001 - Advanced Data Structures",
+        "CSC 3102-L01 - Advanced Data Structures",
+    ]
+    assert run()["classes_added"] == 0

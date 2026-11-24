@@ -201,8 +201,10 @@ def import_schedule(session: Session, data: WorkdayData) -> tuple[str, int, bool
     done: list[str] = marker[IMPORTED]
     added = 0
     for section in data.sections:
-        key = section.section or f"{section.course_code} {section.format}"
-        if section.dropped or key in done:
+        key = f"{section.course_code} {section.section or section.format}"
+        # Earlier syncs stored the section alone, or "code format".
+        old = section.section or f"{section.course_code} {section.format}"
+        if section.dropped or key in done or old in done:
             continue
         credits = max(
             part.credits for part in data.sections if part.course_code == section.course_code
