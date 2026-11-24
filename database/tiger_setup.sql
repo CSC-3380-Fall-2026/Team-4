@@ -175,6 +175,10 @@ create policy "accept friend requests" on public.friendships
   using (addressee_id = auth.uid() and status = 'pending')
   with check (addressee_id = auth.uid() and status = 'accepted');
 
+-- Accepting changes only the status; the two students in a row never change.
+revoke update on public.friendships from authenticated;
+grant update (status) on public.friendships to authenticated;
+
 drop policy if exists "remove friendships" on public.friendships;
 create policy "remove friendships" on public.friendships
   for delete to authenticated using (requester_id = auth.uid() or addressee_id = auth.uid());
