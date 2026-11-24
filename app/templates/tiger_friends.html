@@ -136,9 +136,6 @@
     </section>
 </div>
 {% endblock %}
-
 {% block scripts %}
-    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
-    <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=2" defer></script>
-    <script src="{{ url_for('static', path='/js/friends.js') }}?v=16" defer></script>
+    <script type="module" src="{{ url_for('static', path='/js/friends.js') }}?v=ts1"></script>
 {% endblock %}
