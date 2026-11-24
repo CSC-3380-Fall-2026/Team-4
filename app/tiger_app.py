@@ -8,8 +8,8 @@ import tiger_auth
 from routers import (
     tiger_accounts,
     tiger_catalog,
+    tiger_dashboard,
     tiger_friends,
-    tiger_pages,
     tiger_planning,
     tiger_profiles,
     tiger_schedules,
@@ -24,7 +24,7 @@ app.mount(
     "/static", StaticFiles(directory=str(APP_DIR / "static")), name="static"
 )
 app.include_router(tiger_catalog.router)
-app.include_router(tiger_pages.router)
+app.include_router(tiger_dashboard.router)
 app.include_router(tiger_planning.router)
 app.include_router(tiger_accounts.router)
 app.include_router(tiger_profiles.router)

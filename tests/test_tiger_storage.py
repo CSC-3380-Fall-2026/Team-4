@@ -17,7 +17,7 @@ from vercel_entry import app
 import tiger_auth
 from fake_supabase import FakeDatabase
 from test_connor_pages import sample_plan, submit_plan
-from tiger_dashboard import upcoming_events
+from routers.tiger_dashboard import upcoming_events
 from models.tiger_schedules import Classes, Schedule, ScheduleEvent
 from routers.tiger_schedules_store import to_row
 
