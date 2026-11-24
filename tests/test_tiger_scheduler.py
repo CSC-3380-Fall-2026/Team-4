@@ -272,3 +272,22 @@ def test_shared_schedules_load_in_one_query(web, fake_db):
     assert [s["id"] for s in page["users"][1]["schedules"]] == ids
     assert fake_db.calls.count("schedules") == 2  # bob's own, then all shared
     assert fake_db.calls.count("friendships") == 0  # the read policy checks friendship
+
+
+def test_stale_save_is_409(web):
+    """A save based on an old copy is refused instead of losing the newer edit."""
+    import tiger_auth
+    from fastapi import HTTPException
+    from routers import tiger_schedules_store as store
+
+    schedule_id = make_schedule(web)
+    session = tiger_auth.verify_token("token-alice")
+    first_tab = store.fetch_schedule(session, schedule_id)
+    second_tab = store.fetch_schedule(session, schedule_id)
+    first_tab.name = "Edited in tab one"
+    store.save_schedule(session, first_tab)
+    second_tab.name = "Edited in tab two"
+    with pytest.raises(HTTPException) as refused:
+        store.save_schedule(session, second_tab)
+    assert refused.value.status_code == 409
+    assert store.fetch_schedule(session, schedule_id).name == "Edited in tab one"
