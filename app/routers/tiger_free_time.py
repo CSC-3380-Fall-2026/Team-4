@@ -1,6 +1,7 @@
 """Shared free time with a friend, and the per-schedule metrics on the Schedule page."""
 
 from copy import deepcopy
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -125,7 +126,7 @@ def free_time(
     """Compute weekly free periods that no given schedule is busy in.
 
     Args:
-        schedules: The student's chosen schedule and the friend's shared ones.
+        schedules: The student's chosen schedule and the friend's chosen one.
         start_time: Start of the search window as HH:MM.
         end_time: End of the search window as HH:MM.
         minimum_duration: Shortest free period in minutes.
@@ -196,6 +197,27 @@ def free_time(
     return SharedFreeTimeResponse(days=available_days)
 
 
+def pick_schedule(schedules: list[Schedule], wanted: UUID | None) -> list[Schedule]:
+    """Pick one schedule by id, or the first one when none is asked for.
+
+    Args:
+        schedules: The schedules to choose from.
+        wanted: Id of the schedule to use, or None for the first.
+
+    Returns:
+        A list holding the chosen schedule, or empty when there are none.
+
+    Raises:
+        HTTPException: 404 when the wanted id is not among the schedules.
+    """
+    if wanted is None:
+        return schedules[:1]
+    chosen = [item for item in schedules if item.id == str(wanted)]
+    if not chosen:
+        raise HTTPException(status_code=404, detail="Schedule not found.")
+    return chosen
+
+
 router: APIRouter = APIRouter(prefix="/api", tags=["Schedules"])
 
 
@@ -207,8 +229,8 @@ def shared_free(
     """Find free time shared by one of the student's schedules and a friend.
 
     Args:
-        query: Friend id, the student's schedule, time window, and minimum
-            duration.
+        query: Friend id, the student's schedule, the friend's shared
+            schedule, time window, and minimum duration.
         session: Verified student and their database client.
 
     Returns:
@@ -216,7 +238,8 @@ def shared_free(
 
     Raises:
         HTTPException: 404 when the friend has shared nothing with the
-            student, or the schedule is not the student's.
+            student, the schedule is not the student's, or the friend's
+            schedule is not one they shared with the student.
     """
     data = load_page(session)
     current_user = find_user(data)
@@ -230,14 +253,10 @@ def shared_free(
     )
     if friend is None:
         raise HTTPException(status_code=404, detail="Friend not found.")
-    mine = current_user.schedules[:1]
-    if query.schedule_id:
-        wanted = str(query.schedule_id)
-        mine = [item for item in current_user.schedules if item.id == wanted]
-        if not mine:
-            raise HTTPException(status_code=404, detail="Schedule not found.")
+    mine = pick_schedule(current_user.schedules, query.schedule_id)
+    theirs = pick_schedule(friend.schedules, query.friend_schedule_id)
     return free_time(
-        [*mine, *friend.schedules],
+        [*mine, *theirs],
         query.start_time,
         query.end_time,
         query.minimum_duration,

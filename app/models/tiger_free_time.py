@@ -14,6 +14,8 @@ class SharedFreeTimeRequest(ScheduleModel):
         friend_id: The friend's user id, never their display label.
         schedule_id: The student's schedule to compare; None means their
             first schedule.
+        friend_schedule_id: One of the schedules the friend shared with the
+            student; None means the first one they shared.
         start_time: Start of the search window as HH:MM.
         end_time: End of the search window as HH:MM.
         minimum_duration: Shortest free period in minutes.
@@ -21,6 +23,7 @@ class SharedFreeTimeRequest(ScheduleModel):
 
     friend_id: str = Field(min_length=1, max_length=100)
     schedule_id: UUID | None = None
+    friend_schedule_id: UUID | None = None
     start_time: str
     end_time: str
     minimum_duration: int = Field(gt=0, le=1440)

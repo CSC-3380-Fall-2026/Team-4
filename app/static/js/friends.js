@@ -27,6 +27,8 @@
         friends: [],
         shares: [],
         selectedScheduleId: "",
+        // which of the checked friend's shared schedules to compare with
+        selectedFriendScheduleId: "",
         // null until the first load picks a friend; "" means the student unchecked everyone
         selectedFriend: null,
         // which day the overlap chart shows, 0 = Monday. Starts on today.
@@ -45,6 +47,7 @@
     const friendForm = document.querySelector("#find-friend-form");
     const usernameInput = document.querySelector("#friend-username");
     const sharedSchedulePicker = document.querySelector("#shared-schedule-picker");
+    const friendSchedulePicker = document.querySelector("#friend-schedule-picker");
     const scheduleViewers = document.querySelector("#schedule-viewers");
     const addScheduleViewer = document.querySelector("#add-schedule-viewer");
     const addScheduleViewerButton = document.querySelector("#add-schedule-viewer-button");
@@ -244,6 +247,7 @@
             checkbox.addEventListener("change", () => {
                 state.selectedFriend = checkbox.checked ? friend.user_id : "";
                 renderFriends();
+                renderFriendSchedulePicker();
                 renderCalendar();
                 renderFreePeriods();
             });
@@ -269,6 +273,29 @@
         }
         sharedSchedulePicker.disabled = schedules.length === 0;
         sharedSchedulePicker.value = state.selectedScheduleId;
+    };
+
+    // same look as the schedule picker above, filled with the checked friend's shared schedules
+    const renderFriendSchedulePicker = () => {
+        const friendSchedules = usersById.get(state.selectedFriend)?.schedules ?? [];
+        if (!friendSchedules.some((schedule) => schedule.id === state.selectedFriendScheduleId)) {
+            state.selectedFriendScheduleId = friendSchedules[0]?.id ?? "";
+        }
+        friendSchedulePicker.replaceChildren();
+        friendSchedules.forEach((schedule) => {
+            const option = document.createElement("option");
+            option.value = schedule.id;
+            option.textContent = schedule.name;
+            friendSchedulePicker.append(option);
+        });
+        if (friendSchedules.length === 0) {
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = "Nothing shared yet";
+            friendSchedulePicker.append(option);
+        }
+        friendSchedulePicker.disabled = friendSchedules.length === 0;
+        friendSchedulePicker.value = state.selectedFriendScheduleId;
     };
 
     const renderViewers = () => {
@@ -341,10 +368,11 @@
         try {
             const result = await apiRequest("/api/shared-free-time", {
                 method: "POST",
-                // one of your schedules (the one picked under Sharing settings) against the friend's
+                // one of your schedules against one of the friend's, both picked under Sharing settings
                 body: JSON.stringify({
                     friendId: friendUser.id,
                     scheduleId: state.selectedScheduleId || null,
+                    friendScheduleId: state.selectedFriendScheduleId || null,
                     startTime: freeTimeStart.value,
                     endTime: freeTimeEnd.value,
                     minimumDuration: Number(minimumFreeDuration.value),
@@ -421,6 +449,7 @@
         renderRequests();
         renderFriends();
         renderSharedSchedulePicker();
+        renderFriendSchedulePicker();
         renderViewers();
         renderCalendar();
         renderFreePeriods();
@@ -453,6 +482,12 @@
         state.selectedScheduleId = sharedSchedulePicker.value;
         sharingStatus.textContent = "";
         renderViewers();
+        renderCalendar();
+        renderFreePeriods();
+    });
+
+    friendSchedulePicker.addEventListener("change", () => {
+        state.selectedFriendScheduleId = friendSchedulePicker.value;
         renderCalendar();
         renderFreePeriods();
     });

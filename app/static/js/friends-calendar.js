@@ -53,6 +53,12 @@
             // only the schedule picked under Sharing settings, not every alternative
             const mine = schedules.filter((schedule) => schedule.id === state.selectedScheduleId);
             const you = mine.length > 0 ? `You (${mine[0].name})` : "You";
+            const theirs = friendUser
+                ? friendUser.schedules.filter((schedule) => schedule.id === state.selectedFriendScheduleId)
+                : [];
+            const them = theirs.length > 0
+                ? `${displayName(state.selectedFriend)} (${theirs[0].name})`
+                : displayName(state.selectedFriend);
             const freeDay = state.freeDays.find((item) => item.day === dayName);
             const freePeriods = freeDay ? freeDay.periods : [];
 
@@ -62,7 +68,7 @@
                 day: "numeric",
             });
             namesLabel.textContent = friendUser
-                ? `${you} + ${displayName(state.selectedFriend)}`
+                ? `${you} + ${them}`
                 : you;
 
             // Turn a start and end time into a left and width percent on the track
@@ -124,7 +130,7 @@
             });
             rows.append(makeRow("You", eventsOn(mine, dayName), true));
             if (friendUser) {
-                rows.append(makeRow(displayName(state.selectedFriend), eventsOn(friendUser.schedules, dayName), false));
+                rows.append(makeRow(displayName(state.selectedFriend), eventsOn(theirs, dayName), false));
             }
             chart.append(rows);
         };

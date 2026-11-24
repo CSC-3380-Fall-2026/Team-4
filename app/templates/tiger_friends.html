@@ -111,7 +111,7 @@
 
     <section class="page-card sharing-card">
         <h2>Free time search</h2>
-        <p class="card-sub">These decide which hours the Friends tab looks at when it finds shared free time.</p>
+        <p class="card-sub">These decide which hours, and which of the checked friend's shared schedules, the Friends tab looks at when it finds shared free time.</p>
 
         <div class="sharing-controls free-controls">
             <label for="free-time-start">From</label>
@@ -126,6 +126,8 @@
                 <option value="120">2 hours</option>
                 <option value="180">3 hours</option>
             </select>
+            <label for="friend-schedule-picker">Friend's schedule</label>
+            <select id="friend-schedule-picker" class="soft-select"></select>
         </div>
     </section>
 </div>
@@ -133,6 +135,6 @@
 
 {% block scripts %}
     <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=8" defer></script>
-    <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=3" defer></script>
-    <script src="{{ url_for('static', path='/js/friends.js') }}?v=20" defer></script>
+    <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=4" defer></script>
+    <script src="{{ url_for('static', path='/js/friends.js') }}?v=21" defer></script>
 {% endblock %}
