@@ -232,6 +232,13 @@
     color: var(--muted);
 }
 
+.today-day {
+    display: block;
+    margin-top: 4px;
+    font-size: 7px;
+    letter-spacing: 0.4px;
+}
+
 .today-item {
     height: 46px;
     padding-left: 14px;

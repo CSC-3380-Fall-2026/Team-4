@@ -318,6 +318,25 @@ def test_events_from_schedules(fake_db: FakeDatabase) -> None:
     assert "Fall 2026" in page.select_one(".top-semester").get_text()
 
 
+def test_dashboard_item_dates(fake_db: FakeDatabase) -> None:
+    """Print each upcoming item's own day, not the first item's day.
+
+    Args:
+        fake_db: Fake Supabase.
+    """
+    add_schedule(fake_db, "alice", "Daily", [meeting("Late", EVERY_DAY, "23:58", "23:59")])
+    page: BeautifulSoup = BeautifulSoup(
+        browser("token-alice").get("/dashboard").text, "html.parser"
+    )
+    items = page.select("#upcoming-events li")
+    days = [item.select_one(".today-day").get_text() for item in items]
+    expected = [
+        datetime.fromisoformat(item.select_one("time")["datetime"]).strftime("%b %d").upper()
+        for item in items
+    ]
+    assert len(set(days)) == 3 and days == expected
+
+
 def test_dashboard_empty(fake_db: FakeDatabase) -> None:
     """Show honest empty states for a student with no saved data.
 

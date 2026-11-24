@@ -93,12 +93,11 @@
         <h2>On your schedule</h2>
 
         {% if data.events %}
-            <p class="today-date">{{ data.events[0].starts_at.strftime('%a, %b %d') | upper }}</p>
             <ol class="today-list">
                 {# the figma shows 3, so we only show the next 3 #}
                 {% for event in data.events[:3] %}
                 <li>
-                    <time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%H:%M') }}</time>
+                    <time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%H:%M') }}<span class="today-day">{{ event.starts_at.strftime('%b %d') | upper }}</span></time>
                     <div class="today-item {{ loop.cycle('mark-lilac', 'mark-lilac', 'mark-yellow') }}">
                         <strong>{{ event.title }}</strong>
                         {% if event.location %}<span>{{ event.location }}</span>{% endif %}
