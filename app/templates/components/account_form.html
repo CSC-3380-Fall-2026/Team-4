@@ -19,7 +19,8 @@
           action="/account/{{ mode }}"
           class="account-form"
           id="account-form"
-          data-mode="{{ mode }}">
+          data-mode="{{ mode }}"
+          {% if message %}data-signed-up="1"{% endif %}>
 
         <input type="hidden"
                name="csrf_token"

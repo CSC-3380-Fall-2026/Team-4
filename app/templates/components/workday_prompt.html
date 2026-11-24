@@ -14,16 +14,16 @@
 
     <div class="workday-content">
         <p id="workday-description">
-            Open LSU Workday to access your student account.
-            Automatic account linking and syncing are not available yet.
+            Import your GPA, completed courses and this term's classes from LSU Workday.
+            A Chromium window will open for you to sign in.
         </p>
 
+        <p id="workday-progress-dialog" role="status" aria-live="polite" tabindex="-1"></p>
+
         <div class="workday-actions">
-            <a id="workday-open"
-               class="workday-button"
-               href="https://workday.lsu.edu/"
-               target="_blank"
-               rel="noopener noreferrer">
+            <button type="button"
+                    id="workday-connect"
+                    class="workday-button">
 
                 <img
                     src="https://workday.scene7.com/is/image/workday/logo-workday-primary-registered-1?fmt=webp-alpha"
@@ -32,8 +32,8 @@
                     height="40"
                     referrerpolicy="no-referrer">
 
-                <span>Continue to Workday</span>
-            </a>
+                <span>Connect</span>
+            </button>
 
             <button type="button"
                     class="workday-later"

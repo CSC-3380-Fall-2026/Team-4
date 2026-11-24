@@ -55,6 +55,10 @@
     line-height: 1.5;
 }
 
+#workday-progress-dialog:empty {
+    margin: 0;
+}
+
 .workday-actions {
     display: flex;
     flex-direction: column;

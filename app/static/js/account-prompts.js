@@ -5,13 +5,14 @@
     const account_form = document.querySelector("#account-form");
     const workday_dialog = document.querySelector("#workday-dialog");
 
-    // Keep the pending prompt in this browser tab only.
+    // Remember a new signup in this browser until its first dashboard visit,
+    // which may come after email confirmation in another tab.
     function set_prompt(show_prompt) {
         try {
             if (show_prompt) {
-                sessionStorage.setItem(prompt_key, "1");
+                localStorage.setItem(prompt_key, "1");
             } else {
-                sessionStorage.removeItem(prompt_key);
+                localStorage.removeItem(prompt_key);
             }
         } catch {
             // Login still works when browser storage is unavailable.
@@ -21,15 +22,17 @@
     // Storage can be blocked by browser settings.
     function read_prompt() {
         try {
-            return sessionStorage.getItem(prompt_key) === "1";
+            return localStorage.getItem(prompt_key) === "1";
         } catch {
             return false;
         }
     }
 
     if (account_form) {
-        // A login or signup form cancels any earlier login attempt.
-        set_prompt(false);
+        // Only a successful signup offers Workday, once, not every login.
+        if (account_form.dataset.signedUp) {
+            set_prompt(true);
+        }
 
         account_form.addEventListener("submit", (event) => {
             if (!account_form.checkValidity()) {
@@ -42,10 +45,6 @@
 
             if (confirmation) {
                 confirmation.value = password.value;
-            }
-
-            if (account_form.dataset.mode === "login") {
-                set_prompt(true);
             }
         });
     }
@@ -60,17 +59,41 @@
         });
     });
 
-    const workday_link = workday_dialog.querySelector("#workday-open");
+    const connect = workday_dialog.querySelector("#workday-connect");
+    const later = workday_dialog.querySelector(".workday-later");
+    const progress = workday_dialog.querySelector("#workday-progress-dialog");
 
-    workday_link.addEventListener("click", () => {
-        workday_dialog.close();
+    connect.addEventListener("click", async () => {
+        connect.disabled = true;
+        try {
+            progress.textContent = await window.tiger_workday.sync("sync", progress);
+            connect.hidden = true;
+            later.textContent = "Done";
+            later.focus();
+        } catch (error) {
+            progress.textContent = error.message;
+            connect.disabled = false;
+        }
     });
 
     const query = new URLSearchParams(window.location.search);
     const preview = query.get("workday") === "1";
 
+    // Shown only where the server can open a Workday window (not on Vercel).
+    async function offer() {
+        try {
+            const response = await fetch("/api/workday/status", { credentials: "same-origin" });
+            const status = response.ok ? await response.json() : null;
+            if (status?.available) {
+                workday_dialog.showModal();
+            }
+        } catch {
+            // No prompt when the status can't be read.
+        }
+    }
+
     if (read_prompt() || preview) {
         set_prompt(false);
-        workday_dialog.showModal();
+        offer();
     }
 })();
