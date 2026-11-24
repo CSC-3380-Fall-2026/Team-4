@@ -1,9 +1,11 @@
-"""Friends and schedule-sharing JSON API."""
+"""Friends page, and the friends and schedule-sharing JSON API."""
 
 from typing import Any, cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
 
+import tiger_auth
 from models.tiger_friends import FriendRequestIn, ScheduleShareIn, Student
 from models.tiger_session import Session
 from routers.tiger_friends_store import (
@@ -15,7 +17,8 @@ from routers.tiger_friends_store import (
     pair_filter,
     shared_rows,
 )
-from tiger_auth import current_session, profile_row
+from tiger_auth import current_session, profile_row, require_login
+from tiger_views import render_page
 
 
 def find_student(session: Session, username: str) -> str | None:
@@ -75,10 +78,31 @@ def existing_error(row: dict[str, Any], user_id: str, name: str) -> HTTPExceptio
     )
 
 
-router: APIRouter = APIRouter(prefix="/api/friends", tags=["friends"])
+router: APIRouter = APIRouter()
 
 
-@router.get("/me")
+@router.get("/friends", response_class=HTMLResponse)
+def friends_page(
+    request: Request, session: Session = Depends(require_login)
+) -> HTMLResponse:
+    """Open the existing Friends interface with shared navigation.
+
+    Args:
+        request: Browser request for the Friends page.
+        session: The verified student; signed-out visitors go to login.
+
+    Returns:
+        The Friends page and its existing schedule-sharing controls.
+    """
+    return render_page(
+        request, "tiger_friends.html", profile=tiger_auth.nav_profile(session)
+    )
+
+
+api: APIRouter = APIRouter(prefix="/api/friends", tags=["friends"])
+
+
+@api.get("/me")
 def friends_account(session: Session = Depends(current_session)) -> Student:
     """Confirm the authenticated account used by Friends APIs.
 
@@ -91,7 +115,7 @@ def friends_account(session: Session = Depends(current_session)) -> Student:
     return Student(user_id=session.user_id, username=own_username(session))
 
 
-@router.post("/requests", status_code=201)
+@api.post("/requests", status_code=201)
 def send_request(
     request: FriendRequestIn,
     session: Session = Depends(current_session),
@@ -144,7 +168,7 @@ def send_request(
     return {"message": f"Friend request sent to {name}.", "request": result.data[0]}
 
 
-@router.post("/requests/{request_id}/accept")
+@api.post("/requests/{request_id}/accept")
 def accept_request(
     request_id: str,
     session: Session = Depends(current_session),
@@ -174,7 +198,7 @@ def accept_request(
     return {"message": "Friend request accepted."}
 
 
-@router.delete("/requests/{request_id}")
+@api.delete("/requests/{request_id}")
 def reject_request(
     request_id: str,
     session: Session = Depends(current_session),
@@ -206,7 +230,7 @@ def reject_request(
     return {"message": "Friend request declined."}
 
 
-@router.get("/shares")
+@api.get("/shares")
 def list_shares(session: Session = Depends(current_session)) -> list[dict]:
     """List the friends each of the user's schedules is shared with.
 
@@ -232,7 +256,7 @@ def list_shares(session: Session = Depends(current_session)) -> list[dict]:
     ]
 
 
-@router.post("/shares", status_code=201)
+@api.post("/shares", status_code=201)
 def share_schedule(
     request: ScheduleShareIn,
     session: Session = Depends(current_session),
@@ -284,7 +308,7 @@ def share_schedule(
     return {"message": "Schedule shared.", "share": result.data[0]}
 
 
-@router.delete("/shares/{share_id}")
+@api.delete("/shares/{share_id}")
 def stop_sharing(
     share_id: str,
     session: Session = Depends(current_session),
@@ -313,7 +337,7 @@ def stop_sharing(
     return {"message": "Schedule sharing stopped."}
 
 
-@router.delete("/{friendship_id}")
+@api.delete("/{friendship_id}")
 def remove_friend(
     friendship_id: str,
     session: Session = Depends(current_session),
@@ -350,7 +374,7 @@ def remove_friend(
     return {"message": "Friend removed."}
 
 
-@router.get("/shared-with-me")
+@api.get("/shared-with-me")
 def shared_schedules(session: Session = Depends(current_session)) -> list[dict]:
     """Return only course sections from schedules shared by accepted friends.
 
@@ -363,7 +387,7 @@ def shared_schedules(session: Session = Depends(current_session)) -> list[dict]:
     return shared_rows(session)
 
 
-@router.get("/requests")
+@api.get("/requests")
 def list_requests(session: Session = Depends(current_session)) -> dict:
     """List pending friend requests sent to and by this account.
 
@@ -380,7 +404,7 @@ def list_requests(session: Session = Depends(current_session)) -> dict:
     return {"incoming": user.incoming_requests, "outgoing": user.outgoing_requests}
 
 
-@router.get("/list")
+@api.get("/list")
 def list_friends(session: Session = Depends(current_session)) -> dict:
     """List accepted friendships and pending requests for this account.
 
@@ -397,3 +421,7 @@ def list_friends(session: Session = Depends(current_session)) -> dict:
         "incoming_requests": user.incoming_requests,
         "outgoing_requests": user.outgoing_requests,
     }
+
+
+# The page sits at the site root; the JSON routes above sit under /api/friends.
+router.include_router(api)

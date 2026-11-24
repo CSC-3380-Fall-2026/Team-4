@@ -1,24 +1,19 @@
-"""Course catalog search and prerequisite checks, backed by the files in data/."""
+"""Course catalog page, search and prerequisite checks, backed by the files in data/."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse
 
-try:
-    from models.tiger_catalog import (
-        CourseResult,
-        PrerequisiteRequest,
-        Requirement,
-    )
-except ModuleNotFoundError:  # tests import this file as app.routers.tiger_catalog
-    from app.models.tiger_catalog import (
-        CourseResult,
-        PrerequisiteRequest,
-        Requirement,
-    )
+from models.tiger_catalog import (
+    CourseResult,
+    PrerequisiteRequest,
+    Requirement,
+)
+from tiger_views import render_page
 
 CATALOG_FILE = ( Path(__file__).resolve().parents[2] / "data" / "course_requirements.json" )
 PREREQUISITE_FILE = (
@@ -288,6 +283,58 @@ router.add_api_route(
     methods=["GET"],
     tags=["Course Catalog"],
 )
+
+
+@router.get("/catalog", response_class=HTMLResponse)
+def catalog_page(
+    request: Request,
+    query: str = "",
+    category: str = "",
+) -> HTMLResponse:
+    """Display the existing catalog search results inside shared navigation.
+
+    Args:
+        request: Browser request for the catalog.
+        query: Course-code or course-name search text.
+        category: Optional category selected in the form.
+
+    Returns:
+        An HTML result page with filters retained when errors occur.
+    """
+    courses: list[dict[str, object]] = []
+    categories: list[str] = []
+    error: str = ""
+    status_code: int = 200
+    try:
+        categories = sorted(
+            {course["category"] for course in load_courses()}
+        )
+        if len(query) > 100:
+            raise HTTPException(
+                400, "Keep your search to 100 characters or fewer."
+            )
+        if category and category not in categories:
+            raise HTTPException(400, "Choose a category from the dropdown.")
+        courses = search_courses(query=query, category=category)
+    except HTTPException as exception:
+        error = (
+            str(exception.detail)
+            if exception.status_code == 400
+            else (
+                "The course catalog is temporarily unavailable. Please try again later."
+            )
+        )
+        status_code = exception.status_code
+    return render_page(
+        request,
+        "tiger_catalog.html",
+        courses=courses,
+        categories=categories,
+        query=query,
+        category=category,
+        error=error,
+        status_code=status_code,
+    )
 
 
 @router.post("/courses/check-prerequisites", tags=["Course Catalog"])

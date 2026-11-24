@@ -247,6 +247,28 @@ def save_error(error: Exception) -> tuple[str, int]:
 router: APIRouter = APIRouter()
 
 
+@router.get("/profile", response_class=HTMLResponse)
+def profile_page(
+    request: Request, session: Session = Depends(require_login)
+) -> HTMLResponse:
+    """Display only the verified student's account and saved profile data.
+
+    Args:
+        request: Browser request for the profile page.
+        session: The verified student whose profile is shown.
+
+    Returns:
+        The student's profile page.
+    """
+    profile: AccountCard = tiger_auth.session_card(session)
+    return render_page(
+        request,
+        "tiger_profile.html",
+        profile=profile,
+        saved=request.query_params.get("saved") == "1",
+    )
+
+
 @router.post("/profile/transcript", response_class=HTMLResponse)
 async def upload_transcript(
     request: Request, session: Session = Depends(require_login)

@@ -1,11 +1,10 @@
-"""Serve the page URLs, and build the dashboard from the student's saved data."""
+"""Serve the dashboard page, built from the student's saved data."""
 
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from lucide import lucide_icon
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 import tiger_auth
 from grade_scale import GRADE_POINTS
@@ -15,10 +14,8 @@ from models.tiger_dashboard import (
     ScheduleSummary,
     UpcomingEvent,
 )
-from models.tiger_profiles import AccountCard
 from models.tiger_schedules import WEEKDAYS, Classes, Schedule, ScheduleEvent
 from models.tiger_session import Session
-from routers import tiger_catalog
 from routers.tiger_catalog import check_prerequisites
 from routers.tiger_planning import read_forecast
 from routers.tiger_schedules_store import current_semester, list_schedules
@@ -232,158 +229,4 @@ def dashboard_page(
         course_error=course_error,
         profile=tiger_auth.nav_profile(session),
         status_code=400 if course_error else 200,
-    )
-
-
-@router.get("/schedule", response_class=HTMLResponse)
-def schedule_page(
-    request: Request, session: Session = Depends(require_login)
-) -> HTMLResponse:
-    """Open the schedule page; the page script loads schedules from the API.
-
-    Args:
-        request: Browser request for the schedule page.
-        session: The verified student; signed-out visitors go to login.
-
-    Returns:
-        A schedule page with the current week's headings.
-    """
-    today: datetime = datetime.now(ZONE)
-    week_start: datetime = today - timedelta(days=today.weekday())
-    week_days: list[dict[str, str]] = []
-    for index in range(7):
-        day: datetime = week_start + timedelta(days=index)
-        week_days.append(
-            {"name": day.strftime("%A"), "date": day.strftime("%b %d")}
-        )
-    return render_page(
-        request,
-        "tiger_schedule.html",
-        week_days=week_days,
-        profile=tiger_auth.nav_profile(session),
-    )
-
-
-@router.get("/friends", response_class=HTMLResponse)
-def friends_page(
-    request: Request, session: Session = Depends(require_login)
-) -> HTMLResponse:
-    """Open the existing Friends interface with shared navigation.
-
-    Args:
-        request: Browser request for the Friends page.
-        session: The verified student; signed-out visitors go to login.
-
-    Returns:
-        The Friends page and its existing schedule-sharing controls.
-    """
-    return render_page(
-        request, "tiger_friends.html", profile=tiger_auth.nav_profile(session)
-    )
-
-
-@router.get("/profile", response_class=HTMLResponse)
-def profile_page(
-    request: Request, session: Session = Depends(require_login)
-) -> HTMLResponse:
-    """Display only the verified student's account and saved profile data.
-
-    Args:
-        request: Browser request for the profile page.
-        session: The verified student whose profile is shown.
-
-    Returns:
-        The student's profile page.
-    """
-    profile: AccountCard = tiger_auth.session_card(session)
-    return render_page(
-        request,
-        "tiger_profile.html",
-        profile=profile,
-        saved=request.query_params.get("saved") == "1",
-    )
-
-
-@router.get("/catalog", response_class=HTMLResponse)
-def catalog_page(
-    request: Request,
-    query: str = "",
-    category: str = "",
-) -> HTMLResponse:
-    """Display the existing catalog search results inside shared navigation.
-
-    Args:
-        request: Browser request for the catalog.
-        query: Course-code or course-name search text.
-        category: Optional category selected in the form.
-
-    Returns:
-        An HTML result page with filters retained when errors occur.
-    """
-    courses: list[dict[str, object]] = []
-    categories: list[str] = []
-    error: str = ""
-    status_code: int = 200
-    try:
-        categories = sorted(
-            {course["category"] for course in tiger_catalog.load_courses()}
-        )
-        if len(query) > 100:
-            raise HTTPException(
-                400, "Keep your search to 100 characters or fewer."
-            )
-        if category and category not in categories:
-            raise HTTPException(400, "Choose a category from the dropdown.")
-        courses = tiger_catalog.search_courses(query=query, category=category)
-    except HTTPException as exception:
-        error = (
-            str(exception.detail)
-            if exception.status_code == 400
-            else (
-                "The course catalog is temporarily unavailable. Please try again later."
-            )
-        )
-        status_code = exception.status_code
-    return render_page(
-        request,
-        "tiger_catalog.html",
-        courses=courses,
-        categories=categories,
-        query=query,
-        category=category,
-        error=error,
-        status_code=status_code,
-    )
-
-
-@router.get("/icons/{icon_name}")
-def get_icon(icon_name: str, size: int = 24) -> Response:
-    """Serve one of the navigation SVG icons at a bounded size.
-
-    Args:
-        icon_name: Supported Lucide icon name.
-        size: Requested width and height from 12 to 64 pixels.
-
-    Returns:
-        An SVG response for a supported icon.
-
-    Raises:
-        HTTPException: If the icon or size is unsupported.
-    """
-    allowed: set[str] = {
-        "layout-dashboard",
-        "calendar",
-        "bookmark",
-        "users",
-        "user",
-        "search",
-        "plus",
-        "chevron-down",
-        "bell",
-    }
-    if icon_name not in allowed or not 12 <= size <= 64:
-        raise HTTPException(404, "Icon not found.")
-    return Response(
-        lucide_icon(icon_name, width=size, height=size),
-        media_type="image/svg+xml",
     )

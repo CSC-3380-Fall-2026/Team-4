@@ -1,7 +1,11 @@
-"""Schedule JSON API, and the scheduling logic behind it."""
+"""Schedule page and JSON API, and the scheduling logic behind it."""
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from datetime import datetime, timedelta
 
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import HTMLResponse
+
+import tiger_auth
 from models.tiger_schedules import (
     Classes,
     CoursePreset,
@@ -14,6 +18,7 @@ from models.tiger_schedules import (
 )
 from models.tiger_session import Session
 from routers import tiger_catalog
+from routers.tiger_dashboard import ZONE
 from routers.tiger_free_time import page_data
 from routers.tiger_schedules_store import (
     current_semester,
@@ -24,7 +29,8 @@ from routers.tiger_schedules_store import (
     remove_schedule,
     save_schedule,
 )
-from tiger_auth import current_session
+from tiger_auth import current_session, require_login
+from tiger_views import render_page
 
 DEFAULT_GRADE: float = 0.0
 
@@ -188,10 +194,42 @@ def check_conflicts(
         )
 
 
-router: APIRouter = APIRouter(prefix="/api", tags=["Schedules"])
+router: APIRouter = APIRouter()
 
 
-@router.get("/schedule-data", response_model=SchedulePageData)
+@router.get("/schedule", response_class=HTMLResponse)
+def schedule_page(
+    request: Request, session: Session = Depends(require_login)
+) -> HTMLResponse:
+    """Open the schedule page; the page script loads schedules from the API.
+
+    Args:
+        request: Browser request for the schedule page.
+        session: The verified student; signed-out visitors go to login.
+
+    Returns:
+        A schedule page with the current week's headings.
+    """
+    today: datetime = datetime.now(ZONE)
+    week_start: datetime = today - timedelta(days=today.weekday())
+    week_days: list[dict[str, str]] = []
+    for index in range(7):
+        day: datetime = week_start + timedelta(days=index)
+        week_days.append(
+            {"name": day.strftime("%A"), "date": day.strftime("%b %d")}
+        )
+    return render_page(
+        request,
+        "tiger_schedule.html",
+        week_days=week_days,
+        profile=tiger_auth.nav_profile(session),
+    )
+
+
+api: APIRouter = APIRouter(prefix="/api", tags=["Schedules"])
+
+
+@api.get("/schedule-data", response_model=SchedulePageData)
 def schedule_data(session: Session = Depends(current_session)) -> SchedulePageData:
     """Return the student's page data with metrics.
 
@@ -204,7 +242,7 @@ def schedule_data(session: Session = Depends(current_session)) -> SchedulePageDa
     return page_data(load_page(session))
 
 
-@router.get("/course-presets", response_model=list[CoursePreset])
+@api.get("/course-presets", response_model=list[CoursePreset])
 def search_presets(
     query: str = "",
     session: Session = Depends(current_session),
@@ -230,7 +268,7 @@ def search_presets(
     ]
 
 
-@router.post(
+@api.post(
     "/schedules",
     response_model=Schedule,
     status_code=status.HTTP_201_CREATED,
@@ -252,7 +290,7 @@ def create_schedule(
     return insert_schedule(session, definition)
 
 
-@router.put("/schedules/{schedule_id}", response_model=Schedule)
+@api.put("/schedules/{schedule_id}", response_model=Schedule)
 def update_schedule(
     schedule_id: str,
     definition: ScheduleDefinition,
@@ -278,7 +316,7 @@ def update_schedule(
     return schedule
 
 
-@router.delete(
+@api.delete(
     "/schedules/{schedule_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
@@ -310,7 +348,7 @@ def delete_schedule(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post(
+@api.post(
     "/schedules/{schedule_id}/events",
     response_model=ScheduleEvent,
     status_code=status.HTTP_201_CREATED,
@@ -341,7 +379,7 @@ def create_event(
     return created
 
 
-@router.post(
+@api.post(
     "/schedules/{schedule_id}/courses",
     response_model=Classes,
     status_code=status.HTTP_201_CREATED,
@@ -372,7 +410,7 @@ def add_course(
     return event
 
 
-@router.put(
+@api.put(
     "/schedules/{schedule_id}/events/{event_id}",
     response_model=Classes | ScheduleEvent,
 )
@@ -417,7 +455,7 @@ def update_event(
     return updated
 
 
-@router.delete(
+@api.delete(
     "/schedules/{schedule_id}/events/{event_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
@@ -443,3 +481,7 @@ def delete_event(
     save_schedule(session, schedule)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# The page sits at the site root; the JSON routes above sit under /api.
+router.include_router(api)

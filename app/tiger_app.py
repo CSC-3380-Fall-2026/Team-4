@@ -1,8 +1,9 @@
 """Start FastAPI and connect page routes, templates, static files, and APIs."""
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
+from lucide import lucide_icon
 
 import tiger_auth
 from routers import (
@@ -53,4 +54,37 @@ def favicon() -> FileResponse:
     """
     return FileResponse(
         APP_DIR / "static" / "tiger_icon.svg", media_type="image/svg+xml"
+    )
+
+
+@app.get("/icons/{icon_name}")
+def get_icon(icon_name: str, size: int = 24) -> Response:
+    """Serve one of the navigation SVG icons at a bounded size.
+
+    Args:
+        icon_name: Supported Lucide icon name.
+        size: Requested width and height from 12 to 64 pixels.
+
+    Returns:
+        An SVG response for a supported icon.
+
+    Raises:
+        HTTPException: If the icon or size is unsupported.
+    """
+    allowed: set[str] = {
+        "layout-dashboard",
+        "calendar",
+        "bookmark",
+        "users",
+        "user",
+        "search",
+        "plus",
+        "chevron-down",
+        "bell",
+    }
+    if icon_name not in allowed or not 12 <= size <= 64:
+        raise HTTPException(404, "Icon not found.")
+    return Response(
+        lucide_icon(icon_name, width=size, height=size),
+        media_type="image/svg+xml",
     )
