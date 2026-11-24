@@ -42,8 +42,8 @@ class WorkdayCourse(ProfileCourse):
         grade: Grade as Workday shows it, such as "A-", "P" or "W".
     """
 
-    term: str
-    grade: str
+    term: str  # pyright: ignore[reportIncompatibleVariableOverride]
+    grade: str  # pyright: ignore[reportIncompatibleVariableOverride]
 
 
 class WorkdaySection(BaseModel):
@@ -92,3 +92,37 @@ class WorkdayData(BaseModel):
     courses: list[WorkdayCourse] = Field(default_factory=list)
     term: str = ""
     sections: list[WorkdaySection] = Field(default_factory=list)
+
+
+class WorkdayStatus(BaseModel):
+    """Whether Workday sync can run here and when it last ran.
+
+    Attributes:
+        available: True only when the app runs locally with Playwright.
+        connected: True once the student has synced at least once.
+        last_sync: UTC time of the last sync, or None.
+    """
+
+    available: bool
+    connected: bool
+    last_sync: str | None = None
+
+
+class WorkdaySync(BaseModel):
+    """What one sync saved.
+
+    Attributes:
+        gpa: Cumulative GPA now saved on the profile.
+        completed_credit_hours: GPA hours now saved on the profile.
+        courses_added: Courses added to the profile.
+        classes_added: Classes added to the term's schedule.
+        schedule: Name of the term's schedule, empty without a current term.
+        last_sync: UTC time of this sync.
+    """
+
+    gpa: float | None
+    completed_credit_hours: int
+    courses_added: int
+    classes_added: int
+    schedule: str
+    last_sync: str

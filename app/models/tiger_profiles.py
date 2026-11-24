@@ -4,11 +4,21 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProfileCourse(BaseModel):
-    """A completed course supplied by the profile backend."""
+    """A completed course supplied by the profile backend.
+
+    Attributes:
+        course_code: Course code, such as "CSC 1350".
+        course_name: Course title.
+        credits: Credit hours.
+        term: Term it was taken in, when known (Workday sync).
+        grade: Final grade, when known (Workday sync).
+    """
 
     course_code: str
     course_name: str
     credits: int = Field(ge=0)
+    term: str | None = None
+    grade: str | None = None
 
 
 class ParsedTranscript(BaseModel):
