@@ -286,3 +286,29 @@ def test_course_line_without_name(line: str) -> None:
 
     course = parse_line(line)
     assert (course.course_code, course.credits, course.course_name) == ("CSC 1350", 4, "CSC 1350")
+
+
+def test_profile_save_keeps_terms(fake_db: FakeDatabase) -> None:
+    """Saving the form unchanged keeps each course's term and grade.
+
+    Args:
+        fake_db: In-memory database holding Jordan Example's courses.
+    """
+    courses = [
+        {"course_code": "MATH 1550", "course_name": "Calculus I", "credits": 5,
+         "term": "2024 Fall Semester", "grade": "F"},
+        {"course_code": "MATH 1550", "course_name": "Calculus I", "credits": 5,
+         "term": "2025 Spring Semester", "grade": "B"},
+    ]
+    fake_db.rows("profiles").append({"id": "jordan", "courses": [dict(c) for c in courses]})
+    tab = browser("token-jordan")
+    response = tab.post(
+        "/profile",
+        data={
+            "csrf_token": form_token(tab, "/profile"),
+            "courses": "MATH 1550, 5, Calculus I\nMATH 1550, 5, Calculus I",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert fake_db.rows("profiles")[0]["courses"] == courses
