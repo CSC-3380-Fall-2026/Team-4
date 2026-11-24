@@ -185,12 +185,38 @@ def write_profile(session: Session, profile: ProfileRecord) -> UserBase:
     """
     row: dict[str, Any] = {
         **profile.model_dump(include=set(ProfileRecord.model_fields)),
+        # Courses without a term or grade are stored as before, without the keys.
+        "courses": [course.model_dump(exclude_none=True) for course in profile.courses],
         "id": session.user_id,
         "email": session.email,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     session.db.table("profiles").upsert(row).execute()
     return session_profile(session)
+
+
+def with_terms(session: Session, profile: ProfileRecord) -> ProfileRecord:
+    """Keep saved terms and grades on courses submitted through the form.
+
+    The form has no term or grade fields, so each submitted course takes
+    them from a saved course with the same code, each saved course once.
+
+    Args:
+        session: The verified student.
+        profile: The profile read from the form.
+
+    Returns:
+        The profile with terms and grades copied over.
+    """
+    left = readable_courses(profile_row(session, "courses").get("courses"))
+    courses: list[ProfileCourse] = []
+    for course in profile.courses:
+        match = next((old for old in left if old.course_code == course.course_code), None)
+        if match:
+            left.remove(match)
+            course = course.model_copy(update={"term": match.term, "grade": match.grade})
+        courses.append(course)
+    return profile.model_copy(update={"courses": courses})
 
 
 def show_error(
@@ -373,7 +399,9 @@ async def save_profile(
     except ValueError as error:
         return show_error(request, session, friendly(error), 400, data)
     try:
-        await run_in_threadpool(write_profile, session, profile)
+        await run_in_threadpool(
+            lambda: write_profile(session, with_terms(session, profile))
+        )
     except Exception as error:
         message, status = save_error(error)
         return show_error(request, session, message, status, data)
