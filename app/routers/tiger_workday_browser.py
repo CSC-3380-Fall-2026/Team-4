@@ -141,8 +141,7 @@ def read_pages(page: "Page", workday: str) -> dict[str, Any]:
             page.wait_for_url(f"{workday}**", timeout=LOGIN_MS)
         except PageTimeout as error:
             raise WorkdayError(
-                "Workday sign-in timed out. Try again and finish signing in "
-                f"within {LOGIN_MS // 60_000} minutes."
+                "Workday sign-in timed out. Please try again."
             ) from error
         page.goto(workday + COURSES_TASK)
     settle(page)
