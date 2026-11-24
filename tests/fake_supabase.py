@@ -55,6 +55,8 @@ class FakeDatabase:
         self.clock = count(1)
         self.broken: set[str] = set()
         self.calls: list[str] = []
+        self.users: dict[str, Row] = {}
+        self.confirm_email: bool = False
 
     def rows(self, name: str) -> list[Row]:
         """Return the mutable row list of a table.
@@ -188,6 +190,11 @@ class FakeQuery:
         """Accept and ignore a row limit."""
         return self
 
+    def is_(self, column: str, value: str) -> "FakeQuery":
+        """Keep rows whose column is null (the only use)."""
+        self.rules.append(lambda row: row.get(column) is None)
+        return self
+
     def order(self, column: str, desc: bool = False) -> "FakeQuery":
         """Sort results by a column."""
         self.sort = (column, desc)
@@ -303,6 +310,12 @@ class FakeRpc:
                 None,
             )
             return SimpleNamespace(data=found)
+        if self.name == "username_taken":
+            wanted = str(self.params.get("name", "")).lower()
+            return SimpleNamespace(data=any(
+                (row.get("username") or "").lower() == wanted
+                for row in self.db.rows("profiles")
+            ))
         if self.name == "friend_profiles":
             linked = {
                 row["addressee_id"] if row["requester_id"] == self.uid
@@ -328,7 +341,11 @@ class FakeClient:
         """
         self.db, self.uid = db, ""
         self.postgrest = SimpleNamespace(auth=self.set_token)
-        self.auth = SimpleNamespace(get_user=self.get_user)
+        self.auth = SimpleNamespace(
+            get_user=self.get_user,
+            sign_up=self.sign_up,
+            sign_in_with_password=self.sign_in,
+        )
 
     def set_token(self, token: str) -> None:
         """Bind the client to the student named by a token."""
@@ -342,6 +359,47 @@ class FakeClient:
         return SimpleNamespace(
             user=SimpleNamespace(id=uid, email=f"{uid}@lsu.edu")
         )
+
+    def signed_in(self, user: Row) -> SimpleNamespace:
+        """Answer like Supabase Auth with the user and a session."""
+        session = SimpleNamespace(
+            access_token=f"token-{user['id']}", refresh_token=f"refresh-{user['id']}"
+        )
+        return SimpleNamespace(
+            user=SimpleNamespace(
+                id=user["id"], email=user["email"], user_metadata=user["meta"]
+            ),
+            session=session,
+        )
+
+    def sign_up(self, credentials: Row) -> SimpleNamespace:
+        """Create an account and, like the original trigger, a bare profile.
+
+        The id is the email's local part. With confirm_email set, no
+        session is returned until the student signs in.
+        """
+        email = credentials["email"]
+        user = {
+            "id": email.split("@")[0],
+            "email": email,
+            "password": credentials["password"],
+            "meta": dict(credentials.get("options", {}).get("data", {})),
+        }
+        self.db.users[email] = user
+        self.db.rows("profiles").append({"id": user["id"], "email": email})
+        answer = self.signed_in(user)
+        if self.db.confirm_email:
+            answer.session = None
+        return answer
+
+    def sign_in(self, credentials: Row) -> SimpleNamespace:
+        """Sign in with email and password."""
+        user = self.db.users.get(credentials["email"])
+        if not user or user["password"] != credentials["password"]:
+            from supabase_auth.errors import AuthApiError
+
+            raise AuthApiError("Invalid login credentials", 400, "invalid_credentials")
+        return self.signed_in(user)
 
     def table(self, name: str) -> FakeQuery:
         """Start a query on a table."""

@@ -32,6 +32,7 @@
             <input id="account-name"
                    type="text"
                    name="full_name"
+                   value="{{ full_name | default('') }}"
                    autocomplete="name"
                    maxlength="80"
                    placeholder="Your first and last name">

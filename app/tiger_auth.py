@@ -1,5 +1,6 @@
 """Keep account APIs available without requiring credentials at app startup."""
 
+import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,7 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 security: HTTPBearer = HTTPBearer()
 optional_security: HTTPBearer = HTTPBearer(auto_error=False)
 AUTH_COOKIE: str = "tiger_access"
+LOG: logging.Logger = logging.getLogger(__name__)
 
 
 def auth_client() -> Client:
@@ -84,6 +86,12 @@ def login(credentials: UserAuthSchema) -> tuple[str, bool]:
             ) from error
         result = None
     if result is not None and result.session:
+        meta: dict[str, Any] = getattr(result.user, "user_metadata", None) or {}
+        claim_username(
+            result.session.access_token,
+            result.user.id,
+            str(meta.get("username") or ""),
+        )
         return result.session.access_token, True
     return (
         "Check your email and password, and confirm your email if required.",
@@ -91,31 +99,87 @@ def login(credentials: UserAuthSchema) -> tuple[str, bool]:
     )
 
 
-def signup(credentials: UserAuthSchema) -> tuple[str, bool]:
+def signup(
+    credentials: UserAuthSchema, username: str = "", full_name: str = ""
+) -> tuple[str, bool]:
     """Request account registration with Supabase for the HTML signup form.
 
     Args:
         credentials: Student email and chosen password.
+        username: Username friends will search for, kept in user metadata.
+        full_name: The student's name, kept in user metadata.
 
     Returns:
         A confirmation message and whether the request was accepted.
     """
     client: Client = auth_client()
+    meta: dict[str, str] = {"username": username, "full_name": full_name}
     try:
         result = client.auth.sign_up(
             {
                 "email": str(credentials.email),
                 "password": credentials.password,
+                "options": {"data": {k: v for k, v in meta.items() if v}},
             }
         )
-        if result.user:
-            return "Check your email for confirmation, then log in.", True
     except Exception:
-        pass
-    return (
-        "Registration could not be completed. Try logging in or try again later.",
-        False,
-    )
+        result = None
+    if result is None or not result.user:
+        return (
+            "Registration could not be completed. "
+            "Try logging in or try again later.",
+            False,
+        )
+    if not result.session:
+        return "Check your email for confirmation, then log in.", True
+    claim_username(result.session.access_token, result.user.id, username)
+    return "Your account is ready. Log in to continue.", True
+
+
+def username_taken(username: str) -> bool:
+    """Ask the database whether another student already has a username.
+
+    Args:
+        username: Username to check, ignoring case.
+
+    Returns:
+        True when taken; False when free or when the check is unavailable
+        (before database/tiger_setup.sql adds it), leaving the unique
+        index as the last guard.
+    """
+    try:
+        found = auth_client().rpc("username_taken", {"name": username}).execute()
+    except Exception:
+        LOG.warning("username_taken() unavailable; re-run tiger_setup.sql.")
+        return False
+    return found.data is True
+
+
+def claim_username(token: str, user_id: str, username: str) -> None:
+    """Copy the signup username onto the student's profile if it has none.
+
+    The profile trigger in database/tiger_setup.sql copies it at signup;
+    this covers databases still running the older trigger.
+
+    Args:
+        token: The student's access token.
+        user_id: The student's id.
+        username: Username from their signup metadata; empty does nothing.
+    """
+    if not username:
+        return
+    try:
+        (
+            user_client(token)
+            .table("profiles")
+            .update({"username": username})
+            .eq("id", user_id)
+            .is_("username", "null")
+            .execute()
+        )
+    except Exception:
+        # Taken meanwhile, or no profile row: the student sets it on Profile.
+        LOG.warning("Could not save the signup username.", exc_info=True)
 
 
 def logout(

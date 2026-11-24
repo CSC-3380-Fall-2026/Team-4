@@ -3,6 +3,8 @@
 import sys
 from pathlib import Path
 
+import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -164,3 +166,91 @@ def test_login_wrong_password_message(monkeypatch) -> None:
         monkeypatch, AuthApiError("Invalid login credentials", 400, "invalid_credentials")
     )
     assert "Check your email and password" in page
+
+
+def sign_up(username: str, email: str = "dana@lsu.edu") -> "httpx.Response":
+    """Submit the signup form.
+
+    Args:
+        username: Chosen username.
+        email: Account email; its local part becomes the fake user id.
+
+    Returns:
+        The response.
+    """
+    tab = browser()
+    return tab.post(
+        "/account/signup",
+        data={
+            "csrf_token": form_token(tab, "/signup"),
+            "full_name": "Dana Example",
+            "username": username,
+            "email": email,
+            "password": "12345678",
+            "confirm_password": "12345678",
+            "terms": "on",
+        },
+    )
+
+
+def find(fake_db: FakeDatabase, username: str) -> int:
+    """Have student alex send a friend request to a username.
+
+    Args:
+        fake_db: Fake Supabase.
+        username: Username to look for.
+
+    Returns:
+        The HTTP status of the request.
+    """
+    fake_db.rows("profiles").append({"id": "alex", "username": "AlexTiger"})
+    return browser().post(
+        "/api/friends/requests",
+        json={"username": username},
+        headers={"Authorization": "Bearer token-alex"},
+    ).status_code
+
+
+def test_signup_username_found_by_friends(fake_db: FakeDatabase) -> None:
+    """A fresh student is found by the username they chose at signup."""
+    response = sign_up("dana_t")
+    assert response.status_code == 200, response.text
+    assert fake_db.users["dana@lsu.edu"]["meta"] == {
+        "username": "dana_t", "full_name": "Dana Example"
+    }
+    assert find(fake_db, "dana_t") == 201
+
+
+def test_signup_username_claimed_at_first_sign_in(fake_db: FakeDatabase) -> None:
+    """With email confirmation on, the username lands on the first sign-in."""
+    fake_db.confirm_email = True
+    assert sign_up("dana_t").status_code == 200
+    tab = browser()
+    tab.post(
+        "/account/login",
+        data={
+            "csrf_token": form_token(tab, "/login"),
+            "email": "dana@lsu.edu",
+            "password": "12345678",
+        },
+    )
+    assert find(fake_db, "dana_t") == 201
+
+
+@pytest.mark.parametrize("username", ["", "ab", "has space", "x" * 41, "dash-ed"])
+def test_signup_bad_username(fake_db: FakeDatabase, username: str) -> None:
+    """Refuse a username friends could not search for, before any account exists."""
+    response = sign_up(username)
+    assert response.status_code == 400
+    assert "3 to 40 letters, numbers, or underscores" in response.text
+    assert fake_db.users == {}
+
+
+def test_signup_taken_username(fake_db: FakeDatabase) -> None:
+    """Refuse a username another student has, ignoring case."""
+    fake_db.rows("profiles").append({"id": "casey", "username": "Dana_T"})
+    response = sign_up("dana_t")
+    assert response.status_code == 409
+    assert "already taken" in response.text
+    assert 'value="dana_t"' in response.text
+    assert fake_db.users == {}

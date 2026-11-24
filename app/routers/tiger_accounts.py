@@ -1,5 +1,7 @@
 """Account forms for the browser, and the JSON account API."""
 
+import re
+
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials
@@ -16,6 +18,10 @@ from models.tiger_accounts import (
 from tiger_views import redirect_to, render_page, set_cookie, valid_token
 
 MIN_PASSWORD: int = 8
+# Friends search for this exact name, so keep it plain.
+USERNAME: re.Pattern[str] = re.compile(r"[A-Za-z0-9_]{3,40}")
+BAD_USERNAME: str = "Choose a username of 3 to 40 letters, numbers, or underscores."
+TAKEN: str = "That username is already taken. Try another."
 
 
 def account_page(
@@ -25,6 +31,7 @@ def account_page(
     error: str = "",
     message: str = "",
     status_code: int = 200,
+    **typed: str,
 ) -> HTMLResponse:
     """Render an account form without ever redisplaying a submitted password.
 
@@ -35,6 +42,7 @@ def account_page(
         error: Safe error message for the student.
         message: Success message after a registration request.
         status_code: HTTP response status.
+        typed: Other submitted fields to redisplay: username and full_name.
 
     Returns:
         The account form in William's shared layout.
@@ -50,6 +58,7 @@ def account_page(
         error=error,
         message=message,
         status_code=status_code,
+        **typed,
     )
 
 
@@ -72,6 +81,51 @@ async def signout_page(request: Request) -> RedirectResponse:
         except HTTPException:
             pass
     return tiger_auth.signed_out()
+
+
+async def submit_signup(
+    request: Request, data: FormData, credentials: UserAuthSchema
+) -> Response:
+    """Check the chosen username, then register with it in user metadata.
+
+    Args:
+        request: Submitted signup form.
+        data: Its fields, including username and full_name.
+        credentials: The already validated email and password.
+
+    Returns:
+        The signup page with a confirmation or an error.
+    """
+    email: str = str(credentials.email)
+    username: str = str(data.get("username", "")).strip()
+    full_name: str = " ".join(str(data.get("full_name", "")).split())[:80]
+    typed: dict[str, str] = {"username": username, "full_name": full_name}
+    if not USERNAME.fullmatch(username):
+        return account_page(
+            request, "signup", email, error=BAD_USERNAME, status_code=400, **typed
+        )
+    try:
+        if await run_in_threadpool(tiger_auth.username_taken, username):
+            return account_page(
+                request, "signup", email, error=TAKEN, status_code=409, **typed
+            )
+        message, accepted = await run_in_threadpool(
+            tiger_auth.signup, credentials, username, full_name
+        )
+    except HTTPException as error:
+        return account_page(
+            request,
+            "signup",
+            email,
+            error=str(error.detail),
+            status_code=error.status_code,
+            **typed,
+        )
+    if not accepted:
+        return account_page(
+            request, "signup", email, error=message, status_code=400, **typed
+        )
+    return account_page(request, "signup", email, message=message)
 
 
 router: APIRouter = APIRouter()
@@ -216,9 +270,10 @@ async def submit_account(request: Request, mode: str) -> Response:
             error="Enter a valid email address.",
             status_code=400,
         )
+    if mode == "signup":
+        return await submit_signup(request, data, credentials)
     try:
-        operation = tiger_auth.login if mode == "login" else tiger_auth.signup
-        message, accepted = await run_in_threadpool(operation, credentials)
+        message, accepted = await run_in_threadpool(tiger_auth.login, credentials)
     except HTTPException as error:
         return account_page(
             request,
@@ -231,8 +286,6 @@ async def submit_account(request: Request, mode: str) -> Response:
         return account_page(
             request, mode, email, error=message, status_code=400
         )
-    if mode == "signup":
-        return account_page(request, mode, email, message=message)
     response: RedirectResponse = redirect_to("/dashboard")
     set_cookie(response, request, tiger_auth.AUTH_COOKIE, message, 3600)
     return response

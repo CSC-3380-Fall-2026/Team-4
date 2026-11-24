@@ -20,7 +20,8 @@ create unique index if not exists profiles_username_key
   on public.profiles (lower(username));
 
 -- Every account gets a profile row, so schedules and friends work before the
--- student fills in their profile.
+-- student fills in their profile. It carries the username chosen at signup;
+-- if another student took that name meanwhile, the row is made without it.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -28,8 +29,14 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email) values (new.id, new.email)
-  on conflict (id) do nothing;
+  begin
+    insert into public.profiles (id, email, username)
+    values (new.id, new.email, nullif(new.raw_user_meta_data ->> 'username', ''))
+    on conflict (id) do nothing;
+  exception when unique_violation then
+    insert into public.profiles (id, email) values (new.id, new.email)
+    on conflict (id) do nothing;
+  end;
   return new;
 end;
 $$;
@@ -128,6 +135,21 @@ as $$
        or (f.addressee_id = auth.uid() and f.requester_id = p.id)
   );
 $$;
+
+-- The signup form checks a username before the account exists, so this
+-- answers only yes or no and is open to signed-out visitors.
+create or replace function public.username_taken(name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.profiles where lower(username) = lower(name));
+$$;
+
+revoke all on function public.username_taken(text) from public;
+grant execute on function public.username_taken(text) to anon, authenticated;
 
 -- Only signed-in students may look up usernames.
 revoke all on function public.profile_id_for_username(text) from public, anon;
