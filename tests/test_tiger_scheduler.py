@@ -201,7 +201,7 @@ def test_shared_schedule_visible_only_to_accepted_friend(web, fake_db):
 
     free = web.post(
         "/api/shared-free-time",
-        json={"friendUsername": "alice_u", "startTime": "08:00",
+        json={"friendId": "alice", "startTime": "08:00",
               "endTime": "12:00", "minimumDuration": 30},
         headers=login("bob"),
     )
@@ -300,3 +300,49 @@ def test_delete_twice_is_404(web):
     assert web.delete(f"/api/schedules/{first}", headers=login("alice")).status_code == 204
     again = web.delete(f"/api/schedules/{first}", headers=login("alice"))
     assert again.status_code == 404
+
+
+def free_body(friend_id, schedule_id=None):
+    """Build a shared free-time request for Monday 08:00-12:00."""
+    body = {"friendId": friend_id, "startTime": "08:00", "endTime": "12:00",
+            "minimumDuration": 30}
+    if schedule_id:
+        body["scheduleId"] = schedule_id
+    return body
+
+
+def test_free_time_uses_one_chosen_schedule(web, fake_db):
+    """Only the chosen schedule of the student counts, not every alternative."""
+    shared = make_schedule(web, "alice")
+    add_event(web, shared, "10:00", "11:00", "alice")
+    share(fake_db, shared, "alice", "bob")
+    befriend(fake_db, "alice", "bob")
+    plan_a = make_schedule(web, "bob", {"name": "Plan A", "color": "blue"})
+    add_event(web, plan_a, "08:00", "09:00", "bob")
+    plan_b = make_schedule(web, "bob", {"name": "Plan B", "color": "red"})
+    add_event(web, plan_b, "11:00", "12:00", "bob")
+    free = web.post("/api/shared-free-time", json=free_body("alice", plan_b),
+                    headers=login("bob"))
+    assert free.status_code == 200, free.text
+    assert free.json()["days"][0]["periods"] == [{"start": "08:00", "end": "10:00"}]
+    first = web.post("/api/shared-free-time", json=free_body("alice"), headers=login("bob"))
+    assert first.json()["days"][0]["periods"] == [{"start": "09:00", "end": "10:00"},
+                                                  {"start": "11:00", "end": "12:00"}]
+
+
+def test_free_time_friend_by_id_not_label(web, fake_db):
+    """Two friends without readable names are both "Friend"-labelled; ids tell them apart."""
+    for owner, start in (("alice", "08:00"), ("erin", "10:00")):
+        schedule_id = make_schedule(web, owner)
+        add_event(web, schedule_id, start, f"{int(start[:2]) + 1:02}:00", owner)
+        share(fake_db, schedule_id, owner, "bob")
+        befriend(fake_db, owner, "bob")
+    erin = web.post("/api/shared-free-time", json=free_body("erin"), headers=login("bob"))
+    assert erin.json()["days"][0]["periods"] == [{"start": "08:00", "end": "10:00"},
+                                                 {"start": "11:00", "end": "12:00"}]
+    other = make_schedule(web, "alice", {"name": "Spring", "color": "red"})
+    stranger = web.post("/api/shared-free-time", json=free_body("carol"), headers=login("bob"))
+    assert stranger.status_code == 404
+    not_mine = web.post("/api/shared-free-time", json=free_body("alice", other),
+                        headers=login("bob"))
+    assert not_mine.status_code == 404

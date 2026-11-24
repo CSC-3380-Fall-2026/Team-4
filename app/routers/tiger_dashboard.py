@@ -64,10 +64,11 @@ def event_dates(event: ScheduleEvent, today: date) -> list[date]:
 def upcoming_events(
     schedules: list[Schedule], now: datetime
 ) -> list[UpcomingEvent]:
-    """Find the next class and event meetings across saved schedules.
+    """Find the next class and event meetings in the given schedules.
 
     Args:
-        schedules: The student's saved schedules.
+        schedules: The schedules to read; the dashboard passes only the
+            selected one, since others are alternatives, not more classes.
         now: Current time in America/Chicago.
 
     Returns:
@@ -134,7 +135,7 @@ def dashboard_data(session: Session) -> DashboardData:
     schedules: list[Schedule] = load_schedules(session)
     if schedules:
         data.selected = summarize(schedules[0])
-    data.events = upcoming_events(schedules, datetime.now(ZONE))
+    data.events = upcoming_events(schedules[:1], datetime.now(ZONE))
     return data
 
 

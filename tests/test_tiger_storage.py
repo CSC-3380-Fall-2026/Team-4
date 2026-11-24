@@ -461,3 +461,12 @@ def test_failed_target_not_saved(fake_db: FakeDatabase) -> None:
     assert submit_plan(tab, values).status_code == 400
     assert fake_db.rows("forecasts") == []
     assert "No GPA forecast yet" in tab.get("/dashboard").text
+
+
+def test_dashboard_events_from_first_schedule(fake_db: FakeDatabase) -> None:
+    """Upcoming events come from one schedule, not every alternative mixed."""
+    add_schedule(fake_db, "alice", "Plan A", [meeting("Plan A class", EVERY_DAY, "23:58", "23:59")])
+    add_schedule(fake_db, "alice", "Plan B", [meeting("Plan B class", EVERY_DAY, "23:58", "23:59")])
+    page = browser("token-alice").get("/dashboard").text
+    assert "Plan A class" in page
+    assert "Plan B class" not in page

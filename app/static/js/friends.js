@@ -341,8 +341,10 @@
         try {
             const result = await apiRequest("/api/shared-free-time", {
                 method: "POST",
+                // one of your schedules (the one picked under Sharing settings) against the friend's
                 body: JSON.stringify({
-                    friendUsername: friendUser.username,
+                    friendId: friendUser.id,
+                    scheduleId: state.selectedScheduleId || null,
                     startTime: freeTimeStart.value,
                     endTime: freeTimeEnd.value,
                     minimumDuration: Number(minimumFreeDuration.value),
@@ -451,6 +453,8 @@
         state.selectedScheduleId = sharedSchedulePicker.value;
         sharingStatus.textContent = "";
         renderViewers();
+        renderCalendar();
+        renderFreePeriods();
     });
 
     addScheduleViewerButton.addEventListener("click", async () => {

@@ -117,17 +117,15 @@ def page_data(data: SchedulePageData) -> SchedulePageData:
 
 
 def free_time(
-    current_user: UserBase,
-    friend: UserBase,
+    schedules: list[Schedule],
     start_time: str,
     end_time: str,
     minimum_duration: int,
 ) -> SharedFreeTimeResponse:
-    """Compute weekly free periods shared by two users.
+    """Compute weekly free periods that no given schedule is busy in.
 
     Args:
-        current_user: The signed-in user.
-        friend: The friend to compare against.
+        schedules: The student's chosen schedule and the friend's shared ones.
         start_time: Start of the search window as HH:MM.
         end_time: End of the search window as HH:MM.
         minimum_duration: Shortest free period in minutes.
@@ -138,12 +136,7 @@ def free_time(
     range_start = _to_minutes(start_time)
     range_end = _to_minutes(end_time)
 
-    events = [
-        event
-        for user in (current_user, friend)
-        for schedule in user.schedules
-        for event in schedule.events
-    ]
+    events = [event for schedule in schedules for event in schedule.events]
 
     available_days = []
 
@@ -211,36 +204,40 @@ def shared_free(
     query: SharedFreeTimeRequest,
     session: Session = Depends(current_session),
 ) -> SharedFreeTimeResponse:
-    """Find free time shared with a friend.
+    """Find free time shared by one of the student's schedules and a friend.
 
     Args:
-        query: Friend username, time window, and minimum duration.
+        query: Friend id, the student's schedule, time window, and minimum
+            duration.
         session: Verified student and their database client.
 
     Returns:
         Shared free periods by day.
 
     Raises:
-        HTTPException: 404 when the friend is unknown or is the student.
+        HTTPException: 404 when the friend has shared nothing with the
+            student, or the schedule is not the student's.
     """
     data = load_page(session)
     current_user = find_user(data)
-
     friend = next(
         (
             user
             for user in data.users
-            if user.username == query.friend_username
+            if user.id == query.friend_id and user.id != current_user.id
         ),
         None,
     )
-
-    if friend is None or friend.id == current_user.id:
+    if friend is None:
         raise HTTPException(status_code=404, detail="Friend not found.")
-
+    mine = current_user.schedules[:1]
+    if query.schedule_id:
+        wanted = str(query.schedule_id)
+        mine = [item for item in current_user.schedules if item.id == wanted]
+        if not mine:
+            raise HTTPException(status_code=404, detail="Schedule not found.")
     return free_time(
-        current_user,
-        friend,
+        [*mine, *friend.schedules],
         query.start_time,
         query.end_time,
         query.minimum_duration,

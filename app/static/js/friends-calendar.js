@@ -50,6 +50,9 @@
             const windowLength = windowEnd - windowStart;
 
             const friendUser = usersByUsername.get(state.selectedFriend);
+            // only the schedule picked under Sharing settings, not every alternative
+            const mine = schedules.filter((schedule) => schedule.id === state.selectedScheduleId);
+            const you = mine.length > 0 ? `You (${mine[0].name})` : "You";
             const freeDay = state.freeDays.find((item) => item.day === dayName);
             const freePeriods = freeDay ? freeDay.periods : [];
 
@@ -59,8 +62,8 @@
                 day: "numeric",
             });
             namesLabel.textContent = friendUser
-                ? `You + ${displayName(state.selectedFriend)}`
-                : "You";
+                ? `${you} + ${displayName(state.selectedFriend)}`
+                : you;
 
             // Turn a start and end time into a left and width percent on the track
             const placeBar = (bar, start, end) => {
@@ -119,7 +122,7 @@
                     rows.append(bandTrack);
                 }
             });
-            rows.append(makeRow("You", eventsOn(schedules, dayName), true));
+            rows.append(makeRow("You", eventsOn(mine, dayName), true));
             if (friendUser) {
                 rows.append(makeRow(displayName(state.selectedFriend), eventsOn(friendUser.schedules, dayName), false));
             }
