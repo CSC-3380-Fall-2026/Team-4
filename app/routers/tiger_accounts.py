@@ -65,21 +65,29 @@ def account_page(
 async def signout_page(request: Request) -> RedirectResponse:
     """Clear browser account state and request token revocation when possible.
 
+    After the access cookie's hour is up, the refresh cookie is renewed
+    first so Supabase still revokes the session.
+
     Args:
-        request: Browser request with an optional access-token cookie.
+        request: Browser request with optional access and refresh cookies.
 
     Returns:
-        A redirect with the account cookie removed.
+        A redirect with the login cookies removed, even if Supabase fails.
     """
     token: str = request.cookies.get(tiger_auth.AUTH_COOKIE, "")
-    if token:
-        try:
+    try:
+        if not token:
+            session = await run_in_threadpool(tiger_auth.refreshed, request)
+            # Revoked below, so never stored in the cookies.
+            request.state.tokens = None
+            token = session.token if session else ""
+        if token:
             credentials = HTTPAuthorizationCredentials(
                 scheme="Bearer", credentials=token
             )
             await run_in_threadpool(tiger_auth.logout, credentials)
-        except HTTPException:
-            pass
+    except HTTPException:
+        pass
     return tiger_auth.signed_out()
 
 

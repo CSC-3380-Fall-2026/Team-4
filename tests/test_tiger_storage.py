@@ -601,3 +601,51 @@ def test_crash_still_renews_cookies(fake_db: FakeDatabase) -> None:
     cookies = response.headers.get_list("set-cookie")
     assert any(c.startswith("tiger_access=token-alice") for c in cookies)
     assert any(c.startswith("tiger_refresh=refresh-alice") for c in cookies)
+
+
+def log_out(tab: TestClient) -> list[str]:
+    """Submit the logout form.
+
+    Args:
+        tab: Browser to sign out.
+
+    Returns:
+        The set-cookie headers of the response.
+    """
+    tab.get("/login")
+    response = tab.post(
+        "/account/logout", data={"csrf_token": tab.cookies["tiger_csrf"]},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    return response.headers.get_list("set-cookie")
+
+
+def test_late_logout_revokes_session(
+    fake_db: FakeDatabase, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """After the hour, logout renews first so Supabase can revoke the session."""
+    revoke = Mock(return_value=True)
+    monkeypatch.setattr(tiger_auth, "logout", revoke)
+    tab = browser()
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    cookies = log_out(tab)
+    assert revoke.call_args.args[0].credentials == "token-alice"
+    for name in ("tiger_access", "tiger_refresh"):
+        assert [c for c in cookies if c.startswith(f"{name}=")] == [
+            c for c in cookies if c.startswith(f'{name}=""') and "Max-Age=0" in c
+        ]
+
+
+def test_logout_clears_when_supabase_fails(
+    fake_db: FakeDatabase, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Supabase being down never keeps the student signed in here."""
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(tiger_auth, "logout", Mock(side_effect=HTTPException(503)))
+    tab = browser("token-alice")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    cleared = log_out(tab)
+    for name in ("tiger_access", "tiger_refresh"):
+        assert any(c.startswith(f'{name}=""') and "Max-Age=0" in c for c in cleared)
