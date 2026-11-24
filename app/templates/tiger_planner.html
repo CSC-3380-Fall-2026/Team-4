@@ -41,6 +41,11 @@
 
 <form method="post" action="/planning" id="planning-form" class="planning-top" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {# Enter in a text field presses the form's first submit button, so that one calculates #}
+    <button class="visually-hidden" type="submit" name="action" value="calculate"
+            formaction="/planning#planning-results" tabindex="-1" aria-hidden="true">
+        Calculate GPA
+    </button>
 
     {# ---------- left card: the course rows ---------- #}
     <section id="sem-planner" class="page-card projector-card">
