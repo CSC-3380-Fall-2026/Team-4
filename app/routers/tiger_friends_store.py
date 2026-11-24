@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from models.tiger_friends import Friend
-from models.tiger_schedule import UserBase
+from models.tiger_schedules import UserBase
 from models.tiger_session import Session
 
 logger = logging.getLogger(__name__)

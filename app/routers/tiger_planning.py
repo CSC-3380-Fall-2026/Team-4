@@ -9,9 +9,9 @@ from grade_scale import GRADE_POINTS
 from models.tiger_planning import CourseRow, PlanningForm, PlanningResult
 import tiger_auth
 import tiger_gpa
-import tiger_schedule_store
-from models.tiger_schedule import Classes, Schedule
+from models.tiger_schedules import Classes, Schedule
 from models.tiger_session import Session
+from routers import tiger_schedules_store
 from tiger_auth import require_login
 from tiger_forecast import save_forecast
 from tiger_planning import MAX_ROWS, calculate_plan, read_form
@@ -64,7 +64,7 @@ def schedule_options(session: Session) -> tuple[list[Schedule], str]:
         be read.
     """
     try:
-        return tiger_schedule_store.list_schedules(session), ""
+        return tiger_schedules_store.list_schedules(session), ""
     except Exception:
         return [], (
             "Saved schedules could not be loaded. "
@@ -87,7 +87,7 @@ def schedule_courses(session: Session, schedule_id: str) -> list[Classes]:
             loaded (404, 503) or its courses cannot fill the plan (400, 409).
     """
     try:
-        schedule = tiger_schedule_store.fetch_schedule(session, schedule_id)
+        schedule = tiger_schedules_store.fetch_schedule(session, schedule_id)
     except HTTPException:
         raise
     except Exception as error:

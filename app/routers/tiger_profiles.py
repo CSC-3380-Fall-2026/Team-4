@@ -13,7 +13,7 @@ from models.tiger_profiles import (
     ProfileRecord,
     ProfileUpdate,
 )
-from models.tiger_schedule import UserBase
+from models.tiger_schedules import UserBase
 from models.tiger_session import Session
 from routers import tiger_profiles_transcript
 from tiger_auth import current_session, require_login

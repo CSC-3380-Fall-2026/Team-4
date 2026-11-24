@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from pydantic import ValidationError
-from app.models.tiger_schedule import Classes
+from app.models.tiger_schedules import Classes
 
 
 def test_classes_valid_data():

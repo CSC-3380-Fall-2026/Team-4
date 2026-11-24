@@ -22,7 +22,7 @@ def test_gpa_rejects_empty_course_list():
 def test_cumulative_gpa_320_example():
     """A 3.00 GPA over 12 credits plus 3 credits at 4.0 gives 3.20."""
     from tiger_gpa import CumulativeGPARequest, calculateCumlativeGPA
-    from models.tiger_schedule import Classes
+    from models.tiger_schedules import Classes
 
     course = Classes(
         department="CSC",
@@ -82,7 +82,7 @@ def test_required_gpa_rejects_invalid_current_gpa():
     assert error.value.status_code == 400
     assert "current gpa" in error.value.detail.lower()
 def test_course_credits_do_not_change_with_meeting_duration():
-    from models.tiger_schedule import Classes
+    from models.tiger_schedules import Classes
 
     course_data = {
         "department": "CSC",
