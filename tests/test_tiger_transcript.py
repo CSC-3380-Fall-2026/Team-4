@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from vercel_entry import app
-from routers import tiger_profiles_transcript as tiger_transcript
+from routers import tiger_profiles_parsing as tiger_transcript
 from fake_supabase import FakeDatabase
 
 # A synthetic transcript with the same structure as a real LSU unofficial
