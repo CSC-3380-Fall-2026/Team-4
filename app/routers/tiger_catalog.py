@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 import tiger_auth
+from grade_scale import GRADE_POINTS
 from routers import tiger_profiles
 from models.tiger_catalog import (
     CourseResult,
@@ -24,14 +25,6 @@ PREREQUISITE_FILE = (
     / "data"
     / "course_prerequisites.json"
 )
-
-GRADE_POINTS = {
-    "A+": 4.0, "A": 4.0, "A-": 3.7,
-    "B+": 3.3, "B": 3.0, "B-": 2.7,
-    "C+": 2.3, "C": 2.0, "C-": 1.7,
-    "D+": 1.3, "D": 1.0, "D-": 0.7,
-    "F": 0.0,
-}
 
 
 def fail(detail: str) -> HTTPException:
