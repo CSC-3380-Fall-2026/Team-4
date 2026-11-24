@@ -12,7 +12,6 @@ What a sync saves, with no schema change:
 - the last sync time: in the student's own account metadata.
 """
 
-import importlib.util
 import os
 import threading
 from datetime import date, datetime, timezone
@@ -47,18 +46,8 @@ from tiger_auth import current_session
 NOT_LOCAL: str = "Workday sync is only available when running the app locally."
 BUSY: str = "A Workday sync is already running. Finish it first."
 IMPORTED: str = "workday_imported"
-SYNCED_KEY: str = "workday_synced_at"
 SUFFIX: str = " (Workday)"
 SYNC_LOCK: threading.Lock = threading.Lock()
-
-
-def workday_ready() -> bool:
-    """Tell whether this server can open a Workday window.
-
-    Returns:
-        False on Vercel or when Playwright is not installed.
-    """
-    return not os.getenv("VERCEL") and importlib.util.find_spec("playwright") is not None
 
 
 def same_course(saved: ProfileCourse, found: ProfileCourse) -> bool:
@@ -226,7 +215,7 @@ def mark_synced(session: Session) -> str:
             "apikey": os.environ["SUPABASE_KEY"],
             "Authorization": f"Bearer {session.token}",
         },
-        json={"data": {SYNCED_KEY: stamp}},
+        json={"data": {tiger_workday_browser.SYNCED_KEY: stamp}},
         timeout=10,
     )
     return stamp
@@ -280,7 +269,7 @@ def run_sync(session: Session, reset: bool) -> WorkdaySync:
         HTTPException: 404 when not running locally, 409 while another sync
             runs, 502 when Workday could not be read.
     """
-    if not workday_ready():
+    if not tiger_workday_browser.workday_ready():
         raise HTTPException(404, NOT_LOCAL)
     if not SYNC_LOCK.acquire(blocking=False):
         raise HTTPException(409, BUSY)
@@ -309,10 +298,7 @@ def workday_status(session: Session = Depends(current_session)) -> WorkdayStatus
     Returns:
         Availability, whether the student has synced, and when.
     """
-    stamp = session.meta.get(SYNCED_KEY)
-    return WorkdayStatus(
-        available=workday_ready(), connected=bool(stamp), last_sync=stamp
-    )
+    return tiger_workday_browser.sync_status(session)
 
 
 @router.post("/sync")

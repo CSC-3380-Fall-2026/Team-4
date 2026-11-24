@@ -4,11 +4,15 @@ Playwright is only installed when the app runs locally, so it is imported
 inside read_workday and the app starts without it.
 """
 
+import importlib.util
 import json
 import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+from models.tiger_session import Session
+from models.tiger_workday import WorkdayStatus
 
 if TYPE_CHECKING:
     from playwright.sync_api import Page
@@ -22,10 +26,33 @@ EXTRACT_JS: str = (
 ).read_text(encoding="utf-8")
 GRID_ROW: str = 'table[data-automation-id="table"] tbody tr'
 HEADER_TITLE: str = '[data-automation-id="pageHeaderTitleText"]'
+SYNCED_KEY: str = "workday_synced_at"
 
 
 class WorkdayError(Exception):
     """A sync that could not finish, with a message safe to show the student."""
+
+
+def workday_ready() -> bool:
+    """Tell whether this server can open a Workday window.
+
+    Returns:
+        False on Vercel or when Playwright is not installed.
+    """
+    return not os.getenv("VERCEL") and importlib.util.find_spec("playwright") is not None
+
+
+def sync_status(session: Session) -> WorkdayStatus:
+    """Say whether Workday sync is available here and when the student last ran it.
+
+    Args:
+        session: The verified student; the last sync time is in its metadata.
+
+    Returns:
+        Availability, whether the student has synced, and when.
+    """
+    stamp = session.meta.get(SYNCED_KEY)
+    return WorkdayStatus(available=workday_ready(), connected=bool(stamp), last_sync=stamp)
 
 
 def settle(page: "Page") -> None:

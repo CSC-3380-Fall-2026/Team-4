@@ -7,6 +7,7 @@ from datetime import date, datetime
 from typing import Any
 
 from grade_scale import GRADE_POINTS
+from models.tiger_profiles import ProfileCourse
 from models.tiger_schedules import WEEKDAYS, Weekday
 from models.tiger_workday import (
     WorkdayCourse,
@@ -237,10 +238,11 @@ def gpa_totals(record: list[WorkdayTable]) -> tuple[float | None, int]:
     return (round(points / hours, 3) if hours else None), hours
 
 
-def term_gpas(courses: list[WorkdayCourse]) -> dict[str, float]:
+def term_gpas(courses: list[ProfileCourse]) -> dict[str, float]:
     """Compute each term's GPA from saved courses with the LSU grade scale.
 
-    Grades outside the scale (W, P, in-progress, transfer) do not count.
+    Grades outside the scale (W, P, in-progress, transfer) and courses
+    without a term do not count.
 
     Args:
         courses: Courses carrying their term, grade and credit hours.
@@ -251,8 +253,8 @@ def term_gpas(courses: list[WorkdayCourse]) -> dict[str, float]:
     points: dict[str, float] = {}
     hours: dict[str, int] = {}
     for course in courses:
-        grade = course.grade.strip()
-        if grade in GRADE_POINTS and course.credits:
+        grade = (course.grade or "").strip()
+        if course.term and grade in GRADE_POINTS and course.credits:
             earned = GRADE_POINTS[grade] * course.credits
             points[course.term] = points.get(course.term, 0) + earned
             hours[course.term] = hours.get(course.term, 0) + course.credits
