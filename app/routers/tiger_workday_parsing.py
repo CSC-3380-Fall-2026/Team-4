@@ -39,6 +39,22 @@ def to_number(text: str | None) -> float | None:
         return None
 
 
+def whole_credits(text: str | None) -> int | None:
+    """Read a credit-hours cell as whole credits, rounding halves up.
+
+    Profile courses store whole credits, so this is the one place Workday
+    credit hours are converted; courses, sections and GPA totals all use it.
+
+    Args:
+        text: Cell text, such as "3" or "2.5".
+
+    Returns:
+        The whole credits, such as 3 for "2.5", or None when not numeric.
+    """
+    value = to_number(text)
+    return None if value is None else int(value + 0.5)
+
+
 def split_listing(listing: str) -> tuple[str, str]:
     """Split a Workday course listing into its code and title.
 
@@ -131,7 +147,7 @@ def graded_courses(
         WorkdayCourse(
             course_code=code,
             course_name=title,
-            credits=round(to_number(row.get("Credit Hours")) or 0),
+            credits=whole_credits(row.get("Credit Hours")) or 0,
             term=term,
             grade=row["Grade"],
         )
@@ -157,7 +173,7 @@ def transfer_courses(record: list[WorkdayTable]) -> list[WorkdayCourse]:
             courses[code] = WorkdayCourse(
                 course_code=code,
                 course_name=title,
-                credits=round(to_number(row.get("Credit Hours")) or 0),
+                credits=whole_credits(row.get("Credit Hours")) or 0,
                 term=TRANSFER_TERM,
                 grade=row.get("Grade", ""),
             )
@@ -191,15 +207,15 @@ def gpa_totals(record: list[WorkdayTable]) -> tuple[float | None, int]:
     Returns:
         The cumulative GPA, or None without GPA hours, and the GPA hours.
     """
-    hours: float = 0
+    hours: int = 0
     points: float = 0
     for row in (row for table in record for row in table.rows):
-        credits = to_number(row.get("Credit Hours"))
+        credits = whole_credits(row.get("Credit Hours"))
         earned = to_number(row.get("Earned Grade Points"))
         if row.get("Course") and credits and earned is not None:
             hours += credits
             points += earned
-    return (round(points / hours, 3) if hours else None), round(hours)
+    return (round(points / hours, 3) if hours else None), hours
 
 
 def term_gpas(courses: list[WorkdayCourse]) -> dict[str, float]:
@@ -259,7 +275,7 @@ def read_section(row: dict[str, str]) -> WorkdaySection:
     return WorkdaySection(
         course_code=code,
         course_name=title,
-        credits=round(to_number(row.get("Credit Hours")) or 0),
+        credits=whole_credits(row.get("Credit Hours")) or 0,
         section=row.get("Section", ""),
         format=row.get("Instructional Format", ""),
         status=status,
