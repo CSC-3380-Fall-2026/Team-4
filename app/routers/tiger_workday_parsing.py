@@ -276,6 +276,9 @@ def term_sections(
 ) -> list[WorkdaySection]:
     """Read every enrolled section listed under one term; waitlists are skipped.
 
+    A row with a blank course listing is another meeting (a lab or
+    recitation) of the course above it, as in the original scraper.
+
     Args:
         courses: Grids from "View My Courses".
         period: The term heading to read.
@@ -283,14 +286,16 @@ def term_sections(
     Returns:
         The term's sections in page order.
     """
-    return [
-        read_section(row)
-        for table in courses
-        if (table.semester or UNKNOWN_TERM) == period
-        and "Waitlist" not in table.title
-        for row in table.rows
-        if row.get("Course Listing")
-    ]
+    sections: list[WorkdaySection] = []
+    for table in courses:
+        if (table.semester or UNKNOWN_TERM) != period or "Waitlist" in table.title:
+            continue
+        listing = ""
+        for row in table.rows:
+            listing = row.get("Course Listing") or listing
+            if listing:
+                sections.append(read_section({**row, "Course Listing": listing}))
+    return sections
 
 
 def current_period(courses: list[WorkdayTable], today: date) -> str:
