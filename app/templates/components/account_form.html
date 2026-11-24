@@ -32,6 +32,7 @@
             <input id="account-password" type="password" name="password"
                    autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}"
                    maxlength="1024"
+                   {% if mode == "signup" %}minlength="8"{% endif %}
                    placeholder="{{ 'Enter your password' if mode == 'login' else 'Choose a strong password' }}" required>
             {% if mode == 'signup' %}
                 <p class="field-help">Use at least 8 characters, including a number.</p>
