@@ -196,7 +196,7 @@ def test_shared_schedule_visible_only_to_accepted_friend(web, fake_db):
     bob = web.get("/api/schedule-data", headers=login("bob")).json()
     assert [user["id"] for user in bob["users"]] == ["bob", "alice"]
     friend = bob["users"][1]
-    assert friend["username"] == "alice_u"
+    assert friend["username"] is None
     assert friend["schedules"][0]["id"] == schedule_id
 
     free = web.post(
@@ -216,17 +216,6 @@ def test_shared_schedule_visible_only_to_accepted_friend(web, fake_db):
     assert [user["id"] for user in carol["users"]] == ["carol"]
     dave = web.get("/api/schedule-data", headers=login("dave")).json()
     assert [user["id"] for user in dave["users"]] == ["dave"]
-
-
-def test_unreadable_friend_username_gets_neutral_label(web, fake_db):
-    first = make_schedule(web, "alice")
-    second = make_schedule(web, "erin")
-    for owner, schedule_id in (("alice", first), ("erin", second)):
-        share(fake_db, schedule_id, owner, "bob")
-        befriend(fake_db, owner, "bob")
-    users = web.get("/api/schedule-data", headers=login("bob")).json()["users"]
-    assert [user["username"] for user in users[1:]] == ["Friend", "Friend 2"]
-    assert all(user["email"] == "" for user in users[1:])
 
 
 def test_schedule_names_must_be_unique(web):

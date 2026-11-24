@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from postgrest.exceptions import APIError
 
-from models.tiger_friends import FriendRequestIn, ScheduleShareIn, Student
+from models.tiger_friends import FriendRequestIn, ScheduleShareIn
 from models.tiger_session import Session
 from routers.tiger_friends_store import (
     friend_names,
@@ -102,19 +102,6 @@ def friends_page(
 
 
 api: APIRouter = APIRouter(prefix="/api/friends", tags=["friends"])
-
-
-@api.get("/me")
-def friends_account(session: Session = Depends(current_session)) -> Student:
-    """Confirm the authenticated account used by Friends APIs.
-
-    Args:
-        session: Authenticated session.
-
-    Returns:
-        The signed-in student's user id and username.
-    """
-    return Student(user_id=session.user_id, username=own_username(session))
 
 
 @api.post("/requests", status_code=201)
@@ -385,23 +372,6 @@ def remove_friend(
     )
     session.db.table("friendships").delete().eq("id", str(friendship_id)).execute()
     return {"message": "Friend removed."}
-
-
-@api.get("/requests")
-def list_requests(session: Session = Depends(current_session)) -> dict:
-    """List pending friend requests sent to and by this account.
-
-    Each entry's id is what accepting, declining, or canceling takes:
-    POST /api/friends/requests/{id}/accept or DELETE /api/friends/requests/{id}.
-
-    Args:
-        session: Authenticated session.
-
-    Returns:
-        Dict with incoming and outgoing requests, each naming the other student.
-    """
-    user = load_friends(session)
-    return {"incoming": user.incoming_requests, "outgoing": user.outgoing_requests}
 
 
 @api.get("/list")

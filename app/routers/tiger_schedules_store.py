@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from models.tiger_session import Session
 from routers.tiger_profiles import session_profile
-from routers.tiger_friends_store import friend_names, shared_rows
+from routers.tiger_friends_store import shared_rows
 from models.tiger_schedules import (
     Classes,
     Schedule,
@@ -22,7 +22,6 @@ from models.tiger_schedules import (
 ZONE: ZoneInfo = ZoneInfo("America/Chicago")
 TABLE: str = "schedules"
 SHARED_FIELDS: str = "id,user_id,name,semester,color,sections,commitments"
-FRIEND_LABEL: str = "Friend"
 COLORS: tuple[str, ...] = get_args(ScheduleColor)
 NAME_LIMIT: int = 60
 UNTITLED: str = "Untitled schedule"
@@ -308,50 +307,23 @@ def remove_schedule(session: Session, schedule_id: str) -> None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
 
 
-def unique_label(base: str, taken: set[str]) -> str:
-    """Make a label that no earlier friend already uses.
-
-    Args:
-        base: Preferred label.
-        taken: Labels already in use; the result is added to it.
-
-    Returns:
-        The base label, or the base with a counter.
-    """
-    label, count = base, 1
-    while label in taken:
-        count += 1
-        label = f"{base} {count}"
-    taken.add(label)
-    return label
-
-
-def friend_users(session: Session, own_name: str | None) -> list[UserBase]:
+def friend_users(session: Session) -> list[UserBase]:
     """Build users for friends who shared schedules with the student.
 
     Args:
         session: Verified student and their database client.
-        own_name: The student's username, kept out of friend labels.
 
     Returns:
-        One user per friend holding only the schedules shared with the student.
+        One user per friend holding only the schedules shared with the
+        student; the page names friends from /api/friends/list instead.
     """
-    names = friend_names(session)
     owners: dict[str, list[Schedule]] = {}
     for share in shared_rows(session, SHARED_FIELDS):
         owners.setdefault(share["owner_id"], []).append(
             to_schedule(share["schedule"])
         )
-    taken = {own_name} if own_name else set()
     return [
-        UserBase(
-            id=owner_id,
-            username=unique_label(
-                names.get(owner_id) or FRIEND_LABEL, taken
-            ),
-            email="",
-            schedules=schedules,
-        )
+        UserBase(id=owner_id, username=None, email="", schedules=schedules)
         for owner_id, schedules in owners.items()
     ]
 
@@ -369,6 +341,6 @@ def load_page(session: Session) -> SchedulePageData:
     student.schedules = list_schedules(session)
     return SchedulePageData(
         current_user_id=session.user_id,
-        users=[student, *friend_users(session, student.username)],
+        users=[student, *friend_users(session)],
         metrics={},
     )
