@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from fastapi import HTTPException, status
 
-import tiger_catalog
+from routers import tiger_catalog
 from models.tiger_schedule import (
     Classes,
     CoursePreset,

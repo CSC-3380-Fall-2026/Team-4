@@ -1,7 +1,7 @@
 
 import pytest
 
-from app.tiger_prerequisites import check_prerequisites
+from app.routers.tiger_catalog import check_prerequisites
 
 
 def test_completed_prerequisite():
@@ -50,14 +50,14 @@ def test_unsupported_course():
 
 
 def test_all_17_courses_have_prerequisite_records():
-    from app.tiger_prerequisites import load_prerequisites
+    from app.routers.tiger_catalog import load_prerequisites
 
     catalog = load_prerequisites()
     assert len(catalog) == 17
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from app.tiger_prerequisites import router
+from app.routers.tiger_catalog import router
 
 
 def test_prerequisite_api_missing_course():

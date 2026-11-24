@@ -7,13 +7,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from lucide import lucide_icon
 
 import tiger_auth
-import tiger_catalog
 from models.tiger_profile import AccountCard
 from models.tiger_session import Session
 from tiger_auth import require_login
 from grade_scale import GRADE_POINTS
-from models.tiger_prerequisites import CourseResult
-from tiger_prerequisites import check_prerequisites
+from models.tiger_catalog import CourseResult
+from routers import tiger_catalog
+from routers.tiger_catalog import check_prerequisites
 from models.tiger_dashboard import DashboardData
 from tiger_dashboard import ZONE, dashboard_data
 from tiger_views import redirect_to, render_page

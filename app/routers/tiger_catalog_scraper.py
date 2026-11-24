@@ -350,7 +350,7 @@ def save_json(data: dict, concentrations: dict) -> None:
     if missing:
         raise ValueError(f"Missing Categories: {sorted(missing)}")
 
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
 
     output = root / "data" / "course_requirements.json"
 

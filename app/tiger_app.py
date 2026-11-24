@@ -5,10 +5,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import tiger_auth
-import tiger_prerequisites
 from routers import (
     tiger_accounts,
-    tiger_courses,
+    tiger_catalog,
     tiger_friends,
     tiger_pages,
     tiger_planning,
@@ -24,12 +23,11 @@ app.add_exception_handler(
 app.mount(
     "/static", StaticFiles(directory=str(APP_DIR / "static")), name="static"
 )
-app.include_router(tiger_courses.router)
+app.include_router(tiger_catalog.router)
 app.include_router(tiger_pages.router)
 app.include_router(tiger_planning.router)
 app.include_router(tiger_accounts.router)
 app.include_router(tiger_profiles.router)
-app.include_router(tiger_prerequisites.router)
 app.include_router(tiger_schedules.router)
 app.include_router(tiger_friends.router)
 
