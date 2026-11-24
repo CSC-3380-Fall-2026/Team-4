@@ -113,6 +113,8 @@ class WorkdaySync(BaseModel):
         courses_added: Courses added to the profile.
         classes_added: Classes added to the term's schedule.
         schedule: Name of the term's schedule, empty without a current term.
+        schedule_created: True when this sync created that schedule, also
+            when the student had deleted it.
         last_sync: UTC time of this sync.
     """
 
@@ -121,4 +123,5 @@ class WorkdaySync(BaseModel):
     courses_added: int
     classes_added: int
     schedule: str
+    schedule_created: bool
     last_sync: str

@@ -15,7 +15,8 @@
             `${plural(data.courses_added, "course", "courses")} added to your profile`,
         ];
         if (data.schedule) {
-            parts.push(`${plural(data.classes_added, "class", "classes")} added to the schedule “${data.schedule}”`);
+            const where = data.schedule_created ? "the new schedule" : "the schedule";
+            parts.push(`${plural(data.classes_added, "class", "classes")} added to ${where} “${data.schedule}”`);
         }
         return `Imported from Workday: ${parts.join(", ")}.`;
     }

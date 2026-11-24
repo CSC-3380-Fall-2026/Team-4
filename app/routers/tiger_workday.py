@@ -6,9 +6,11 @@ What a sync saves, with no schema change:
   the same when its code and term match, and a saved course without a term
   matches any term. Saved courses are never changed, except by a reset,
   which replaces them all.
-- a schedule named "<Term> (Workday)": sections not yet imported are added.
-  The keys of imported sections are kept in the row's commitments JSON as
-  {"workday_imported": [...]}, so an edited or deleted class is left alone.
+- the term's schedule, first named "<Term> (Workday)": sections not yet
+  imported are added. Its commitments JSON keeps {"workday_term": term,
+  "workday_imported": [section keys]}; that marker finds the schedule even
+  after a rename, and an edited or deleted class is left alone. A deleted
+  schedule is created again with every class.
 - the last sync time: in the student's own account metadata.
 """
 
@@ -48,6 +50,7 @@ NOT_LOCAL: str = "Workday sync is only available when running the app locally."
 BUSY: str = "A Workday sync is already running. Finish it first."
 NOTHING_CHANGED: str = "Workday pages could not be read; nothing was changed."
 IMPORTED: str = "workday_imported"
+TERM_KEY: str = "workday_term"
 SUFFIX: str = " (Workday)"
 SYNC_LOCK: threading.Lock = threading.Lock()
 
@@ -131,44 +134,47 @@ def section_event(
     )
 
 
-def imported_keys(schedule: Schedule) -> list[str]:
-    """Find, or start, the list of sections already imported into a schedule.
+def workday_marker(schedule: Schedule) -> dict[str, Any] | None:
+    """Find the Workday memory stored in a schedule's JSON.
 
     Args:
-        schedule: The term's schedule.
+        schedule: Any of the student's schedules.
 
     Returns:
-        The stored list itself; appending to it saves with the schedule.
+        {"workday_term": ..., "workday_imported": [...]}, or None when the
+        schedule was not made by a Workday sync.
     """
-    kept = schedule._kept.setdefault("commitments", [])
-    marker = next(
-        (item for item in kept if isinstance(item, dict) and IMPORTED in item), None
-    )
-    if marker is None:
-        marker = {IMPORTED: []}
-        kept.append(marker)
-    return marker[IMPORTED]
+    kept = schedule._kept.get("commitments", [])
+    return next((item for item in kept if isinstance(item, dict) and IMPORTED in item), None)
 
 
-def term_schedule(session: Session, name: str) -> Schedule:
-    """Load the student's schedule with this name, creating it if missing.
+def term_schedule(session: Session, term: str) -> tuple[Schedule, dict[str, Any], bool]:
+    """Find the term's Workday schedule by its stored marker, or create it.
+
+    The marker, not the name, identifies it, so a renamed schedule keeps
+    its memory; a deleted one is created again.
 
     Args:
         session: The verified student.
-        name: Schedule name.
+        term: Current term name.
 
     Returns:
-        The schedule.
+        The schedule, its marker, and True when it was just created.
     """
     for schedule in tiger_schedules_store.list_schedules(session):
-        if schedule.name.lower() == name.lower():
-            return schedule
-    return tiger_schedules_store.insert_schedule(
+        marker = workday_marker(schedule)
+        if marker and marker.get(TERM_KEY) == term:
+            return schedule, marker, False
+    name = term[: 60 - len(SUFFIX)] + SUFFIX
+    schedule = tiger_schedules_store.insert_schedule(
         session, ScheduleDefinition(name=name, color="purple")
     )
+    marker = {TERM_KEY: term, IMPORTED: []}
+    schedule._kept.setdefault("commitments", []).append(marker)
+    return schedule, marker, True
 
 
-def import_schedule(session: Session, data: WorkdayData) -> tuple[str, int]:
+def import_schedule(session: Session, data: WorkdayData) -> tuple[str, int, bool]:
     """Add the current term's new, not dropped sections to its schedule.
 
     Args:
@@ -176,12 +182,13 @@ def import_schedule(session: Session, data: WorkdayData) -> tuple[str, int]:
         data: The parsed Workday pages.
 
     Returns:
-        The schedule name (empty without a current term) and classes added.
+        The schedule name (empty without a current term), classes added,
+        and whether the schedule was created by this sync.
     """
     if not data.term:
-        return "", 0
-    schedule = term_schedule(session, data.term[: 60 - len(SUFFIX)] + SUFFIX)
-    done = imported_keys(schedule)
+        return "", 0, False
+    schedule, marker, created = term_schedule(session, data.term)
+    done: list[str] = marker[IMPORTED]
     added = 0
     for section in data.sections:
         key = section.section or f"{section.course_code} {section.format}"
@@ -196,9 +203,9 @@ def import_schedule(session: Session, data: WorkdayData) -> tuple[str, int]:
         schedule.events.append(event)
         done.append(key)
         added += 1
-    if added:
+    if added or created:
         tiger_schedules_store.save_schedule(session, schedule)
-    return schedule.name, added
+    return schedule.name, added, created
 
 
 def mark_synced(session: Session) -> str:
@@ -247,13 +254,14 @@ def save_sync(session: Session, data: WorkdayData, reset: bool) -> WorkdaySync:
             courses=courses,
         ),
     )
-    name, classes = import_schedule(session, data)
+    name, classes, created = import_schedule(session, data)
     return WorkdaySync(
         gpa=stored.gpa,
         completed_credit_hours=stored.completed_credit_hours,
         courses_added=len(courses) - (0 if reset else len(saved)),
         classes_added=classes,
         schedule=name,
+        schedule_created=created,
         last_sync=mark_synced(session),
     )
 
