@@ -1,6 +1,6 @@
 """Serve the Planning form using Python and ordinary HTML submissions."""
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
@@ -9,6 +9,8 @@ from grade_scale import GRADE_POINTS
 from models.tiger_planning import CourseRow, PlanningForm, PlanningResult
 import tiger_auth
 import tiger_gpa
+import tiger_schedule_store
+from models.tiger_schedule import Classes, Schedule
 from models.tiger_session import Session
 from tiger_auth import require_login
 from tiger_forecast import save_forecast
@@ -26,26 +28,132 @@ router.add_api_route("/calculateRequiredGPA", tiger_gpa.required_gpa, methods=["
 router.add_api_route("/getClasses", tiger_gpa.saved_classes, methods=["POST"])
 
 
-def saved_start(session: Session) -> PlanningForm:
+def saved_start(session: Session) -> tuple[PlanningForm, str]:
     """Start a blank plan from the GPA and hours saved on the profile.
 
     Args:
         session: The verified student.
 
     Returns:
-        A form with the saved current GPA and credit hours filled in, or
-        empty when the profile has none or cannot be read.
+        A form with the saved current GPA and credit hours filled in, and
+        an error message when the profile cannot be read.
     """
     form: PlanningForm = PlanningForm(rows=[CourseRow() for _ in range(3)])
     try:
         profile = tiger_auth.session_profile(session)
     except Exception:
-        return form
+        return form, (
+            "Your saved academic record could not be loaded. "
+            "You can enter your GPA and credits below."
+        )
     if profile.gpa is not None:
         form.current_gpa = f"{profile.gpa:.2f}"
     if profile.completed_credit_hours:
         form.completed_credits = str(profile.completed_credit_hours)
-    return form
+    return form, ""
+
+
+def schedule_options(session: Session) -> tuple[list[Schedule], str]:
+    """Read the schedules the student can load into the plan.
+
+    Args:
+        session: The verified student.
+
+    Returns:
+        The student's schedules, and an error message when they cannot
+        be read.
+    """
+    try:
+        return tiger_schedule_store.list_schedules(session), ""
+    except Exception:
+        return [], (
+            "Saved schedules could not be loaded. "
+            "You can still enter courses manually."
+        )
+
+
+def schedule_courses(session: Session, schedule_id: str) -> list[Classes]:
+    """Read the courses of one saved schedule for the plan.
+
+    Args:
+        session: The verified student.
+        schedule_id: Id of the student's schedule.
+
+    Returns:
+        The schedule's courses.
+
+    Raises:
+        HTTPException: With a readable message when the schedule cannot be
+            loaded (404, 503) or its courses cannot fill the plan (400, 409).
+    """
+    try:
+        schedule = tiger_schedule_store.fetch_schedule(session, schedule_id)
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(
+            503, "Your saved courses could not be loaded. Try again."
+        ) from error
+    if schedule._kept.get("sections"):
+        raise HTTPException(
+            409,
+            "Some courses in this schedule could not be read. "
+            "Review the schedule before loading its courses."
+        )
+    courses = [event for event in schedule.events if isinstance(event, Classes)]
+    if not courses:
+        raise HTTPException(
+            400,
+            "This schedule has no courses. Add courses in Schedule first."
+        )
+    if len(courses) > MAX_ROWS:
+        raise HTTPException(
+            400, f"This schedule exceeds the limit of {MAX_ROWS} courses."
+        )
+    keys = {
+        (
+            course.department.strip().upper(),
+            course.number,
+            course.semester.strip().casefold(),
+        )
+        for course in courses
+    }
+    if len(keys) < len(courses):
+        raise HTTPException(
+            409,
+            "This schedule contains multiple entries for the same course. "
+            "Enter each course once in the planner so its credits are "
+            "counted correctly. Your current entries have been kept."
+        )
+    return courses
+
+
+def load_schedule(
+    form: PlanningForm, session: Session, schedule_id: str
+) -> tuple[list[str], int]:
+    """Fill the plan's rows with a saved schedule's course names and credits.
+
+    Expected grades are left blank for the student to choose.
+
+    Args:
+        form: Planning form whose rows are replaced on success.
+        session: The verified student.
+        schedule_id: Id of the student's schedule.
+
+    Returns:
+        Any error messages and the HTTP status code.
+    """
+    if not schedule_id or len(schedule_id) > 100:
+        return ["Choose a saved schedule."], 400
+    try:
+        courses = schedule_courses(session, schedule_id)
+    except HTTPException as error:
+        return [str(error.detail)], error.status_code
+    form.rows = [
+        CourseRow(name=course.title, credit=str(course.credit), grade="")
+        for course in courses
+    ]
+    return [], 200
 
 
 @router.get("/planning", response_class=HTMLResponse)
@@ -64,7 +172,8 @@ def planning_page(
     Returns:
         A Planning form with no fabricated calculation results.
     """
-    form: PlanningForm = saved_start(session)
+    form, profile_error = saved_start(session)
+    schedules, schedule_error = schedule_options(session)
     if example:
         form = PlanningForm(
             current_gpa="3.0",
@@ -90,6 +199,12 @@ def planning_page(
         grades=GRADE_POINTS,
         max_rows=MAX_ROWS,
         example=example,
+        schedules=schedules,
+        schedule_id="",
+        schedule_error=schedule_error,
+        profile_error=profile_error,
+        loaded=False,
+        profile=tiger_auth.nav_profile(session),
     )
 
 
@@ -176,12 +291,20 @@ async def submit_plan(
     data: FormData = await request.form(max_files=0, max_fields=100)
     form: PlanningForm = read_form(data)
     action: str = str(data.get("action", "calculate"))
+    schedule_id: str = str(data.get("schedule_id", "")).strip()
     result: PlanningResult | None = None
     errors, status_code = check_form(request, data)
-    if not errors:
+    if not errors and action == "load_schedule":
+        errors, status_code = await run_in_threadpool(
+            load_schedule, form, session, schedule_id
+        )
+    elif not errors:
         result, errors, status_code = run_action(form, action)
     unsaved: bool = result is not None and not await run_in_threadpool(
         save_forecast, session, result
+    )
+    schedules, schedule_error = await run_in_threadpool(
+        schedule_options, session
     )
     return render_page(
         request,
@@ -194,4 +317,10 @@ async def submit_plan(
         max_rows=MAX_ROWS,
         example=False,
         unsaved=unsaved,
+        schedules=schedules,
+        schedule_id=schedule_id,
+        schedule_error=schedule_error,
+        profile_error="",
+        loaded=action == "load_schedule" and not errors,
+        profile=tiger_auth.nav_profile(session),
     )
