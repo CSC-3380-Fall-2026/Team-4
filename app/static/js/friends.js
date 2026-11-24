@@ -301,7 +301,8 @@ function initializeFriends(initialLists, initialShares) {
         freePeriods.className = "plan-cards";
         freePeriods.replaceChildren();
         // the design has room for 3 cards, the first one is the gold "Best match"
-        cards.slice(0, 3).forEach((card, index) => {
+        // longest first, so the first card really is the best match
+        [...cards].sort((a, b) => b.duration - a.duration).slice(0, 3).forEach((card, index) => {
             const isBest = index === 0;
             const item = makeElement("article", isBest ? "plan-card plan-best" : "plan-card");
             const link = makeElement("a", "plan-button", "Make a plan ↗");

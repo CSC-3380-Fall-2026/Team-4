@@ -486,7 +486,8 @@ function initializeFriends(
         freePeriods.replaceChildren();
 
         // the design has room for 3 cards, the first one is the gold "Best match"
-        cards.slice(0, 3).forEach((card, index) => {
+        // longest first, so the first card really is the best match
+        [...cards].sort((a, b) => b.duration - a.duration).slice(0, 3).forEach((card, index) => {
             const isBest = index === 0;
             const item = makeElement(
                 "article",
