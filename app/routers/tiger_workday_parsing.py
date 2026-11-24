@@ -18,7 +18,7 @@ from models.tiger_workday import (
 UNKNOWN_TERM: str = "Unknown term"
 TRANSFER_TERM: str = "Transfer Credit"
 DAY_NAMES: dict[str, Weekday] = {day.lower(): day for day in WEEKDAYS}
-CLOCK_PATTERN: re.Pattern[str] = re.compile(r"(\d{1,2}):(\d\d)\s*([AP])M", re.I)
+CLOCK_PATTERN: re.Pattern[str] = re.compile(r"(\d{1,2}):(\d\d)\s*(?:([AP])M)?", re.I)
 DATES_PATTERN: re.Pattern[str] = re.compile(
     r"\((\d\d/\d\d/\d{4})\s*-\s*(\d\d/\d\d/\d{4})\)"
 )
@@ -239,23 +239,41 @@ def term_gpas(courses: list[WorkdayCourse]) -> dict[str, float]:
     return {term: round(points[term] / hours[term], 3) for term in hours}
 
 
+def clock_time(hour: str, minute: str, half: str) -> str:
+    """Write a 12-hour clock time as 24-hour HH:MM.
+
+    Args:
+        hour: Hour from 1 to 12.
+        minute: Two-digit minute.
+        half: "A" or "P", either case.
+
+    Returns:
+        The time as HH:MM.
+    """
+    return f"{int(hour) % 12 + (12 if half.upper() == 'P' else 0):02d}:{minute}"
+
+
 def clock_times(text: str) -> tuple[str | None, str | None]:
     """Read a meeting time such as "9:00 AM - 10:20 AM" as 24-hour times.
+
+    The start may share the end's AM/PM, as in "9:00-10:20 AM".
 
     Args:
         text: The time part of a meeting pattern.
 
     Returns:
-        Start and end as HH:MM, or (None, None) without two times.
+        Start and end as HH:MM, or (None, None) without two times or when
+        the end is not after the start.
     """
     found = CLOCK_PATTERN.findall(text)
-    if len(found) < 2:
+    if len(found) < 2 or not found[1][2]:
         return None, None
-    start, end = (
-        f"{int(hour) % 12 + (12 if half.upper() == 'P' else 0):02d}:{minute}"
-        for hour, minute, half in found[:2]
-    )
-    return start, end
+    (start_hour, start_minute, start_half), (hour, minute, half) = found[:2]
+    end = clock_time(hour, minute, half)
+    start = clock_time(start_hour, start_minute, start_half or half)
+    if not start_half and start > end:
+        start = clock_time(start_hour, start_minute, "A")
+    return (start, end) if start < end else (None, None)
 
 
 def read_section(row: dict[str, str]) -> WorkdaySection:
