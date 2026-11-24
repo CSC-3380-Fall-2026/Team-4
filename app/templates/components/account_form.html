@@ -78,10 +78,6 @@
                 <label for="account-password">
                     {{ 'Password' if mode == 'login' else 'Create a password' }}
                 </label>
-
-                {% if mode == 'login' %}
-                    <a class="small-link" href="/login">Forgot password?</a>
-                {% endif %}
             </div>
 
             <input id="account-password"
@@ -109,11 +105,6 @@
             <label class="check-row">
                 <input type="checkbox" name="terms" required>
                 <span>I agree to the Terms of Service and Privacy Policy.</span>
-            </label>
-        {% else %}
-            <label class="check-row">
-                <input type="checkbox" name="remember" checked>
-                <span>Keep me logged in</span>
             </label>
         {% endif %}
 

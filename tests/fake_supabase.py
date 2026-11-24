@@ -345,6 +345,7 @@ class FakeClient:
             get_user=self.get_user,
             sign_up=self.sign_up,
             sign_in_with_password=self.sign_in,
+            refresh_session=self.refresh,
         )
 
     def set_token(self, token: str) -> None:
@@ -400,6 +401,13 @@ class FakeClient:
 
             raise AuthApiError("Invalid login credentials", 400, "invalid_credentials")
         return self.signed_in(user)
+
+    def refresh(self, refresh_token: str) -> SimpleNamespace:
+        """Trade a refresh token of the form refresh-<id> for a new session."""
+        if not refresh_token.startswith("refresh-"):
+            raise ValueError("bad refresh token")
+        uid = refresh_token.removeprefix("refresh-")
+        return self.signed_in({"id": uid, "email": f"{uid}@lsu.edu", "meta": {}})
 
     def table(self, name: str) -> FakeQuery:
         """Start a query on a table."""

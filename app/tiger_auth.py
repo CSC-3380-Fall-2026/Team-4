@@ -23,6 +23,8 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 security: HTTPBearer = HTTPBearer()
 optional_security: HTTPBearer = HTTPBearer(auto_error=False)
 AUTH_COOKIE: str = "tiger_access"
+REFRESH_COOKIE: str = "tiger_refresh"
+REFRESH_AGE: int = 30 * 24 * 3600
 LOG: logging.Logger = logging.getLogger(__name__)
 
 
@@ -52,15 +54,15 @@ def auth_client() -> Client:
         ) from error
 
 
-def login(credentials: UserAuthSchema) -> tuple[str, bool]:
+def login(credentials: UserAuthSchema) -> tuple[str, bool, str]:
     """Sign in with Supabase for the HTML login form.
 
     Args:
         credentials: Student email and password.
 
     Returns:
-        An access token and True on success, or a safe message and False
-        when Supabase refused the email or password.
+        The access token, True and the refresh token on success, or a safe
+        message, False and "" when Supabase refused the email or password.
 
     Raises:
         HTTPException: 429 when Supabase rate-limits sign-ins, 503 for any
@@ -92,10 +94,11 @@ def login(credentials: UserAuthSchema) -> tuple[str, bool]:
             result.user.id,
             str(meta.get("username") or ""),
         )
-        return result.session.access_token, True
+        return result.session.access_token, True, result.session.refresh_token
     return (
         "Check your email and password, and confirm your email if required.",
         False,
+        "",
     )
 
 
@@ -256,6 +259,62 @@ def verify_token(token: str) -> Session | None:
     return Session(user.id, user.email or "", token, user_client(token), meta)
 
 
+def refreshed(request: Request) -> Session | None:
+    """Renew an expired browser session with the refresh-token cookie.
+
+    The new tokens are left on request.state for tiger_app to store in
+    the response cookies.
+
+    Args:
+        request: Current request, which may carry the refresh cookie.
+
+    Returns:
+        The renewed session, or None without a cookie or when Supabase
+        refuses it.
+
+    Raises:
+        HTTPException: If account services are unavailable.
+    """
+    token: str = request.cookies.get(REFRESH_COOKIE, "")
+    if not token:
+        return None
+    try:
+        result = auth_client().auth.refresh_session(token)
+    except HTTPException:
+        raise
+    except Exception:
+        return None
+    if result is None or not result.session or not result.user:
+        return None
+    access: str = result.session.access_token
+    request.state.tokens = (access, result.session.refresh_token)
+    meta: dict[str, Any] = getattr(result.user, "user_metadata", None) or {}
+    return Session(
+        result.user.id, result.user.email or "", access, user_client(access), meta
+    )
+
+
+def cookie_session(
+    request: Request, credentials: HTTPAuthorizationCredentials | None
+) -> Session | None:
+    """Verify the bearer token or login cookie, renewing an expired cookie.
+
+    Args:
+        request: Current request.
+        credentials: Optional bearer token; API callers renew their own.
+
+    Returns:
+        The verified session, or None when signed out.
+
+    Raises:
+        HTTPException: If account services are unavailable.
+    """
+    session: Session | None = verify_token(request_token(request, credentials))
+    if session is None and credentials is None:
+        session = refreshed(request)
+    return session
+
+
 def request_token(
     request: Request, credentials: HTTPAuthorizationCredentials | None
 ) -> str:
@@ -289,13 +348,12 @@ def current_session(
     Raises:
         HTTPException: With status 401 when not signed in or expired.
     """
-    token: str = request_token(request, credentials)
-    if not token:
+    session: Session | None = cookie_session(request, credentials)
+    if session is not None:
+        return session
+    if not request_token(request, credentials):
         raise HTTPException(401, "Not signed in.")
-    session: Session | None = verify_token(token)
-    if session is None:
-        raise HTTPException(401, "Session expired, please log in again.")
-    return session
+    raise HTTPException(401, "Session expired, please log in again.")
 
 
 def require_login(
@@ -314,7 +372,7 @@ def require_login(
     Raises:
         LoginRequired: When the token is missing, invalid or expired.
     """
-    session: Session | None = verify_token(request_token(request, credentials))
+    session: Session | None = cookie_session(request, credentials)
     if session is None:
         raise LoginRequired()
     return session
@@ -331,7 +389,7 @@ def optional_login(request: Request) -> Session | None:
         account services are unavailable, so the public page still loads.
     """
     try:
-        return verify_token(request.cookies.get(AUTH_COOKIE, ""))
+        return cookie_session(request, None)
     except HTTPException:
         return None
 
@@ -350,11 +408,12 @@ def login_redirect(request: Request, error: Exception) -> RedirectResponse:
 
 
 def signed_out() -> RedirectResponse:
-    """Send the browser to /login with its login cookie removed.
+    """Send the browser to /login with its login cookies removed.
 
     Returns:
-        An uncached 303 redirect to /login that deletes the login cookie.
+        An uncached 303 redirect to /login that deletes both login cookies.
     """
     response: RedirectResponse = redirect_to("/login")
     response.delete_cookie(AUTH_COOKIE)
+    response.delete_cookie(REFRESH_COOKIE)
     return response

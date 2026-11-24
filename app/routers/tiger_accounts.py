@@ -145,7 +145,7 @@ def login_api(credentials: UserAuthSchema) -> TokenResponse:
     Raises:
         HTTPException: 401 when the email or password is wrong.
     """
-    message, accepted = tiger_auth.login(credentials)
+    message, accepted, _ = tiger_auth.login(credentials)
     if not accepted:
         raise HTTPException(401, message)
     return TokenResponse(access_token=message)
@@ -273,7 +273,9 @@ async def submit_account(request: Request, mode: str) -> Response:
     if mode == "signup":
         return await submit_signup(request, data, credentials)
     try:
-        message, accepted = await run_in_threadpool(tiger_auth.login, credentials)
+        message, accepted, *refresh = await run_in_threadpool(
+            tiger_auth.login, credentials
+        )
     except HTTPException as error:
         return account_page(
             request,
@@ -288,4 +290,12 @@ async def submit_account(request: Request, mode: str) -> Response:
         )
     response: RedirectResponse = redirect_to("/dashboard")
     set_cookie(response, request, tiger_auth.AUTH_COOKIE, message, 3600)
+    if refresh and refresh[0]:
+        set_cookie(
+            response,
+            request,
+            tiger_auth.REFRESH_COOKIE,
+            refresh[0],
+            tiger_auth.REFRESH_AGE,
+        )
     return response

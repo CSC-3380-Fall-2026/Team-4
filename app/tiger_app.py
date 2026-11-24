@@ -1,6 +1,8 @@
 """Start FastAPI and connect page routes, templates, static files, and APIs."""
 
-from fastapi import FastAPI, HTTPException
+from collections.abc import Awaitable, Callable
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from lucide import lucide_icon
@@ -17,7 +19,7 @@ from routers import (
     tiger_schedules,
     tiger_workday,
 )
-from tiger_views import APP_DIR
+from tiger_views import APP_DIR, set_cookie
 
 app: FastAPI = FastAPI(title="Tiger Class Drive")
 app.add_exception_handler(
@@ -35,6 +37,30 @@ app.include_router(tiger_schedules.router)
 app.include_router(tiger_free_time.router)
 app.include_router(tiger_friends.router)
 app.include_router(tiger_workday.router)
+
+
+@app.middleware("http")
+async def keep_signed_in(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    """Store tokens renewed during the request in the login cookies.
+
+    Args:
+        request: Incoming request.
+        call_next: The rest of the app.
+
+    Returns:
+        The response, with new login cookies when the session was renewed.
+    """
+    response: Response = await call_next(request)
+    tokens: tuple[str, str] | None = getattr(request.state, "tokens", None)
+    if tokens:
+        access, refresh = tokens
+        set_cookie(response, request, tiger_auth.AUTH_COOKIE, access, 3600)
+        set_cookie(
+            response, request, tiger_auth.REFRESH_COOKIE, refresh, tiger_auth.REFRESH_AGE
+        )
+    return response
 
 
 @app.get("/health")

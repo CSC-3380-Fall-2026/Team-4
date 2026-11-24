@@ -470,3 +470,65 @@ def test_dashboard_events_from_first_schedule(fake_db: FakeDatabase) -> None:
     page = browser("token-alice").get("/dashboard").text
     assert "Plan A class" in page
     assert "Plan B class" not in page
+
+
+def test_login_sets_refresh_cookie(fake_db: FakeDatabase) -> None:
+    """Signing in stores both tokens in HTTP-only cookies."""
+    fake_db.users["alice@lsu.edu"] = {
+        "id": "alice", "email": "alice@lsu.edu", "password": "12345678", "meta": {}
+    }
+    tab = browser()
+    tab.get("/login")
+    response = tab.post(
+        "/account/login",
+        data={"csrf_token": tab.cookies["tiger_csrf"], "email": "alice@lsu.edu",
+              "password": "12345678"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    cookies = response.headers.get_list("set-cookie")
+    assert any(c.startswith("tiger_access=token-alice") and "HttpOnly" in c for c in cookies)
+    assert any(c.startswith("tiger_refresh=refresh-alice") and "HttpOnly" in c for c in cookies)
+
+
+@pytest.mark.parametrize("path", ["/dashboard", "/api/schedule-data"])
+def test_expired_access_is_refreshed(fake_db: FakeDatabase, path: str) -> None:
+    """After the one-hour token expires, pages and the API renew the session."""
+    tab = browser("expired-token")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    response = tab.get(path, follow_redirects=False)
+    assert response.status_code == 200
+    cookies = response.headers.get_list("set-cookie")
+    assert any(c.startswith("tiger_access=token-alice") for c in cookies)
+    assert any(c.startswith("tiger_refresh=refresh-alice") for c in cookies)
+
+
+def test_bad_refresh_still_signs_out(fake_db: FakeDatabase) -> None:
+    """A refresh token Supabase refuses leads to the login page or a 401."""
+    tab = browser()
+    tab.cookies.set("tiger_refresh", "stolen")
+    assert tab.get("/dashboard", follow_redirects=False).headers["location"] == "/login"
+    assert tab.get("/api/schedule-data").status_code == 401
+
+
+def test_logout_clears_both_cookies(fake_db: FakeDatabase, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Logging out removes the access and refresh cookies."""
+    monkeypatch.setattr(tiger_auth, "logout", Mock(return_value=True))
+    tab = browser("token-alice")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    tab.get("/login")
+    response = tab.post(
+        "/account/logout", data={"csrf_token": tab.cookies["tiger_csrf"]},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    cleared = response.headers.get_list("set-cookie")
+    for name in ("tiger_access", "tiger_refresh"):
+        assert any(c.startswith(f'{name}=""') and "Max-Age=0" in c for c in cleared)
+
+
+def test_login_form_has_no_dead_options(fake_db: FakeDatabase) -> None:
+    """No "Keep me logged in" box or "Forgot password?" link that do nothing."""
+    page = browser().get("/login").text
+    assert "Keep me logged in" not in page
+    assert "Forgot password" not in page

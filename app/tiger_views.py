@@ -55,7 +55,10 @@ def render_page(
         "plus": Markup(lucide_icon("plus", width=18, height=18)),
         "csrf_token": token,
         "profile": None,
-        "account_active": bool(request.cookies.get("tiger_access")),
+        "account_active": bool(
+            request.cookies.get("tiger_access")
+            or request.cookies.get("tiger_refresh")
+        ),
     }
     page_context.update(context)
     response: HTMLResponse = templates.TemplateResponse(
