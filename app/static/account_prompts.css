@@ -1,0 +1,113 @@
+.workday-dialog {
+    box-sizing: border-box;
+    width: min(460px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    margin: auto;
+    padding: 0;
+    overflow: auto;
+    border: 1px solid var(--purple);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 20%);
+}
+
+.workday-dialog::backdrop {
+    background: rgb(20 12 35 / 55%);
+}
+
+.workday-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px;
+    background: var(--purple-dark);
+    border-bottom: 4px solid var(--gold);
+    color: var(--gold);
+}
+
+.workday-heading h2 {
+    margin: 0;
+    font-family: var(--heading-font);
+    font-size: 28px;
+    line-height: 1.15;
+}
+
+.workday-close {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font: 28px/1 var(--body-font);
+    cursor: pointer;
+}
+
+.workday-content {
+    padding: 20px;
+}
+
+.workday-content p {
+    margin: 0 0 20px;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.workday-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.workday-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 56px;
+    padding: 10px 14px;
+    border: 1px solid var(--purple);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--purple-dark);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.workday-button img {
+    flex-shrink: 0;
+    width: 100px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.workday-button:hover {
+    background: var(--lilac-soft);
+}
+
+.workday-later {
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 4px;
+    background: var(--gold);
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.workday-dialog :focus-visible {
+    outline: 3px solid var(--gold-dark);
+    outline-offset: 3px;
+}
+
+@media (max-width: 360px) {
+    .workday-button {
+        flex-direction: column;
+        gap: 4px;
+    }
+}
