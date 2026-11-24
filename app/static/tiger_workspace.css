@@ -1031,4 +1031,22 @@ h3 {
     .field-grid {
         grid-template-columns: 1fr;
     }
+
+    .top-bar {
+        gap: 16px;
+        padding: 0 16px;
+    }
+
+    .top-bar-right {
+        width: auto;
+        padding-left: 16px;
+    }
+
+    .top-semester {
+        margin-right: 0;
+    }
+
+    .top-semester-dark {
+        position: static;
+    }
 }
