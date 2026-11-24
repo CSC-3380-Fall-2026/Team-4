@@ -15,6 +15,7 @@ from routers import (
     tiger_planning,
     tiger_profiles,
     tiger_schedules,
+    tiger_workday,
 )
 from tiger_views import APP_DIR
 
@@ -33,6 +34,7 @@ app.include_router(tiger_profiles.router)
 app.include_router(tiger_schedules.router)
 app.include_router(tiger_free_time.router)
 app.include_router(tiger_friends.router)
+app.include_router(tiger_workday.router)
 
 
 @app.get("/health")
