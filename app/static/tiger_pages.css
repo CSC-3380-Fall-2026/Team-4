@@ -1253,13 +1253,13 @@
     background: #d3c6e3;
 }
 
-.transcript-card .page-button {
 /* the file input inside is visually hidden, so the label shows its focus */
 .upload-button:focus-within {
     outline: 2px solid var(--purple);
     outline-offset: 2px;
 }
 
+.transcript-card .page-button {
     align-self: flex-end;
     width: 128px;
     margin-top: auto;
