@@ -1,0 +1,247 @@
+"""Shared free time with a friend, and the per-schedule metrics on the Schedule page."""
+
+from copy import deepcopy
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from models.tiger_free_time import (
+    SharedFreeTimeDay,
+    SharedFreeTimePeriod,
+    SharedFreeTimeRequest,
+    SharedFreeTimeResponse,
+)
+from models.tiger_schedules import (
+    WEEKDAYS,
+    Schedule,
+    ScheduleMetrics,
+    SchedulePageData,
+    UserBase,
+)
+from models.tiger_session import Session
+from routers.tiger_schedules_store import load_page
+from tiger_auth import current_session
+
+
+def find_user(data: SchedulePageData) -> UserBase:
+    """Find the current user in the page data.
+
+    Args:
+        data: Page data to search.
+
+    Returns:
+        The current user.
+
+    Raises:
+        HTTPException: If the user does not exist.
+    """
+    user = next(
+        (item for item in data.users if item.id == data.current_user_id),
+        None,
+    )
+    if user is None:
+        raise HTTPException(status_code=404, detail="Current user not found.")
+    return user
+
+
+def _to_minutes(value: str) -> int:
+    """Convert an HH:MM string to minutes after midnight.
+
+    Args:
+        value: Time as HH:MM.
+
+    Returns:
+        Minutes after midnight.
+    """
+    hours, minutes = map(int, value.split(":"))
+    return hours * 60 + minutes
+
+
+def _to_time(value: int) -> str:
+    """Convert minutes after midnight to an HH:MM string.
+
+    Args:
+        value: Minutes after midnight.
+
+    Returns:
+        Time as HH:MM.
+    """
+    return f"{value // 60:02}:{value % 60:02}"
+
+
+def schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
+    """Compute total hours and busy days for a schedule.
+
+    Args:
+        schedule: Schedule to measure.
+
+    Returns:
+        The schedule's metrics.
+    """
+    busy_days = {
+        day
+        for event in schedule.events
+        for day in event.days
+    }
+
+    total_minutes = sum(
+        (_to_minutes(event.end) - _to_minutes(event.start)) * len(event.days)
+        for event in schedule.events
+    )
+
+    return ScheduleMetrics(
+        total_hours=(total_minutes + 59) // 60,
+        days_busy=", ".join(
+            day[:3] for day in WEEKDAYS if day in busy_days
+        ) or "—",
+    )
+
+
+def page_data(data: SchedulePageData) -> SchedulePageData:
+    """Return a copy of the page data with metrics filled in.
+
+    Args:
+        data: Page data to copy.
+
+    Returns:
+        Page data including per-schedule metrics.
+    """
+    result = deepcopy(data)
+    current_user = find_user(result)
+
+    result.metrics = {
+        schedule.id: schedule_metrics(schedule)
+        for schedule in current_user.schedules
+    }
+
+    return result
+
+
+def free_time(
+    current_user: UserBase,
+    friend: UserBase,
+    start_time: str,
+    end_time: str,
+    minimum_duration: int,
+) -> SharedFreeTimeResponse:
+    """Compute weekly free periods shared by two users.
+
+    Args:
+        current_user: The signed-in user.
+        friend: The friend to compare against.
+        start_time: Start of the search window as HH:MM.
+        end_time: End of the search window as HH:MM.
+        minimum_duration: Shortest free period in minutes.
+
+    Returns:
+        Days with their shared free periods.
+    """
+    range_start = _to_minutes(start_time)
+    range_end = _to_minutes(end_time)
+
+    events = [
+        event
+        for user in (current_user, friend)
+        for schedule in user.schedules
+        for event in schedule.events
+    ]
+
+    available_days = []
+
+    for day in WEEKDAYS:
+        busy_intervals = sorted(
+            (
+                max(_to_minutes(event.start), range_start),
+                min(_to_minutes(event.end), range_end),
+            )
+            for event in events
+            if day in event.days
+            and _to_minutes(event.end) > range_start
+            and _to_minutes(event.start) < range_end
+        )
+
+        merged_intervals: list[tuple[int, int]] = []
+
+        for interval_start, interval_end in busy_intervals:
+            if (
+                merged_intervals
+                and interval_start <= merged_intervals[-1][1]
+            ):
+                previous_start, previous_end = merged_intervals[-1]
+                merged_intervals[-1] = (
+                    previous_start,
+                    max(previous_end, interval_end),
+                )
+            else:
+                merged_intervals.append((interval_start, interval_end))
+
+        periods: list[SharedFreeTimePeriod] = []
+        cursor = range_start
+
+        for interval_start, interval_end in merged_intervals:
+            if interval_start - cursor >= minimum_duration:
+                periods.append(
+                    SharedFreeTimePeriod(
+                        start=_to_time(cursor),
+                        end=_to_time(interval_start),
+                    ),
+                )
+            cursor = max(cursor, interval_end)
+
+        if range_end - cursor >= minimum_duration:
+            periods.append(
+                SharedFreeTimePeriod(
+                    start=_to_time(cursor),
+                    end=_to_time(range_end),
+                ),
+            )
+
+        if periods:
+            available_days.append(
+                SharedFreeTimeDay(day=day, periods=periods)
+            )
+
+    return SharedFreeTimeResponse(days=available_days)
+
+
+router: APIRouter = APIRouter(prefix="/api", tags=["Schedules"])
+
+
+@router.post("/shared-free-time", response_model=SharedFreeTimeResponse)
+def shared_free(
+    query: SharedFreeTimeRequest,
+    session: Session = Depends(current_session),
+) -> SharedFreeTimeResponse:
+    """Find free time shared with a friend.
+
+    Args:
+        query: Friend username, time window, and minimum duration.
+        session: Verified student and their database client.
+
+    Returns:
+        Shared free periods by day.
+
+    Raises:
+        HTTPException: 404 when the friend is unknown or is the student.
+    """
+    data = load_page(session)
+    current_user = find_user(data)
+
+    friend = next(
+        (
+            user
+            for user in data.users
+            if user.username == query.friend_username
+        ),
+        None,
+    )
+
+    if friend is None or friend.id == current_user.id:
+        raise HTTPException(status_code=404, detail="Friend not found.")
+
+    return free_time(
+        current_user,
+        friend,
+        query.start_time,
+        query.end_time,
+        query.minimum_duration,
+    )

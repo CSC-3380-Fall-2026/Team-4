@@ -1,4 +1,4 @@
-"""Schedule, event, and shared free time models with camelCase JSON aliases."""
+"""Schedule and event models with camelCase JSON aliases."""
 
 import re
 from typing import Any, Literal, get_args
@@ -270,7 +270,7 @@ class UserBase(ScheduleModel):
     completed_credit_hours: int = 0
     courses: list[Any] = Field(default_factory=list)
     schedules: list[Schedule] = Field(default_factory=list)
-    # Filled by tiger_friends.load_friends; kept out of profile and schedule JSON.
+    # Filled by tiger_friends_store.load_friends; kept out of profile and schedule JSON.
     friends: list[Friend] = Field(default_factory=list, exclude=True)
     incoming_requests: list[Friend] = Field(default_factory=list, exclude=True)
     outgoing_requests: list[Friend] = Field(default_factory=list, exclude=True)
@@ -289,72 +289,3 @@ class SchedulePageData(ScheduleModel):
     current_user_id: str | int
     users: list[UserBase]
     metrics: dict[str, ScheduleMetrics]
-
-
-class SharedFreeTimeRequest(ScheduleModel):
-    """Search window and friend for shared free time."""
-
-    friend_username: str = Field(min_length=1)
-    start_time: str
-    end_time: str
-    minimum_duration: int = Field(gt=0, le=1440)
-
-    @field_validator("friend_username")
-    @classmethod
-    def strip_friend(cls: type["SharedFreeTimeRequest"], value: str) -> str:
-        """Strip and require a non-blank friend username.
-
-        Args:
-            value: The submitted value.
-
-        Returns:
-            The cleaned value.
-        """
-        return required_text(value, "Friend username cannot be blank.")
-
-    @field_validator("start_time", "end_time")
-    @classmethod
-    def validate_time(cls: type["SharedFreeTimeRequest"], value: str) -> str:
-        """Require 24-hour HH:MM time format.
-
-        Args:
-            value: The submitted value.
-
-        Returns:
-            The cleaned value.
-        """
-        return check_time(value, "Times must use 24-hour HH:MM format.")
-
-    @model_validator(mode="after")
-    def require_range(self) -> "SharedFreeTimeRequest":
-        """Ensure the time range ends after it starts.
-
-        Returns:
-            This model when valid.
-
-        Raises:
-            ValueError: If the end time is not after the start time.
-        """
-        if self.end_time <= self.start_time:
-            raise ValueError("End time must be after start time.")
-        return self
-
-
-class SharedFreeTimePeriod(ScheduleModel):
-    """A free time range within one day."""
-
-    start: str
-    end: str
-
-
-class SharedFreeTimeDay(ScheduleModel):
-    """Free time periods for one weekday."""
-
-    day: Weekday
-    periods: list[SharedFreeTimePeriod]
-
-
-class SharedFreeTimeResponse(ScheduleModel):
-    """Shared free time grouped by weekday."""
-
-    days: list[SharedFreeTimeDay]

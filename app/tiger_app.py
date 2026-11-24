@@ -9,6 +9,7 @@ from routers import (
     tiger_accounts,
     tiger_catalog,
     tiger_dashboard,
+    tiger_free_time,
     tiger_friends,
     tiger_planning,
     tiger_profiles,
@@ -29,6 +30,7 @@ app.include_router(tiger_planning.router)
 app.include_router(tiger_accounts.router)
 app.include_router(tiger_profiles.router)
 app.include_router(tiger_schedules.router)
+app.include_router(tiger_free_time.router)
 app.include_router(tiger_friends.router)
 
 
