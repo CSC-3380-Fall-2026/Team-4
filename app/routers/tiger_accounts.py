@@ -216,10 +216,6 @@ async def submit_account(request: Request, mode: str) -> Response:
             error=f"Password must be at least {MIN_PASSWORD} characters.",
             status_code=400,
         )
-    if mode == "signup" and password != str(data.get("confirm_password", "")):
-        return account_page(
-            request, mode, email, error="Passwords must match.", status_code=400
-        )
     try:
         credentials: UserAuthSchema = UserAuthSchema(
             email=email, password=password

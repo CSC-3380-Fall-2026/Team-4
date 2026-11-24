@@ -312,3 +312,24 @@ def test_profile_save_keeps_terms(fake_db: FakeDatabase) -> None:
     )
     assert response.status_code == 303
     assert fake_db.rows("profiles")[0]["courses"] == courses
+
+
+def test_signup_without_confirm_field(fake_db: FakeDatabase) -> None:
+    """Signup needs only the one password box the form shows.
+
+    Args:
+        fake_db: In-memory account service.
+    """
+    tab = browser()
+    response = tab.post(
+        "/account/signup",
+        data={
+            "csrf_token": form_token(tab, "/signup"),
+            "username": "dana_t",
+            "email": "dana@lsu.edu",
+            "password": "12345678",
+            "terms": "on",
+        },
+    )
+    assert response.status_code == 200
+    assert "dana@lsu.edu" in fake_db.users
