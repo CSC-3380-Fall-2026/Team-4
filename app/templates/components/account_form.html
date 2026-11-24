@@ -66,12 +66,3 @@
         <p class="auth-switch">Already have an account? <a href="/login">Log in <span aria-hidden="true">↗</span></a></p>
     {% endif %}
 </div>
-
-{% if mode == 'signup' %}
-<script>
-    // copy the password into the hidden confirm box right before the form sends
-    document.getElementById("account-form").addEventListener("submit", function () {
-        document.getElementById("confirm-password").value = document.getElementById("account-password").value;
-    });
-</script>
-{% endif %}
