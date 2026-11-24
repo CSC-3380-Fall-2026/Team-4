@@ -6,8 +6,8 @@
     padding: 0;
     overflow: auto;
     border: 1px solid var(--purple);
-    border-radius: 8px;
-    background: #fff;
+    border-radius: 3px;
+    background: var(--card);
     color: var(--ink);
     box-shadow: 0 16px 48px rgb(0 0 0 / 20%);
 }
@@ -32,6 +32,8 @@
     font-family: var(--heading-font);
     font-size: 28px;
     line-height: 1.15;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .workday-close {
@@ -39,10 +41,21 @@
     width: 32px;
     height: 32px;
     border: 0;
+    display: grid;
+    place-items: center;
+    padding: 0;
     background: transparent;
     color: #fff;
-    font: 28px/1 var(--body-font);
     cursor: pointer;
+}
+
+.workday-close svg {
+    width: 20px;
+    height: 20px;
+}
+
+.workday-close:hover {
+    color: var(--gold);
 }
 
 .workday-content {
@@ -51,7 +64,7 @@
 
 .workday-content p {
     margin: 0 0 20px;
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.5;
 }
 
@@ -73,12 +86,14 @@
     min-height: 56px;
     padding: 10px 14px;
     border: 1px solid var(--purple);
-    border-radius: 4px;
+    border-radius: 3px;
     background: #fff;
     color: var(--purple-dark);
     font-size: 14px;
     font-weight: 600;
     text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #4a2087;
 }
 
 .workday-button img {
@@ -92,21 +107,13 @@
     background: var(--lilac-soft);
 }
 
-.workday-later {
-    min-height: 44px;
-    padding: 10px 16px;
-    border: 0;
-    border-radius: 4px;
-    background: var(--gold);
-    color: var(--ink);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
+.workday-button:disabled {
+    opacity: 0.6;
+    cursor: progress;
 }
 
-.workday-dialog :focus-visible {
-    outline: 3px solid var(--gold-dark);
-    outline-offset: 3px;
+.workday-heading :focus-visible {
+    outline-color: var(--gold);
 }
 
 @media (max-width: 360px) {

@@ -1290,6 +1290,10 @@
     margin-top: 0;
 }
 
+.workday-card #workday-last {
+    font-size: 12px;
+}
+
 .workday-card #workday-progress {
     font-size: 12px;
     color: var(--ink);
@@ -1331,6 +1335,7 @@
 .term-gpa-table th:last-child,
 .term-gpa-table td:last-child {
     text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 /* =====================================================
