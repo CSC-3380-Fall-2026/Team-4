@@ -4,10 +4,12 @@ import json
 import re
 
 
+from typing import Any
+
 from bs4 import BeautifulSoup
 from bs4.element import Tag, NavigableString 
 from pathlib import Path
-from models.tiger_catalog import ConcentrationRequirements, ScrapedCourse 
+from pydantic import BaseModel, Field
 
 URL = "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
 
@@ -15,6 +17,27 @@ DEBUG = False
 
 CATEGORIES = [ "Core Coursework", "Technical Requirements", "Math Requirements", "Other Requirements"]
 STOP_HEADINGS = set(CATEGORIES + ["Concentrations"])
+
+
+class ScrapedCourse(BaseModel):
+    """A course scraped from the catalog."""
+
+    id: str
+    course_code: str
+    course_name: str
+    credits: int
+    category: str
+    source_url: str
+
+
+class ConcentrationRequirements(BaseModel):
+    """Courses and notes required for a concentration."""
+
+    required_courses: list[ScrapedCourse] = Field(default_factory=list)
+    approved_electives: list[ScrapedCourse] = Field(default_factory=list)
+    other_requirements: list[dict[str, Any]] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    required_credit_hours: int | None = None
 
 
 def fetch_page(url: str) -> str:
@@ -82,7 +105,7 @@ def section_content(heading: Tag) -> tuple[list[Tag], list[str]]:
                     if element.find_parent(["h2","h3","h4"]):
                         continue 
 
-                    if element.find_parent(["Script", "style"]):
+                    if element.find_parent(["script", "style"]):
                         continue 
 
                     text = str(element).strip()
@@ -350,7 +373,7 @@ def save_json(data: dict, concentrations: dict) -> None:
     if missing:
         raise ValueError(f"Missing Categories: {sorted(missing)}")
 
-    root = Path(__file__).resolve().parents[2]
+    root = Path(__file__).resolve().parents[1]
 
     output = root / "data" / "course_requirements.json"
 

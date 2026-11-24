@@ -79,7 +79,7 @@ static void Main(){
 
 This project uses pytest for automated testing.
 
-After setting up the virtual environment and installing the dependencies, run the entire test suite from the project's root folder with:
+After setting up the virtual environment and installing the dependencies (plus `pip install -r requirements-dev.txt`, which the tests need), run the entire test suite from the project's root folder with:
 
 ```bash
 python -m pytest tests/ -v

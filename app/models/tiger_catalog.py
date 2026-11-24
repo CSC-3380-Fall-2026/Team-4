@@ -1,30 +1,7 @@
-"""Catalog courses, concentration requirements, and prerequisite checks."""
-
-from typing import Any
+"""Catalog course results and prerequisite checks."""
 
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
-
-
-class ScrapedCourse(BaseModel):
-    """A course scraped from the catalog."""
-
-    id: str
-    course_code: str
-    course_name: str
-    credits: int
-    category: str
-    source_url: str
-
-
-class ConcentrationRequirements(BaseModel):
-    """Courses and notes required for a concentration."""
-
-    required_courses: list[ScrapedCourse] = Field(default_factory=list)
-    approved_electives: list[ScrapedCourse] = Field(default_factory=list)
-    other_requirements: list[dict[str, Any]] = Field(default_factory=list)
-    notes: list[str] = Field(default_factory=list)
-    required_credit_hours: int | None = None
 
 
 class Requirement(TypedDict, total=False):
