@@ -10,7 +10,6 @@ from grade_scale import GRADE_POINTS
 from models.tiger_profiles import ProfileCourse
 from models.tiger_schedules import WEEKDAYS, Weekday
 from models.tiger_workday import (
-    WorkdayCourse,
     WorkdayData,
     WorkdayPages,
     WorkdaySection,
@@ -142,7 +141,7 @@ def table_period(codes: list[str], periods: dict[str, str]) -> str:
 
 def graded_courses(
     table: WorkdayTable, periods: dict[str, str]
-) -> list[WorkdayCourse]:
+) -> list[ProfileCourse]:
     """Read the graded courses of one record grid.
 
     In-progress rows (no grade) and rows without readable credits are skipped.
@@ -164,7 +163,7 @@ def graded_courses(
     listings = [split_listing(row["Course"]) for row in rows]
     term = term_name(table_period([code for code, _ in listings], periods))
     return [
-        WorkdayCourse(
+        ProfileCourse(
             course_code=code,
             course_name=title,
             credits=whole_credits(row.get("Credit Hours")) or 0,
@@ -175,7 +174,7 @@ def graded_courses(
     ]
 
 
-def transfer_courses(record: list[WorkdayTable]) -> list[WorkdayCourse]:
+def transfer_courses(record: list[WorkdayTable]) -> list[ProfileCourse]:
     """Collect transfer and exam credit, counting each course once.
 
     The same course is often granted by several exams.
@@ -186,11 +185,11 @@ def transfer_courses(record: list[WorkdayTable]) -> list[WorkdayCourse]:
     Returns:
         One course per code, in the "Transfer Credit" term.
     """
-    courses: dict[str, WorkdayCourse] = {}
+    courses: dict[str, ProfileCourse] = {}
     for row in (row for table in record for row in table.rows):
         code, title = split_listing(row.get("Transfer Credit", ""))
         if code and code not in courses:
-            courses[code] = WorkdayCourse(
+            courses[code] = ProfileCourse(
                 course_code=code,
                 course_name=title,
                 credits=whole_credits(row.get("Credit Hours")) or 0,
@@ -200,7 +199,7 @@ def transfer_courses(record: list[WorkdayTable]) -> list[WorkdayCourse]:
     return list(courses.values())
 
 
-def past_courses(pages: WorkdayPages) -> list[WorkdayCourse]:
+def past_courses(pages: WorkdayPages) -> list[ProfileCourse]:
     """Collect every graded course, transfer credit first, then oldest term first.
 
     Args:

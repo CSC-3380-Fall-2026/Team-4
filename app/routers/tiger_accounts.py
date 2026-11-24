@@ -47,12 +47,9 @@ def account_page(
     Returns:
         The account form in William's shared layout.
     """
-    template_name: str = (
-        "tiger_login.html" if mode == "login" else "tiger_signin.html"
-    )
     return render_page(
         request,
-        template_name,
+        "tiger_login.html",
         mode=mode,
         email=email,
         error=error,

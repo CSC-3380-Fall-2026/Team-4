@@ -34,14 +34,6 @@ class WorkdayPages(BaseModel):
     progress: list[WorkdayTable] = Field(default_factory=list)
 
 
-class WorkdayCourse(ProfileCourse):
-    """A past course with the term it was taken in and its final grade.
-
-    The parser always sets term (such as "2024 Fall Semester" or "Transfer
-    Credit") and grade (as Workday shows it, such as "A-", "P" or "W").
-    """
-
-
 class WorkdaySection(BaseModel):
     """One registered section of a current-term course, such as a lab.
 
@@ -78,14 +70,15 @@ class WorkdayData(BaseModel):
     Attributes:
         gpa: Cumulative institutional GPA, or None before any graded hours.
         completed_credit_hours: Institutional GPA hours, including F grades.
-        courses: Past courses, oldest term first; in-progress ones left out.
+        courses: Past courses with term and grade set, oldest term first;
+            in-progress ones left out.
         term: Current term name, empty when no term is registered.
         sections: The current term's sections, dropped ones flagged.
     """
 
     gpa: float | None = Field(default=None, ge=0, le=4.3)
     completed_credit_hours: int = Field(default=0, ge=0)
-    courses: list[WorkdayCourse] = Field(default_factory=list)
+    courses: list[ProfileCourse] = Field(default_factory=list)
     term: str = ""
     sections: list[WorkdaySection] = Field(default_factory=list)
 
