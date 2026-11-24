@@ -266,15 +266,15 @@ def graded(course: str, grade: str, hours: str, points: str) -> dict:
 
 def test_fractional_credits_round_half_up_in_courses_and_totals() -> None:
     """Fractional credits round half up on courses and sections."""
-    # One conversion to whole credits (0.5 -> 1, 2.5 -> 3); hours and GPA use the same whole credits.
+    # Courses get whole credits (0.5 -> 1, 2.5 -> 3); GPA divides 9.5 points by the real 3.0 hours.
     raw = fall_record(
         graded("MUS 1001 - Ensemble", "A", "0.5", "2.0"),
         graded("KIN 1500 - Fitness", "B", "2.5", "7.5"),
     )
     data = parse_workday(raw, FALL_DAY)
     assert [(c.course_code, c.credits) for c in data.courses] == [("MUS 1001", 1), ("KIN 1500", 3)]
-    assert data.completed_credit_hours == 4
-    assert data.gpa == 2.375
+    assert data.completed_credit_hours == 3
+    assert data.gpa == 3.167
     assert term_gpas(data.courses) == {"2025 Fall Semester": 3.25}
     lab = fall_sections(meeting("Tuesday | 1:00 PM - 2:00 PM | Lab", **{"Credit Hours": "1.5"}))
     assert lab[0].credits == 2
@@ -374,3 +374,22 @@ def test_retaken_course_does_not_move_its_term() -> None:
         ("MATH 1550", "B", "2025 Spring Semester"),
         ("CSC 1350", "A", "2025 Spring Semester"),
     ]
+
+
+def test_pass_and_withdraw_hours_leave_gpa_alone() -> None:
+    """Only letter grades on the GPA scale count toward GPA hours."""
+    raw = fall_record(
+        graded("CSC 1350 - Computer Science I", "A", "3", "12.0"),
+        graded("KIN 1001 - Fitness", "P", "3", "0.0"),
+        graded("PHIL 1000 - Philosophy", "W", "3", "0.0"),
+    )
+    data = parse_workday(raw, FALL_DAY)
+    assert (data.gpa, data.completed_credit_hours) == (4.0, 3)
+
+
+def test_fractional_credit_gpa_stays_on_scale() -> None:
+    """GPA divides by the real credit hours, not rounded ones."""
+    raw = fall_record(graded("MUS 1001 - Ensemble", "A", "1.4", "5.6"))
+    data = parse_workday(raw, FALL_DAY)
+    assert data.gpa == 4.0
+    assert data.completed_credit_hours == 1

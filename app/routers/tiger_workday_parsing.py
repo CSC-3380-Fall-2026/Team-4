@@ -53,8 +53,8 @@ def to_number(text: str | None) -> float | None:
 def whole_credits(text: str | None) -> int | None:
     """Read a credit-hours cell as whole credits, rounding halves up.
 
-    Profile courses store whole credits, so this is the one place Workday
-    credit hours are converted; courses, sections and GPA totals all use it.
+    Profile courses store whole credits, so courses and sections use this;
+    GPA totals divide by the real hours instead.
 
     Args:
         text: Cell text, such as "3" or "2.5".
@@ -235,21 +235,25 @@ def past_courses(pages: WorkdayPages) -> list[ProfileCourse]:
 def gpa_totals(record: list[WorkdayTable]) -> tuple[float | None, int]:
     """Total the institutional GPA hours and earned grade points.
 
+    Only letter grades on the GPA scale count: P, W and the like do not.
+
     Args:
         record: Grids from "My Academic Record".
 
     Returns:
-        The cumulative GPA, or None without GPA hours, and the GPA hours.
+        The cumulative GPA, or None without GPA hours, and the GPA hours
+        rounded to whole hours.
     """
-    hours: int = 0
+    hours: float = 0
     points: float = 0
     for row in (row for table in record for row in table.rows):
-        credits = whole_credits(row.get("Credit Hours"))
+        credits = to_number(row.get("Credit Hours"))
         earned = to_number(row.get("Earned Grade Points"))
-        if row.get("Course") and credits and earned is not None:
+        graded = row.get("Grade", "").strip() in GRADE_POINTS
+        if row.get("Course") and graded and credits and earned is not None:
             hours += credits
             points += earned
-    return (round(points / hours, 3) if hours else None), hours
+    return (round(points / hours, 3) if hours else None), int(hours + 0.5)
 
 
 def term_gpas(courses: list[ProfileCourse]) -> dict[str, float]:
