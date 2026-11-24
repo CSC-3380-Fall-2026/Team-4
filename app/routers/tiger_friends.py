@@ -364,23 +364,26 @@ def remove_friend(
     Raises:
         HTTPException: 404 when no accepted friendship involving the student matches.
     """
-    result = (
+    found = (
         session.db.table("friendships")
-        .delete()
+        .select("id,requester_id,addressee_id")
         .eq("id", str(friendship_id))
         .eq("status", "accepted")
         .or_(mine_filter(session.user_id))
         .execute()
+        .data
     )
-    if not result.data:
+    if not found:
         raise HTTPException(404, "Friendship not found.")
-    former = other_id(result.data[0], session.user_id)
+    former = other_id(found[0], session.user_id)
+    # Shares first: if this fails, the friendship is still there to retry.
     (
         session.db.table("schedule_shares")
         .delete()
         .or_(pair_filter(session.user_id, former, ("owner_id", "friend_id")))
         .execute()
     )
+    session.db.table("friendships").delete().eq("id", str(friendship_id)).execute()
     return {"message": "Friend removed."}
 
 

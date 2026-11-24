@@ -323,3 +323,20 @@ def test_crossed_requests_are_409(
     reverse = send(web, "blake", "AlexTiger")
     assert reverse.status_code == 409
     assert len(fake_db.rows("friendships")) == 1
+
+
+def test_unfriend_keeps_friend_if_shares_fail(
+    web: TestClient, fake_db: FakeDatabase
+) -> None:
+    """When the shares cannot be removed, the friendship is not removed either.
+
+    Args:
+        web: Test client.
+        fake_db: In-memory database; its share table is made unavailable.
+    """
+    friendship = befriend(web)
+    fake_db.broken.add("schedule_shares")
+    failing = TestClient(app, raise_server_exceptions=False)
+    assert failing.delete(f"/api/friends/{friendship}", headers=login("alex")).status_code == 500
+    fake_db.broken.clear()
+    assert [f["username"] for f in lists(web, "blake")["friends"]] == ["AlexTiger"]
