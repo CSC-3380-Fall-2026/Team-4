@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from functools import cache
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -126,8 +127,9 @@ def check_section(category: str, section: object) -> list[dict]:
     ]
 
 
+@cache
 def load_courses() -> list[dict]:
-    """Load and validate every course from the data file.
+    """Load and validate every course from the data file, once per process.
 
     Returns:
         One cleaned dict per course.
@@ -170,8 +172,9 @@ def search_courses(query: str = "", category: str = "") -> list[dict]:
     ]
 
 
+@cache
 def load_prerequisites() -> dict:
-    """Read the prerequisite catalog from disk.
+    """Read the prerequisite catalog from disk, once per process.
 
     Returns:
         Mapping of course code to its prerequisite data.

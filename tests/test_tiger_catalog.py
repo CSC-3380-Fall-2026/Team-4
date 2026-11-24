@@ -35,3 +35,9 @@ def test_catalog_combined_search_and_filter(monkeypatch):
     monkeypatch.setattr(tiger_catalog, "load_courses", lambda: SAMPLE_COURSES)
     results = tiger_catalog.search_courses(query="CSC", category="Math")
     assert results == []
+
+
+def test_data_files_read_once():
+    """The catalog files are parsed once per process, not on every request."""
+    assert tiger_catalog.load_courses() is tiger_catalog.load_courses()
+    assert tiger_catalog.load_prerequisites() is tiger_catalog.load_prerequisites()
