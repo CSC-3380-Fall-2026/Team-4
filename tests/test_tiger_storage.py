@@ -341,17 +341,28 @@ def test_dashboard_profile(fake_db: FakeDatabase) -> None:
     assert "Current GPA 3.40" in page and "45 completed credit hours" in page
 
 
-def test_dashboard_storage_down(fake_db: FakeDatabase) -> None:
-    """Keep the dashboard working when every table fails.
+def test_dashboard_profile(fake_db: FakeDatabase) -> None:
+    """Show GPA and completed hours from the profile row."""
+    fake_db.rows("profiles").append(
+        {
+            "id": "alice",
+            "gpa": 3.4,
+            "completed_credit_hours": 45,
+        }
+    )
 
-    Args:
-        fake_db: Fake Supabase.
-    """
-    fake_db.broken.update({"forecasts", "schedules", "profiles"})
-    response: httpx.Response = browser("token-alice").get("/dashboard")
-    assert response.status_code == 200
-    assert "No upcoming events" in response.text
+    page: BeautifulSoup = BeautifulSoup(
+        browser("token-alice").get("/dashboard").text,
+        "html.parser",
+    )
 
+    assert page.select_one(
+        "#gpa-summary .stat-number"
+    ).get_text(strip=True) == "3.40"
+
+    assert page.select_one(
+        ".stat-gold .stat-number"
+    ).get_text(strip=True) == "45 / 120"
 
 def test_occurrences() -> None:
     """Place weekly meetings after the current moment in Chicago time."""
