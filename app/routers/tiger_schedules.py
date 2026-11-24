@@ -376,7 +376,10 @@ def delete_schedule(
         HTTPException: 409 when it is the student's last schedule, or 404
             when it does not exist.
     """
-    if len(list_schedules(session)) <= 1:
+    schedules = list_schedules(session)
+    if str(schedule_id) not in {schedule.id for schedule in schedules}:
+        raise HTTPException(status_code=404, detail="Schedule not found.")
+    if len(schedules) <= 1:
         raise HTTPException(
             status_code=409,
             detail="At least one schedule must remain.",

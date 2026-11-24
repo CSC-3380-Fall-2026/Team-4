@@ -291,3 +291,12 @@ def test_stale_save_is_409(web):
         store.save_schedule(session, second_tab)
     assert refused.value.status_code == 409
     assert store.fetch_schedule(session, schedule_id).name == "Edited in tab one"
+
+
+def test_delete_twice_is_404(web):
+    """Deleting a schedule that is already gone says so, not "keep one"."""
+    first = make_schedule(web)
+    make_schedule(web, "alice", {"name": "Spring", "color": "green"})
+    assert web.delete(f"/api/schedules/{first}", headers=login("alice")).status_code == 204
+    again = web.delete(f"/api/schedules/{first}", headers=login("alice"))
+    assert again.status_code == 404
