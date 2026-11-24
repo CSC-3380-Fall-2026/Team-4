@@ -360,6 +360,8 @@ async def submit_plan(
     unsaved: bool = result is not None and not await run_in_threadpool(
         save_forecast, session, result
     )
+    # The picker is refilled on every post, but a failed lookup only matters
+    # when the student was loading a schedule; it must not cover other results.
     schedules, schedule_error = await run_in_threadpool(
         schedule_options, session
     )
@@ -376,7 +378,7 @@ async def submit_plan(
         unsaved=unsaved,
         schedules=schedules,
         schedule_id=schedule_id,
-        schedule_error=schedule_error,
+        schedule_error=schedule_error if action == "load_schedule" else "",
         profile_error="",
         loaded=action == "load_schedule" and not errors,
         profile=tiger_auth.nav_profile(session),
