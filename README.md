@@ -29,6 +29,7 @@ use the command based on os:
 	Linux: source .venv/bin/activate
 pip install -r requirements.txt
 ```
+Workday sync (local only, off on Vercel): `pip install -r requirements-local.txt && playwright install chromium`; set `WORKDAY_URL` to use a Workday other than LSU's.
 To build tailwind:
 ```sh
 cd app/tailwindcss
