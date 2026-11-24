@@ -116,11 +116,11 @@ def is_friend(session: Session, other: str) -> bool:
         other: Id of the other student.
 
     Returns:
-        True when an accepted friendship exists in either direction.
+        True when another student is the other party of an accepted
+        friendship; never for the student's own id.
     """
-    return any(
-        row["status"] == "accepted"
-        and other in (row["requester_id"], row["addressee_id"])
+    return other != session.user_id and any(
+        row["status"] == "accepted" and other_id(row, session.user_id) == other
         for row in friendship_rows(session)
     )
 

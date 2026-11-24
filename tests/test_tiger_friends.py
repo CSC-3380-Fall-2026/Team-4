@@ -292,3 +292,12 @@ def test_friend_id_never_becomes_filter_text(web: TestClient) -> None:
     body = {"schedule_id": schedule_id, "friend_id": "blake,status.eq.accepted"}
     response = web.post("/api/friends/shares", json=body, headers=login("alex"))
     assert response.status_code == 403
+
+
+def test_self_share_refused(web: TestClient) -> None:
+    """Sharing with your own id is refused, not a database error."""
+    befriend(web)
+    schedule_id = make_schedule(web, "alex")
+    body = {"schedule_id": schedule_id, "friend_id": "alex"}
+    response = web.post("/api/friends/shares", json=body, headers=login("alex"))
+    assert response.status_code == 403
