@@ -20,8 +20,8 @@
     --lilac-soft: #ded4e8;
     --track: #ded7e6;
     --ink: #2a1846;
-    --muted: #a9a0b8;
-    --muted-dark: #7d7190;
+    --muted: #615673;
+    --muted-dark: #554a66;
     --heading-font: "Barlow Condensed", "Arial Narrow", sans-serif;
     --body-font: "Inter", Arial, sans-serif;
     --sidebar-width: 224px;
@@ -135,7 +135,7 @@ h3 {
 
 .nav-link.active {
     background: var(--gold);
-    color: #fff3c9;
+    color: var(--sidebar);
 }
 
 .nav-icon {
@@ -146,7 +146,7 @@ h3 {
 }
 
 .nav-link.active .nav-icon {
-    color: #fff3c9;
+    color: var(--sidebar);
 }
 
 .nav-icon svg {
@@ -209,7 +209,7 @@ h3 {
     height: 28px;
     border-radius: 7px;
     background: #d7d7d7;
-    color: #6953a1;
+    color: var(--purple);
     font-size: 11px;
     font-weight: 600;
 }
@@ -280,11 +280,11 @@ h3 {
     display: flex;
     gap: 8px;
     font-size: 12px;
-    color: #b9b1c6;
+    color: var(--muted);
 }
 
 .breadcrumb a {
-    color: #b9b1c6;
+    color: var(--muted);
     text-decoration: none;
 }
 
@@ -304,7 +304,7 @@ h3 {
 .top-semester {
     margin-left: auto;
     margin-right: 62px;
-    color: #8e6fd0;
+    color: var(--purple);
 }
 
 /* the friends frame has the semester on the left of the line and a help link */
@@ -322,7 +322,7 @@ h3 {
 
 .top-help {
     margin-left: 24px;
-    color: #b9b1c6;
+    color: var(--muted);
     text-decoration: none;
 }
 
@@ -432,7 +432,7 @@ h3 {
     height: 44px;
     padding: 0 26px;
     background: var(--lilac-soft);
-    color: #9a80c9;
+    color: var(--purple);
     border: 0;
     border-radius: 3px;
     font-family: var(--body-font);
@@ -515,7 +515,8 @@ h3 {
 
 .form-field input::placeholder,
 .form-field textarea::placeholder {
-    color: #b8afc6;
+    color: #68597d;
+    opacity: 1;
 }
 
 .field-grid {
@@ -536,6 +537,7 @@ h3 {
 /* small lilac dropdown used on a few pages */
 .soft-select {
     height: 36px;
+::placeholder,
     padding: 0 30px 0 14px;
     appearance: none;
     background: var(--lilac-soft) url("tiger_chevron.svg") no-repeat right 12px center;

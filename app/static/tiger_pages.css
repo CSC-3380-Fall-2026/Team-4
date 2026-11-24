@@ -395,7 +395,7 @@
     margin-top: 14px;
     font-size: 12px;
     line-height: 17px;
-    color: #b08a3c;
+    color: #6f5726;
     max-width: 200px;
 }
 
@@ -448,7 +448,7 @@
 }
 
 .catalog-search input::placeholder {
-    color: #b8afc6;
+    color: #68597d;
 }
 
 .catalog-search input:focus,
@@ -634,7 +634,7 @@
 }
 
 .course-card footer span {
-    color: #9a80c9;
+    color: var(--purple);
 }
 
 .course-card footer a {
@@ -767,7 +767,7 @@
 }
 
 .plain-input::placeholder {
-    color: #b8afc6;
+    color: #68597d;
 }
 
 .credit-input {
@@ -1579,7 +1579,7 @@
     margin-top: 14px;
     font-size: 10px;
     line-height: 17px;
-    color: #b08a3c;
+    color: #6f5726;
     max-width: 200px;
 }
 
@@ -1956,7 +1956,7 @@
 }
 
 #friend-username::placeholder {
-    color: #b8afc6;
+    color: #68597d;
 }
 
 #friend-username:focus {
@@ -2323,7 +2323,7 @@
 }
 
 .plan-best .plan-length {
-    color: #b08a3c;
+    color: #6f5726;
 }
 
 .plan-button {
