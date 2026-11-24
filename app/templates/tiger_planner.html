@@ -50,8 +50,7 @@
             {# picking a saved schedule fills the rows with its courses #}
             {% if schedules %}
                 <label class="visually-hidden" for="planning-schedule">Saved schedule</label>
-                <select id="planning-schedule" name="schedule_id" class="soft-select"
-                        onchange="document.getElementById('load-button').click()">
+              <select id="planning-schedule" name="schedule_id" class="soft-select">
                     <option value="">Choose a schedule</option>
                     {% for schedule in schedules %}
                         <option value="{{ schedule.id }}" {% if schedule.id == schedule_id %}selected{% endif %}>
