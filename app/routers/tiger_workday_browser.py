@@ -26,6 +26,9 @@ EXTRACT_JS: str = (
 ).read_text(encoding="utf-8")
 GRID_ROW: str = 'table[data-automation-id="table"] tbody tr'
 HEADER_TITLE: str = '[data-automation-id="pageHeaderTitleText"]'
+# Only the signed-in Workday app has its menu or grids; sign-in and Duo pages
+# can share the Workday URL prefix, so the URL alone can't tell.
+SIGNED_IN: str = f'[data-automation-id="navigationItem"], {GRID_ROW}'
 SYNCED_KEY: str = "workday_synced_at"
 
 
@@ -67,7 +70,7 @@ def settle(page: "Page") -> None:
         page.wait_for_load_state("networkidle", timeout=20_000)
     except PageTimeout:
         pass
-    page.wait_for_selector(GRID_ROW, timeout=60_000)
+    page.wait_for_selector(GRID_ROW, timeout=120_000)
     page.wait_for_timeout(1000)
 
 
@@ -87,7 +90,7 @@ def open_nav(page: "Page", label: str) -> None:
     page.wait_for_function(
         f"old => document.querySelector('{HEADER_TITLE}')?.innerText !== old",
         arg=old,
-        timeout=20_000,
+        timeout=60_000,
     )
     settle(page)
 
@@ -136,14 +139,12 @@ def read_pages(page: "Page", workday: str) -> dict[str, Any]:
     from playwright.sync_api import TimeoutError as PageTimeout
 
     page.goto(workday + COURSES_TASK)
-    if not page.url.startswith(workday):
-        try:
-            page.wait_for_url(f"{workday}**", timeout=LOGIN_MS)
-        except PageTimeout as error:
-            raise WorkdayError(
-                "Workday sign-in timed out. Please try again."
-            ) from error
-        page.goto(workday + COURSES_TASK)
+    try:
+        page.wait_for_selector(SIGNED_IN, state="attached", timeout=LOGIN_MS)
+    except PageTimeout as error:
+        raise WorkdayError("Workday sign-in timed out. Please try again.") from error
+    if COURSES_TASK.split("#")[0] not in page.url:
+        page.goto(workday + COURSES_TASK)  # sign-in may land on the home page
     settle(page)
     courses = scrape(page)
     open_nav(page, "My Academic Record")
