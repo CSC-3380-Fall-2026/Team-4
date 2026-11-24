@@ -1,5 +1,4 @@
-
-from __future__ import annotations
+"""Prerequisite checking for supported courses."""
 
 from __future__ import annotations
 
@@ -16,12 +15,16 @@ DATA_FILE = (
 
 
 class Requirement(TypedDict, total=False):
+    """Prerequisite option group with optional grade and registration rules."""
+
     any_of: list[str]
     credit_or_registration: bool
     min_grade: str
 
 
 class CourseResult(TypedDict):
+    """Outcome of evaluating one course's prerequisites."""
+
     course_code: str
     satisfied: list[str]
     missing: list[str]
@@ -39,8 +42,59 @@ GRADE_POINTS = {
 
 
 def load_prerequisites() -> dict:
+    """Read the prerequisite catalog from disk.
+
+    Returns:
+        Mapping of course code to its prerequisite data.
+    """
     with DATA_FILE.open(encoding="utf-8") as file:
         return json.load(file)
+
+
+def grade_meets(grade: str, minimum: str | None) -> bool | None:
+    """Compare a letter grade with a required minimum.
+
+    Args:
+        grade: The student's letter grade.
+        minimum: Required letter grade, or None for any grade.
+
+    Returns:
+        True or False for a known grade, None when the grade is unknown.
+    """
+    if minimum is None:
+        return True
+    if grade not in GRADE_POINTS:
+        return None
+    return GRADE_POINTS[grade] >= GRADE_POINTS[minimum]
+
+
+def check_requirement(
+    requirement: Requirement,
+    completed: dict[str, str],
+    registered: set[str],
+) -> tuple[bool, bool]:
+    """Evaluate one any-of requirement.
+
+    Args:
+        requirement: The requirement with its options and rules.
+        completed: Completed courses mapped to letter grades.
+        registered: Courses currently registered for.
+
+    Returns:
+        A pair of (satisfied, unknown_grade).
+    """
+    minimum = requirement.get("min_grade")
+    allows_registration = requirement.get("credit_or_registration", False)
+    satisfied = False
+    unknown = False
+    for option in requirement["any_of"]:
+        if option in completed:
+            met = grade_meets(completed[option].upper(), minimum)
+            satisfied = satisfied or bool(met)
+            unknown = unknown or (met is None and minimum is not None)
+        if allows_registration and option in registered:
+            satisfied = True
+    return satisfied, unknown
 
 
 def check_prerequisites(
@@ -48,15 +102,24 @@ def check_prerequisites(
     completed: dict[str, str],
     registered: set[str] | None = None,
 ) -> CourseResult:
-    """Check completed grades and current registration."""
+    """Check completed grades and current registration.
+
+    Args:
+        course_code: Course whose prerequisites are evaluated.
+        completed: Completed courses mapped to letter grades.
+        registered: Courses currently registered for.
+
+    Returns:
+        Which requirements are satisfied, missing, or unverifiable.
+
+    Raises:
+        ValueError: If the course is not in the catalog.
+    """
     registered = registered or set()
     catalog = load_prerequisites()
-
     if course_code not in catalog:
         raise ValueError(f"Unsupported course: {course_code}")
-
     course = catalog[course_code]
-
     result: CourseResult = {
         "course_code": course_code,
         "satisfied": [],
@@ -64,52 +127,21 @@ def check_prerequisites(
         "cannot_evaluate": [],
         "eligible": False,
     }
-
     for requirement in course.get("requirements", []):
-        options = requirement["any_of"]
-        min_grade = requirement.get("min_grade")
-        allows_registration = requirement.get(
-            "credit_or_registration", False
-        )
-
-        satisfied = False
-        unknown_grade = False
-
-        for option in options:
-            if option in completed:
-                grade = completed[option].upper()
-
-                if min_grade is None:
-                    satisfied = True
-                elif grade in GRADE_POINTS:
-                    if GRADE_POINTS[grade] >= GRADE_POINTS[min_grade]:
-                        satisfied = True
-                else:
-                    unknown_grade = True
-
-            if allows_registration and option in registered:
-                satisfied = True
-
-        description = " or ".join(options)
-
-        if satisfied:
-            result["satisfied"].append(description)
-        elif unknown_grade:
+        met, unknown = check_requirement(requirement, completed, registered)
+        text = " or ".join(requirement["any_of"])
+        if met:
+            result["satisfied"].append(text)
+        elif unknown:
             result["cannot_evaluate"].append(
-                f"Grade needs verification: {description}"
+                f"Grade needs verification: {text}"
             )
         else:
-            result["missing"].append(description)
-
-    result["cannot_evaluate"].extend(
-        course.get("unverified_requirements", [])
-    )
-
+            result["missing"].append(text)
+    result["cannot_evaluate"].extend(course.get("unverified_requirements", []))
     result["eligible"] = (
-        not result["missing"]
-        and not result["cannot_evaluate"]
+        not result["missing"] and not result["cannot_evaluate"]
     )
-
     return result
 
 from fastapi import APIRouter, HTTPException
@@ -120,13 +152,26 @@ router = APIRouter()
 
 
 class PrerequisiteRequest(BaseModel):
+    """Request body for a prerequisite check."""
+
     course_code: str
     completed: dict[str, str] = Field(default_factory=dict)
     registered: set[str] = Field(default_factory=set)
 
 
 @router.post("/courses/check-prerequisites", tags=["Course Catalog"])
-def check_course_prerequisites(request: PrerequisiteRequest) -> CourseResult:
+def check_course(request: PrerequisiteRequest) -> CourseResult:
+    """Return prerequisite status for a requested course.
+
+    Args:
+        request: Course code with completed and registered courses.
+
+    Returns:
+        The prerequisite evaluation result.
+
+    Raises:
+        HTTPException: 404 if the course is unsupported.
+    """
     try:
         return check_prerequisites(
             request.course_code,

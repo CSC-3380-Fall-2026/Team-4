@@ -1,16 +1,8 @@
-"""Schedule APIs for saved records and the existing session-based page.
-
-/api/saved-schedules stores schedules in Supabase for the signed-in account.
-/api/schedules supports the existing prototype page and its in-memory events.
-The prototype page still requires integration with the saved-schedule API.
-"""
+"""Schedule page APIs backed by each signed-in student's Supabase data."""
 
 from copy import deepcopy
-from datetime import datetime, timezone
-from secrets import token_urlsafe
-from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from tiger_auth import Session, current_session
 from tiger_catalog import load_courses
@@ -22,9 +14,7 @@ from tiger_models import (
     ScheduleDefinition,
     ScheduleEvent,
     ScheduleEventData,
-    ScheduleIn,
     ScheduleMetrics,
-    ScheduleOut,
     SchedulePageData,
     SharedFreeTimeDay,
     SharedFreeTimePeriod,
@@ -32,455 +22,63 @@ from tiger_models import (
     SharedFreeTimeResponse,
     UserBase,
 )
+from tiger_schedule_store import (
+    current_semester,
+    fetch_schedule,
+    insert_schedule,
+    list_schedules,
+    load_page,
+    remove_schedule,
+    save_schedule,
+)
 
 router: APIRouter = APIRouter(prefix="/api", tags=["Schedules"])
+DEFAULT_GRADE: float = 0.0
 
 
-# Supabase-backed operations use their own paths to avoid colliding with the page.
-def _to_out(row: dict[str, Any]) -> ScheduleOut:
-    return ScheduleOut(
-        id=row["id"],
-        name=row["name"],
-        semester=row["semester"],
-        sections=row.get("sections") or [],
-        commitments=row.get("commitments") or [],
-        created_at=row.get("created_at"),
-        updated_at=row.get("updated_at"),
-    )
+def preset_for(course: dict) -> CoursePreset:
+    """Build a preset from one real catalog course.
 
+    Args:
+        course: Validated catalog course.
 
-def _payload(schedule: ScheduleIn) -> dict[str, Any]:
-    return {
-        "name": schedule.name,
-        "semester": schedule.semester,
-        "sections": [s.model_dump() for s in schedule.sections],
-        "commitments": [c.model_dump() for c in schedule.commitments],
-    }
-
-
-@router.post("/saved-schedules")
-def create_saved_schedule(schedule: ScheduleIn, session: Session = Depends(current_session)) -> ScheduleOut:
-    row = {**_payload(schedule), "user_id": session.user_id}
-    data = session.db.table("schedules").insert(row).execute().data
-    if not data:
-        raise HTTPException(status_code=400, detail="Could not save schedule")
-    return _to_out(data[0])
-
-
-@router.get("/saved-schedules")
-def list_saved_schedules(session: Session = Depends(current_session)) -> list[ScheduleOut]:
-    data = (
-        session.db.table("schedules").select("*")
-        .eq("user_id", session.user_id).order("updated_at", desc=True)
-        .execute().data
-    )
-    return [_to_out(r) for r in (data or [])]
-
-
-@router.get("/saved-schedules/{schedule_id}")
-def get_saved_schedule(schedule_id: str, session: Session = Depends(current_session)) -> ScheduleOut:
-    data = (
-        session.db.table("schedules").select("*")
-        .eq("id", schedule_id).eq("user_id", session.user_id).execute().data
-    )
-    if not data:
-        raise HTTPException(status_code=404, detail="Schedule not found")
-    return _to_out(data[0])
-
-
-@router.put("/saved-schedules/{schedule_id}")
-def update_saved_schedule(schedule_id: str, schedule: ScheduleIn, session: Session = Depends(current_session)) -> ScheduleOut:
-    changes = {**_payload(schedule), "updated_at": datetime.now(timezone.utc).isoformat()}
-    data = (
-        session.db.table("schedules").update(changes)
-        .eq("id", schedule_id).eq("user_id", session.user_id).execute().data
-    )
-    if not data:
-        raise HTTPException(status_code=404, detail="Schedule not found")
-    return _to_out(data[0])
-
-
-@router.delete("/saved-schedules/{schedule_id}")
-def delete_saved_schedule(schedule_id: str, session: Session = Depends(current_session)) -> dict[str, bool]:
-    data = (
-        session.db.table("schedules").delete()
-        .eq("id", schedule_id).eq("user_id", session.user_id).execute().data
-    )
-    if not data:
-        raise HTTPException(status_code=404, detail="Schedule not found")
-    return {"deleted": True}
-
-
-# Existing prototype page operations.
-SESSION_COOKIE = "schedule_session"
-SESSION_MAX_AGE = 60 * 60 * 24 * 30
-
-# Prototype storage only: this is not shared across Vercel instances or restarts.
-_session_data: dict[str, SchedulePageData] = {}
-
-
-# Build data for testing and prototyping.
-def _event(
-    event_id: str,
-    title: str,
-    days: list[str],
-    start: str,
-    end: str,
-    location: str = "",
-    guests: list[str] | None = None,
-    favorite: bool = False,
-) -> ScheduleEvent:
-    return ScheduleEvent(
-        id=event_id,
-        title=title,
-        days=days,
-        start=start,
-        end=end,
-        location=location,
-        guests=guests or [],
-        favorite=favorite,
-    )
-
-
-def _class_event(
-    event_id: str,
-    title: str,
-    department: str,
-    number: int,
-    days: list[str],
-    start: str,
-    end: str,
-    location: str = "",
-    guests: list[str] | None = None,
-    favorite: bool = False,
-) -> Classes:
-    return Classes(
-        id=event_id,
-        title=title,
+    Returns:
+        The preset holding only catalog fields.
+    """
+    department, number = course["course_code"].split()
+    return CoursePreset(
+        course_id=course["course_code"],
+        title=course["course_code"],
+        course_name=course["course_name"],
         department=department,
-        number=number,
-        grade=0.0,
-        semester="Fall 2026",
-        category="other",
-        days=days,
-        start=start,
-        end=end,
-        location=location,
-        guests=guests or [],
-        favorite=favorite,
+        number=int(number),
+        credit=course["credits"],
+        category=course["category"],
+        semester=current_semester(),
     )
 
 
-def _schedule(
-    schedule_id: str,
-    name: str,
-    color: str,
-    events: list[Classes | ScheduleEvent],
-) -> Schedule:
-    return Schedule(
-        id=schedule_id,
-        name=name,
-        color=color,
-        events=events,
-    )
-
-
-def _user(user_id: int, username: str, schedules: list[Schedule]) -> UserBase:
-    return UserBase(
-        id=user_id,
-        username=username,
-        email=f"{username}@example.com",
-        gpa=0,
-        courses=[],
-        schedules=schedules,
-    )
-
-
-# Build sample course sections from catalog data.
 def _course_presets() -> list[CoursePreset]:
-    presets = []
-    day_patterns = [
-        ["Monday", "Wednesday", "Friday"],
-        ["Tuesday", "Thursday"],
-    ]
-    start_hours = [8, 9, 10, 13, 14, 15]
+    """Build course presets from the course catalog.
 
-    for index, course in enumerate(load_courses()):
-        department, number = course["course_code"].split()
-        start_hour = start_hours[index % len(start_hours)]
-        duration = course["credits"]
-        end_hour = start_hour + duration
-        days = day_patterns[index % len(day_patterns)]
-        start = f"{start_hour:02}:00"
-        end = f"{end_hour:02}:00"
-        day_labels = ", ".join(day[:2] for day in days)
-
-        presets.append(
-            CoursePreset(
-                courseId=f"{department.lower()}-{number}-sample-section",
-                title=course["course_code"],
-                department=department,
-                number=int(number),
-                grade=0.0,
-                semester="Spring Semester 2027",
-                category=course["category"],
-                professor="Sample instructor",
-                enrollment="Sample enrollment",
-                sectionDetails=f"Sample section | {day_labels} | {start}-{end}",
-                days=days,
-                start=start,
-                end=end,
-                location="",
-                guests=[],
-                favorite=False,
-            ),
-        )
-
-    return presets
+    Returns:
+        One preset per catalog course.
+    """
+    return [preset_for(course) for course in load_courses()]
 
 
-# Default data for testing and prototyping.
-def _default_data() -> SchedulePageData:
-    user_schedules = [
-        _schedule("fall_2026", "Fall 2026", "blue", [
-            _class_event(
-                "csc-3380",
-                "CSC 3380",
-                "CSC",
-                3380,
-                ["Monday", "Wednesday", "Friday"],
-                "09:00",
-                "12:00",
-                "Geoscience Complex, E0137",
-                ["User", "User"],
-                True,
-            ),
-        ]),
-        _schedule("work", "Work", "orange", [
-            _event(
-                "library-shift",
-                "Library Shift",
-                ["Tuesday", "Thursday", "Saturday"],
-                "11:00",
-                "15:00",
-            ),
-        ]),
-        _schedule("clubs", "Clubs", "green", [
-            _event(
-                "wics-officers",
-                "WICS Officers",
-                ["Monday"],
-                "14:00",
-                "17:00",
-                "PFT, 1263",
-                ["User", "User"],
-            ),
-        ]),
-        _schedule("other", "Other", "purple", [
-            _event(
-                "gym-workout",
-                "Gym Workout",
-                ["Tuesday"],
-                "17:00",
-                "19:00",
-            ),
-        ]),
-    ]
+def _find_user(data: SchedulePageData) -> UserBase:
+    """Find the current user in the page data.
 
-    users = [
-        _user(0, "user", user_schedules),
-        _user(1, "user1", [
-            _schedule("user1-fall-2026", "Fall 2026", "yellow", [
-                _class_event(
-                    "user1-csc-3380",
-                    "CSC 3380",
-                    "CSC",
-                    3380,
-                    ["Monday", "Wednesday", "Friday"],
-                    "09:00",
-                    "12:00",
-                    "PFT 1210",
-                ),
-                _class_event(
-                    "user1-csc-3304",
-                    "CSC 3304",
-                    "CSC",
-                    3304,
-                    ["Monday", "Wednesday", "Friday"],
-                    "13:00",
-                    "15:00",
-                    "PFT 1200",
-                ),
-                _event(
-                    "user1-study-group",
-                    "Study Group",
-                    ["Tuesday"],
-                    "15:30",
-                    "17:00",
-                    "Library",
-                ),
-            ]),
-        ]),
-        _user(2, "user2", [
-            _schedule("user2-fall-2026", "Fall 2026", "yellow", [
-                _class_event(
-                    "user2-biol-1201",
-                    "BIOL 1201",
-                    "BIOL",
-                    1201,
-                    ["Monday", "Wednesday", "Friday"],
-                    "10:00",
-                    "12:00",
-                    "Lockett Hall",
-                ),
-                _event(
-                    "user2-chem-lab",
-                    "Chemistry Lab",
-                    ["Tuesday", "Thursday"],
-                    "13:00",
-                    "16:00",
-                    "Chemistry Labs",
-                ),
-            ]),
-        ]),
-        _user(3, "user3", [
-            _schedule("user3-fall-2026", "Fall 2026", "yellow", [
-                _class_event(
-                    "user3-biol-1201",
-                    "BIOL 1201",
-                    "BIOL",
-                    1201,
-                    ["Monday", "Wednesday", "Friday"],
-                    "09:00",
-                    "11:00",
-                    "Lockett Hall",
-                ),
-                _event(
-                    "user3-seminar",
-                    "Seminar",
-                    ["Tuesday", "Thursday"],
-                    "14:00",
-                    "16:00",
-                    "Life Sciences",
-                ),
-            ]),
-        ]),
-        _user(4, "user4", [
-            _schedule("user4-fall-2026", "Fall 2026", "yellow", [
-                _class_event(
-                    "user4-biol-1201",
-                    "BIOL 1201",
-                    "BIOL",
-                    1201,
-                    ["Monday", "Wednesday", "Friday"],
-                    "10:00",
-                    "12:00",
-                    "Lockett Hall",
-                ),
-                _event(
-                    "user4-chem-lab",
-                    "Chemistry Lab",
-                    ["Tuesday", "Thursday"],
-                    "13:00",
-                    "16:00",
-                    "Chemistry Labs",
-                ),
-            ]),
-        ]),
-        _user(5, "user5", [
-            _schedule("user5-fall-2026", "Fall 2026", "yellow", [
-                _class_event(
-                    "user5-csc-3380",
-                    "CSC 3380",
-                    "CSC",
-                    3380,
-                    ["Monday", "Wednesday", "Friday"],
-                    "09:00",
-                    "12:00",
-                    "Geoscience Complex",
-                ),
-                _class_event(
-                    "user5-csc-3304",
-                    "CSC 3304",
-                    "CSC",
-                    3304,
-                    ["Monday", "Wednesday", "Friday"],
-                    "13:00",
-                    "15:00",
-                    "PFT",
-                ),
-                _event(
-                    "user5-study-group",
-                    "Study Group",
-                    ["Tuesday"],
-                    "15:30",
-                    "17:00",
-                    "Library",
-                ),
-            ]),
-        ]),
-        _user(6, "user6", [
-            _schedule("user6-fall-2026", "Fall 2026", "yellow", [
-                _class_event(
-                    "user6-biol-1201",
-                    "BIOL 1201",
-                    "BIOL",
-                    1201,
-                    ["Monday", "Wednesday", "Friday"],
-                    "10:00",
-                    "12:00",
-                    "Lockett Hall",
-                ),
-                _event(
-                    "user6-chem-lab",
-                    "Chemistry Lab",
-                    ["Tuesday", "Thursday"],
-                    "13:00",
-                    "16:00",
-                    "Chemistry Labs",
-                ),
-            ]),
-        ]),
-    ]
+    Args:
+        data: Page data to search.
 
-    return SchedulePageData(
-        current_user_id=0,
-        users=users,
-        metrics={},
-    )
+    Returns:
+        The current user.
 
-
-_DEFAULT_DATA = _default_data()
-
-
-# Get or create the prototype session data.
-def _get_session_data(request: Request, response: Response) -> SchedulePageData:
-    session_id = request.cookies.get(SESSION_COOKIE)
-
-    if not session_id:
-        session_id = token_urlsafe(32)
-        response.set_cookie(
-            SESSION_COOKIE,
-            session_id,
-            max_age=SESSION_MAX_AGE,
-            httponly=True,
-            secure=request.url.scheme == "https",
-            samesite="lax",
-        )
-
-    request.state.schedule_session_id = session_id
-
-    if session_id not in _session_data:
-        _session_data[session_id] = deepcopy(_DEFAULT_DATA)
-
-    return _session_data[session_id]
-
-
-def _save_session_data(request: Request, data: SchedulePageData) -> None:
-    _session_data[request.state.schedule_session_id] = data
-
-
-def _find_current_user(data: SchedulePageData) -> UserBase:
+    Raises:
+        HTTPException: If the user does not exist.
+    """
     user = next(
         (item for item in data.users if item.id == data.current_user_id),
         None,
@@ -490,21 +88,20 @@ def _find_current_user(data: SchedulePageData) -> UserBase:
     return user
 
 
-def _find_schedule(data: SchedulePageData, schedule_id: str) -> Schedule:
-    schedule = next(
-        (
-            item
-            for item in _find_current_user(data).schedules
-            if item.id == schedule_id
-        ),
-        None,
-    )
-    if schedule is None:
-        raise HTTPException(status_code=404, detail="Schedule not found.")
-    return schedule
-
 
 def _find_event(schedule: Schedule, event_id: str) -> int:
+    """Find an event's index within a schedule.
+
+    Args:
+        schedule: Schedule to search.
+        event_id: ID of the event.
+
+    Returns:
+        The event's list index.
+
+    Raises:
+        HTTPException: If the event does not exist.
+    """
     index = next(
         (
             i
@@ -518,15 +115,25 @@ def _find_event(schedule: Schedule, event_id: str) -> int:
     return index
 
 
-def _ensure_no_schedule_conflicts(
+def _check_conflicts(
     schedule: Schedule,
     proposed_event: ScheduleEventData,
-    exclude_event_id: str | None = None,
+    skip_id: str | None = None,
 ) -> None:
+    """Reject an event that overlaps one already in the schedule.
+
+    Args:
+        schedule: Schedule to check against.
+        proposed_event: Event being added or changed.
+        skip_id: Event ID to ignore, if any.
+
+    Raises:
+        HTTPException: With status 409 on a time conflict.
+    """
     conflicting_names = [
         event.title
         for event in schedule.events
-        if event.id != exclude_event_id
+        if event.id != skip_id
         and set(proposed_event.days).intersection(event.days)
         and proposed_event.start < event.end
         and event.start < proposed_event.end
@@ -545,7 +152,15 @@ def _ensure_no_schedule_conflicts(
         )
 
 
-def calculate_schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
+def schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
+    """Compute total hours and busy days for a schedule.
+
+    Args:
+        schedule: Schedule to measure.
+
+    Returns:
+        The schedule's metrics.
+    """
     weekdays = [
         "Monday",
         "Tuesday",
@@ -579,36 +194,72 @@ def calculate_schedule_metrics(schedule: Schedule) -> ScheduleMetrics:
     )
 
 
-def get_schedule_page_data(data: SchedulePageData) -> SchedulePageData:
+def page_data(data: SchedulePageData) -> SchedulePageData:
+    """Return a copy of the page data with metrics filled in.
+
+    Args:
+        data: Page data to copy.
+
+    Returns:
+        Page data including per-schedule metrics.
+    """
     result = deepcopy(data)
-    current_user = _find_current_user(result)
+    current_user = _find_user(result)
 
     result.metrics = {
-        schedule.id: calculate_schedule_metrics(schedule)
+        schedule.id: schedule_metrics(schedule)
         for schedule in current_user.schedules
     }
 
     return result
 
 
-def _time_to_minutes(value: str) -> int:
+def _to_minutes(value: str) -> int:
+    """Convert an HH:MM string to minutes after midnight.
+
+    Args:
+        value: Time as HH:MM.
+
+    Returns:
+        Minutes after midnight.
+    """
     hours, minutes = map(int, value.split(":"))
     return hours * 60 + minutes
 
 
-def _minutes_to_time(value: int) -> str:
+def _to_time(value: int) -> str:
+    """Convert minutes after midnight to an HH:MM string.
+
+    Args:
+        value: Minutes after midnight.
+
+    Returns:
+        Time as HH:MM.
+    """
     return f"{value // 60:02}:{value % 60:02}"
 
 
-def calculate_shared_free_time(
+def free_time(
     current_user: UserBase,
     friend: UserBase,
     start_time: str,
     end_time: str,
     minimum_duration: int,
 ) -> SharedFreeTimeResponse:
-    range_start = _time_to_minutes(start_time)
-    range_end = _time_to_minutes(end_time)
+    """Compute weekly free periods shared by two users.
+
+    Args:
+        current_user: The signed-in user.
+        friend: The friend to compare against.
+        start_time: Start of the search window as HH:MM.
+        end_time: End of the search window as HH:MM.
+        minimum_duration: Shortest free period in minutes.
+
+    Returns:
+        Days with their shared free periods.
+    """
+    range_start = _to_minutes(start_time)
+    range_end = _to_minutes(end_time)
 
     events = [
         event
@@ -631,13 +282,13 @@ def calculate_shared_free_time(
     for day in weekdays:
         busy_intervals = sorted(
             (
-                max(_time_to_minutes(event.start), range_start),
-                min(_time_to_minutes(event.end), range_end),
+                max(_to_minutes(event.start), range_start),
+                min(_to_minutes(event.end), range_end),
             )
             for event in events
             if day in event.days
-            and _time_to_minutes(event.end) > range_start
-            and _time_to_minutes(event.start) < range_end
+            and _to_minutes(event.end) > range_start
+            and _to_minutes(event.start) < range_end
         )
 
         merged_intervals: list[tuple[int, int]] = []
@@ -662,8 +313,8 @@ def calculate_shared_free_time(
             if interval_start - cursor >= minimum_duration:
                 periods.append(
                     SharedFreeTimePeriod(
-                        start=_minutes_to_time(cursor),
-                        end=_minutes_to_time(interval_start),
+                        start=_to_time(cursor),
+                        end=_to_time(interval_start),
                     ),
                 )
             cursor = max(cursor, interval_end)
@@ -671,8 +322,8 @@ def calculate_shared_free_time(
         if range_end - cursor >= minimum_duration:
             periods.append(
                 SharedFreeTimePeriod(
-                    start=_minutes_to_time(cursor),
-                    end=_minutes_to_time(range_end),
+                    start=_to_time(cursor),
+                    end=_to_time(range_end),
                 ),
             )
 
@@ -685,20 +336,34 @@ def calculate_shared_free_time(
 
 
 @router.get("/schedule-data", response_model=SchedulePageData)
-def get_schedule_data(request: Request, response: Response) -> SchedulePageData:
-    return get_schedule_page_data(
-        _get_session_data(request, response)
-    )
+def schedule_data(session: Session = Depends(current_session)) -> SchedulePageData:
+    """Return the student's page data with metrics.
+
+    Args:
+        session: Verified student and their database client.
+
+    Returns:
+        The student, friends' shared schedules, and metrics.
+    """
+    return page_data(load_page(session))
 
 
 @router.post("/shared-free-time", response_model=SharedFreeTimeResponse)
-def get_shared_free_time(
+def shared_free(
     query: SharedFreeTimeRequest,
-    request: Request,
-    response: Response,
+    session: Session = Depends(current_session),
 ) -> SharedFreeTimeResponse:
-    data = _get_session_data(request, response)
-    current_user = _find_current_user(data)
+    """Find free time shared with a friend.
+
+    Args:
+        query: Friend username, time window, and minimum duration.
+        session: Verified student and their database client.
+
+    Returns:
+        Shared free periods by day.
+    """
+    data = load_page(session)
+    current_user = _find_user(data)
 
     friend = next(
         (
@@ -712,7 +377,7 @@ def get_shared_free_time(
     if friend is None or friend.id == current_user.id:
         raise HTTPException(status_code=404, detail="Friend not found.")
 
-    return calculate_shared_free_time(
+    return free_time(
         current_user,
         friend,
         query.start_time,
@@ -722,7 +387,19 @@ def get_shared_free_time(
 
 
 @router.get("/course-presets", response_model=list[CoursePreset])
-def search_course_presets(query: str = "") -> list[CoursePreset]:
+def search_presets(
+    query: str = "",
+    session: Session = Depends(current_session),
+) -> list[CoursePreset]:
+    """Search the catalog courses.
+
+    Args:
+        query: Text to match, or empty for all.
+        session: Verified student.
+
+    Returns:
+        Matching course presets.
+    """
     search_term = query.strip().casefold()
 
     return [
@@ -730,13 +407,7 @@ def search_course_presets(query: str = "") -> list[CoursePreset]:
         for course in _course_presets()
         if not search_term
         or search_term in " ".join(
-            [
-                course.title,
-                course.semester,
-                course.professor,
-                course.section_details,
-                course.category,
-            ]
+            [course.title, course.course_name, course.category]
         ).casefold()
     ]
 
@@ -748,31 +419,41 @@ def search_course_presets(query: str = "") -> list[CoursePreset]:
 )
 def create_schedule(
     definition: ScheduleDefinition,
-    request: Request,
-    response: Response,
+    session: Session = Depends(current_session),
 ) -> Schedule:
-    data = _get_session_data(request, response)
-    schedule = Schedule(**definition.model_dump(), events=[])
+    """Create an empty schedule for the current student.
 
-    _find_current_user(data).schedules.append(schedule)
-    _save_session_data(request, data)
+    Args:
+        definition: Name and color for the schedule.
+        session: Verified student and their database client.
 
-    return schedule
+    Returns:
+        The new schedule.
+    """
+    return insert_schedule(session, definition)
 
 
 @router.put("/schedules/{schedule_id}", response_model=Schedule)
 def update_schedule(
     schedule_id: str,
     definition: ScheduleDefinition,
-    request: Request,
-    response: Response,
+    session: Session = Depends(current_session),
 ) -> Schedule:
-    data = _get_session_data(request, response)
-    schedule = _find_schedule(data, schedule_id)
+    """Rename or recolor a schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        definition: New name and color.
+        session: Verified student and their database client.
+
+    Returns:
+        The updated schedule.
+    """
+    schedule = fetch_schedule(session, schedule_id)
 
     schedule.name = definition.name
     schedule.color = definition.color
-    _save_session_data(request, data)
+    save_schedule(session, schedule)
 
     return schedule
 
@@ -783,21 +464,24 @@ def update_schedule(
 )
 def delete_schedule(
     schedule_id: str,
-    request: Request,
-    response: Response,
+    session: Session = Depends(current_session),
 ) -> Response:
-    data = _get_session_data(request, response)
-    schedules = _find_current_user(data).schedules
+    """Delete a schedule, keeping at least one.
 
-    if len(schedules) <= 1:
+    Args:
+        schedule_id: ID of the schedule.
+        session: Verified student and their database client.
+
+    Returns:
+        An empty 204 response.
+    """
+    if len(list_schedules(session)) <= 1:
         raise HTTPException(
             status_code=409,
             detail="At least one schedule must remain.",
         )
 
-    schedule = _find_schedule(data, schedule_id)
-    schedules.remove(schedule)
-    _save_session_data(request, data)
+    remove_schedule(session, schedule_id)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -810,19 +494,71 @@ def delete_schedule(
 def create_event(
     schedule_id: str,
     event: ScheduleEventData,
-    request: Request,
-    response: Response,
+    session: Session = Depends(current_session),
 ) -> ScheduleEvent:
-    data = _get_session_data(request, response)
-    schedule = _find_schedule(data, schedule_id)
+    """Add an event to a schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        event: Event data.
+        session: Verified student and their database client.
+
+    Returns:
+        The created event.
+    """
+    schedule = fetch_schedule(session, schedule_id)
     created = ScheduleEvent(**event.model_dump())
 
-    _ensure_no_schedule_conflicts(schedule, created)
+    _check_conflicts(schedule, created)
 
     schedule.events.append(created)
-    _save_session_data(request, data)
+    save_schedule(session, schedule)
 
     return created
+
+
+def find_preset(course_id: str) -> CoursePreset:
+    """Look up a catalog course by id.
+
+    Args:
+        course_id: Course code used as the preset id.
+
+    Returns:
+        The matching preset.
+
+    Raises:
+        HTTPException: With status 404 when the course is unknown.
+    """
+    course = next(
+        (item for item in _course_presets() if item.course_id == course_id),
+        None,
+    )
+    if course is None:
+        raise HTTPException(status_code=404, detail="Course not found.")
+    return course
+
+
+def class_event(course: CoursePreset, selection: CourseSelection) -> Classes:
+    """Combine a catalog course with the student's chosen meeting times.
+
+    Args:
+        course: Catalog course being added.
+        selection: Meeting days, times and notes chosen by the student.
+
+    Returns:
+        The class event.
+    """
+    meeting = selection.model_dump(exclude={"course_id", "title"})
+    return Classes(
+        title=course.title,
+        department=course.department,
+        number=course.number,
+        grade=DEFAULT_GRADE,
+        semester=course.semester,
+        category=course.category,
+        credit=course.credit,
+        **meeting,
+    )
 
 
 @router.post(
@@ -830,47 +566,28 @@ def create_event(
     response_model=Classes,
     status_code=status.HTTP_201_CREATED,
 )
-def add_course_to_schedule(
+def add_course(
     schedule_id: str,
     selection: CourseSelection,
-    request: Request,
-    response: Response,
+    session: Session = Depends(current_session),
 ) -> Classes:
-    data = _get_session_data(request, response)
-    schedule = _find_schedule(data, schedule_id)
+    """Add a catalog course, with the chosen meeting times, to a schedule.
 
-    course = next(
-        (
-            item
-            for item in _course_presets()
-            if item.course_id == selection.course_id
-        ),
-        None,
-    )
+    Args:
+        schedule_id: ID of the schedule.
+        selection: The chosen course and its meeting times.
+        session: Verified student and their database client.
 
-    if course is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Course section not found.",
-        )
+    Returns:
+        The created class entry.
+    """
+    schedule = fetch_schedule(session, schedule_id)
+    event = class_event(find_preset(selection.course_id), selection)
 
-    event = Classes(
-        **course.model_dump(
-            exclude={
-                "id",
-                "course_id",
-                "professor",
-                "enrollment",
-                "section_details",
-                "credit",
-            },
-        )
-    )
-
-    _ensure_no_schedule_conflicts(schedule, event)
+    _check_conflicts(schedule, event)
 
     schedule.events.append(event)
-    _save_session_data(request, data)
+    save_schedule(session, schedule)
 
     return event
 
@@ -883,30 +600,39 @@ def update_event(
     schedule_id: str,
     event_id: str,
     event: ScheduleEventData,
-    request: Request,
-    response: Response,
+    session: Session = Depends(current_session),
 ) -> Classes | ScheduleEvent:
-    data = _get_session_data(request, response)
-    schedule = _find_schedule(data, schedule_id)
+    """Update an event in a schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        event_id: ID of the event.
+        event: New event data.
+        session: Verified student and their database client.
+
+    Returns:
+        The updated event.
+    """
+    schedule = fetch_schedule(session, schedule_id)
     event_index = _find_event(schedule, event_id)
     existing = schedule.events[event_index]
 
     updated = type(existing)(
         **{
-            **existing.model_dump(exclude={"credit"}),
+            **existing.model_dump(),
             **event.model_dump(),
             "id": event_id,
         },
     )
 
-    _ensure_no_schedule_conflicts(
+    _check_conflicts(
         schedule,
         updated,
-        exclude_event_id=event_id,
+        skip_id=event_id,
     )
 
     schedule.events[event_index] = updated
-    _save_session_data(request, data)
+    save_schedule(session, schedule)
 
     return updated
 
@@ -918,14 +644,22 @@ def update_event(
 def delete_event(
     schedule_id: str,
     event_id: str,
-    request: Request,
-    response: Response,
+    session: Session = Depends(current_session),
 ) -> Response:
-    data = _get_session_data(request, response)
-    schedule = _find_schedule(data, schedule_id)
+    """Delete an event from a schedule.
+
+    Args:
+        schedule_id: ID of the schedule.
+        event_id: ID of the event.
+        session: Verified student and their database client.
+
+    Returns:
+        An empty 204 response.
+    """
+    schedule = fetch_schedule(session, schedule_id)
     event_index = _find_event(schedule, event_id)
 
     del schedule.events[event_index]
-    _save_session_data(request, data)
+    save_schedule(session, schedule)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

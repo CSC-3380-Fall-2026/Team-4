@@ -81,10 +81,6 @@ def test_required_gpa_rejects_invalid_current_gpa():
 
     assert error.value.status_code == 400
     assert "current gpa" in error.value.detail.lower()
-@pytest.mark.xfail(
-    reason="Known model bug: credits depend on meeting duration",
-    strict=True,
-)
 def test_course_credits_do_not_change_with_meeting_duration():
     from tiger_models import Classes
 

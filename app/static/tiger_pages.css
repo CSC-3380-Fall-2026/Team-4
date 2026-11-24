@@ -1,0 +1,2442 @@
+/*
+  tiger_pages.css
+  Styles for one page at a time. The shared stuff (sidebar, banner, cards,
+  buttons, form fields) is in tiger_workspace.css
+  Order: dashboard, course catalog, planning, profile, schedule, friends
+*/
+
+/* =====================================================
+   DASHBOARD
+   ===================================================== */
+
+.stat-row {
+    display: grid;
+    grid-template-columns: 349fr 244fr 245fr 220fr;
+    gap: 25px;
+}
+
+.stat-tile {
+    height: 130px;
+    padding: 18px 22px 0 22px;
+    border-radius: 3px;
+}
+
+.stat-label {
+    font-size: 11px;
+    line-height: 15px;
+}
+
+.stat-number {
+    font-family: var(--heading-font);
+    font-style: italic;
+    font-weight: 800;
+    font-size: 54px;
+    line-height: 62px;
+    margin-top: 5px;
+    white-space: nowrap;
+}
+
+.stat-note {
+    font-size: 9px;
+    line-height: 12px;
+    margin-top: 11px;
+}
+
+.stat-purple {
+    background: var(--purple);
+    color: white;
+    box-shadow: 0 2px 0 #4a2087;
+}
+
+.stat-purple .stat-number {
+    color: var(--gold);
+    font-size: 64px;
+}
+
+.stat-gold {
+    background: var(--gold);
+    color: var(--ink);
+}
+
+.stat-gold .stat-note {
+    color: #6b5320;
+}
+
+.stat-plain {
+    background: var(--card);
+    border: 1px solid #e9e7ec;
+    color: var(--ink);
+}
+
+.stat-plain .stat-label,
+.stat-plain .stat-note {
+    color: var(--muted);
+}
+
+.stat-lilac {
+    background: var(--lilac);
+    color: var(--ink);
+}
+
+.stat-lilac .stat-number {
+    font-size: 50px;
+}
+
+.stat-lilac .stat-label,
+.stat-lilac .stat-note {
+    color: var(--muted-dark);
+}
+
+.dash-middle {
+    display: grid;
+    grid-template-columns: 733fr 376fr;
+    gap: 25px;
+    margin-top: 26px;
+}
+
+.dash-middle .page-card {
+    height: 350px;
+    padding: 16px 24px;
+}
+
+.card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-right: 26px;
+}
+
+.card-top .card-link {
+    font-size: 10px;
+}
+
+.classes-table {
+    width: 100%;
+    margin-top: 26px;
+    border-collapse: collapse;
+}
+
+.classes-table th {
+    text-align: left;
+    font-size: 7px;
+    line-height: 10px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    color: var(--muted);
+    padding-bottom: 4px;
+}
+
+.classes-table td {
+    height: 59px;
+    border-top: 1px solid var(--card-line);
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+.classes-table th:nth-child(1),
+.classes-table td:nth-child(1) {
+    width: 49%;
+}
+
+.classes-table th:nth-child(2),
+.classes-table td:nth-child(2) {
+    width: 41%;
+}
+
+.class-mark {
+    display: inline-block;
+    width: 3px;
+    height: 30px;
+    vertical-align: middle;
+    margin-right: 13px;
+}
+
+.mark-lilac {
+    background: #d9cdf1;
+    border-color: #d9cdf1;
+}
+
+.mark-yellow {
+    background: #f6dea2;
+    border-color: #f6dea2;
+}
+
+.mark-pink {
+    background: #ebd3e2;
+    border-color: #ebd3e2;
+}
+
+.class-code {
+    display: inline-block;
+    width: 76px;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.class-name {
+    color: var(--ink);
+}
+
+.progress-track {
+    display: inline-block;
+    width: 176px;
+    height: 4px;
+    background: var(--track);
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+.progress-fill {
+    display: block;
+    height: 4px;
+    background: var(--purple);
+    border-radius: 4px;
+}
+
+.progress-number {
+    margin-left: 17px;
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.classes-table .class-grade {
+    font-family: var(--heading-font);
+    font-weight: 700;
+    font-size: 19px;
+}
+
+.today-date {
+    margin-top: 15px;
+    font-size: 7px;
+    line-height: 10px;
+    letter-spacing: 0.4px;
+    color: var(--muted);
+}
+
+.today-list {
+    margin-top: 28px;
+    list-style: none;
+    padding: 0;
+}
+
+.today-list li {
+    display: flex;
+    gap: 26px;
+    height: 75px;
+}
+
+.today-list time {
+    width: 34px;
+    padding-top: 2px;
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.today-item {
+    height: 46px;
+    padding-left: 14px;
+    border-left: 3px solid #d9cdf1;
+    background: none;
+}
+
+.today-item strong {
+    display: block;
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: 500;
+    color: var(--ink);
+}
+
+.today-item span {
+    display: block;
+    margin-top: 8px;
+    font-size: 9px;
+    color: var(--muted);
+}
+
+.today-card .page-message {
+    margin-top: 20px;
+}
+
+.dash-bottom {
+    display: grid;
+    grid-template-columns: 434fr 348fr 300fr;
+    gap: 26px;
+    margin-top: 25px;
+}
+
+.dash-bottom > section {
+    height: 228px;
+}
+
+.growth-card {
+    background: var(--purple-dark);
+    border-radius: 3px;
+    padding: 18px 24px 0 24px;
+    color: white;
+}
+
+.growth-card h2 {
+    font-size: 21px;
+    line-height: 24px;
+}
+
+.growth-sub {
+    margin-top: 7px;
+    font-size: 11px;
+    line-height: 15px;
+    color: #e1d5f5;
+}
+
+.growth-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 38px;
+    height: 135px;
+    padding-left: 11px;
+}
+
+.growth-bar {
+    width: 59px;
+}
+
+.growth-bar span {
+    display: block;
+    padding-left: 10px;
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.growth-bar i {
+    display: block;
+    background: #845aae;
+    border-radius: 3px;
+}
+
+.growth-bar small {
+    display: block;
+    margin-top: 14px;
+    padding-left: 8px;
+    font-size: 7px;
+    line-height: 10px;
+    color: #d6c8ee;
+}
+
+.growth-now i {
+    background: var(--gold);
+}
+
+.dash-bottom .headsup-card {
+    padding-top: 17px;
+}
+
+.headsup-card h2 {
+    font-size: 21px;
+    line-height: 24px;
+}
+
+.headsup-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 25px;
+}
+
+.headsup-list li {
+    margin-bottom: 24px;
+}
+
+.headsup-list small {
+    display: block;
+    font-size: 8px;
+    line-height: 10px;
+    font-weight: 600;
+    color: var(--purple);
+}
+
+.headsup-list strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+}
+
+.headsup-list span {
+    display: block;
+    margin-top: 5px;
+    font-size: 9px;
+    line-height: 12px;
+    color: var(--muted);
+}
+
+.break-card {
+    background: var(--gold);
+    border-radius: 3px;
+    padding: 24px 21px 0 21px;
+}
+
+.break-kicker {
+    font-size: 8px;
+    line-height: 10px;
+    font-weight: 600;
+    color: #6b3fa0;
+}
+
+.break-card h2 {
+    margin-top: 16px;
+    font-size: 30px;
+    line-height: 30px;
+    color: var(--ink);
+}
+
+.break-text {
+    margin-top: 14px;
+    font-size: 12px;
+    line-height: 17px;
+    color: #b08a3c;
+    max-width: 200px;
+}
+
+.break-card .page-button {
+    width: 100%;
+    height: 42px;
+    margin-top: 31px;
+}
+
+.prereq-card {
+    margin-top: 26px;
+}
+
+.prereq-card form {
+    margin-top: 18px;
+}
+
+.prereq-card .form-field textarea {
+    min-height: 80px;
+}
+
+.prereq-card .page-button {
+    margin-top: 18px;
+}
+
+#prereq-result {
+    margin-top: 16px;
+}
+
+/* =====================================================
+   COURSE CATALOG
+   ===================================================== */
+
+.catalog-search {
+    display: flex;
+    gap: 20px;
+    height: 50px;
+}
+
+.catalog-search input {
+    flex: 1;
+    min-width: 0;
+    padding: 0 20px;
+    background: var(--card);
+    border: 1px solid #e9e7ec;
+    border-radius: 3px;
+    color: var(--ink);
+    font-family: var(--body-font);
+    font-size: 12px;
+}
+
+.catalog-search input::placeholder {
+    color: #b8afc6;
+}
+
+.catalog-search input:focus,
+.catalog-term:focus {
+    outline: none;
+    border-color: var(--purple);
+}
+
+.catalog-term {
+    width: 180px;
+    padding: 0 30px;
+    appearance: none;
+    background: var(--card) url("tiger_chevron.svg") no-repeat 113px center;
+    border: 1px solid #e9e7ec;
+    border-radius: 3px;
+    color: var(--ink);
+    font-family: var(--body-font);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.my-plan-button {
+    width: 164px;
+    height: 50px;
+}
+
+.catalog-chips {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 19px;
+}
+
+.chip {
+    height: 35px;
+    padding: 0 16px;
+    background: var(--track);
+    border: 0;
+    border-radius: 3px;
+    color: var(--muted);
+    font-family: var(--body-font);
+    font-size: 10px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.chip-select {
+    width: 178px;
+    padding-right: 60px;
+    appearance: none;
+    background: var(--track) url("tiger_chevron.svg") no-repeat 104px center;
+    text-overflow: ellipsis;
+}
+
+.chip-credits {
+    width: 112px;
+}
+
+.chip-days {
+    width: 161px;
+}
+
+.chip-gold {
+    width: 182px;
+    background: var(--gold);
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.chip-fits {
+    width: 172px;
+}
+
+.chip:focus-visible {
+    outline: 2px solid var(--purple);
+}
+
+.clear-link {
+    margin-left: 6px;
+}
+
+.catalog-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 27px;
+}
+
+.catalog-heading h2 {
+    font-size: 21px;
+    line-height: 24px;
+}
+
+.catalog-heading p {
+    font-size: 10px;
+    color: var(--muted);
+    padding-right: 62px;
+}
+
+.course-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px 24px;
+    margin-top: 20px;
+}
+
+.course-card {
+    height: 268px;
+    background: var(--card);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.course-card header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 58px;
+    padding: 0 26px 0 19px;
+    background: var(--purple-dark);
+}
+
+.course-card h3 {
+    font-style: italic;
+    font-weight: 800;
+    font-size: 32px;
+    line-height: 36px;
+    color: white;
+}
+
+.course-card header span {
+    font-size: 10px;
+    color: var(--gold);
+}
+
+.course-body {
+    padding: 12px 20px 0 20px;
+}
+
+.course-category {
+    font-size: 7px;
+    line-height: 10px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    color: var(--purple);
+}
+
+.course-card h4 {
+    margin-top: 12px;
+    font-family: var(--heading-font);
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 28px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.course-text {
+    height: 34px;
+    margin-top: 10px;
+    font-size: 11px;
+    line-height: 17px;
+    color: var(--muted);
+    overflow: hidden;
+}
+
+.course-time {
+    margin-top: 33px;
+    font-size: 11px;
+    line-height: 14px;
+    color: var(--ink);
+}
+
+.course-card footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding: 14px 28px 0 0;
+    border-top: 1px solid var(--card-line);
+    font-size: 10px;
+}
+
+.course-card footer span {
+    color: #9a80c9;
+}
+
+.course-card footer a {
+    color: var(--purple);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.course-card footer a:hover {
+    text-decoration: underline;
+}
+
+.catalog-form + .page-message {
+    margin-top: 27px;
+}
+
+/* =====================================================
+   PLANNING
+   ===================================================== */
+
+.planning-top {
+    display: grid;
+    grid-template-columns: 736fr 371fr;
+    gap: 27px;
+}
+
+.projector-card {
+    min-height: 418px;
+    padding: 15px 22px 16px 23px;
+}
+
+.projector-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.projector-top h2 {
+    margin-top: 1px;
+}
+
+.projector-top .soft-select {
+    width: 167px;
+    height: 38px;
+    text-align: center;
+}
+
+.soft-select-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.projector-table {
+    width: 100%;
+    margin-top: 58px;
+    border-collapse: collapse;
+}
+
+.projector-table th {
+    text-align: left;
+    font-size: 7px;
+    line-height: 10px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    color: var(--muted);
+    padding-bottom: 8px;
+}
+
+.projector-table td {
+    height: 55px;
+    border-top: 1px solid var(--card-line);
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+.projector-table tr:first-child td {
+    border-top: 0;
+}
+
+.projector-table th:nth-child(2),
+.projector-table td:nth-child(2) {
+    width: 86px;
+}
+
+.projector-table th:nth-child(3),
+.projector-table td:nth-child(3) {
+    width: 106px;
+}
+
+.projector-table th:nth-child(4),
+.projector-table td:nth-child(4) {
+    width: 104px;
+}
+
+.projector-table th:nth-child(5),
+.projector-table td:nth-child(5) {
+    width: 22px;
+}
+
+/* inputs in the table look like plain text until you click them, like the figma rows */
+.plain-input {
+    width: 96%;
+    height: 34px;
+    padding: 0 6px;
+    margin-left: -6px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--ink);
+    font-family: var(--body-font);
+    font-size: 12px;
+}
+
+.plain-input:hover {
+    background: var(--field);
+}
+
+.plain-input:focus {
+    outline: none;
+    background: var(--field);
+    border-color: var(--purple);
+}
+
+.plain-input::placeholder {
+    color: #b8afc6;
+}
+
+.credit-input {
+    width: 44px;
+    margin-left: 14px;
+    text-align: center;
+}
+
+.current-grade {
+    padding-left: 22px;
+    color: var(--muted);
+}
+
+.grade-select {
+    width: 100px;
+    height: 34px;
+    padding: 0 12px;
+    appearance: none;
+    background: #dfd7ea url("tiger_chevron.svg") no-repeat 50px center;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--purple);
+    font-family: var(--body-font);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.grade-select:focus {
+    outline: none;
+    border-color: var(--purple);
+}
+
+.remove-button {
+    width: 20px;
+    height: 20px;
+    background: none;
+    border: 0;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.remove-button:hover {
+    color: #b3261e;
+}
+
+.projector-bottom {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-top: 19px;
+}
+
+.target-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10px;
+    color: var(--muted-dark);
+}
+
+.target-field input {
+    width: 64px;
+    height: 30px;
+    padding: 0 10px;
+    background: var(--field);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--ink);
+    font-family: var(--body-font);
+    font-size: 11px;
+}
+
+.target-field input:focus {
+    outline: none;
+    border-color: var(--purple);
+}
+
+.projector-note {
+    flex: 1;
+    font-size: 9px;
+    color: var(--muted);
+}
+
+.projector-bottom .text-link {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.scenario-card {
+    min-height: 418px;
+    padding: 23px 25px 13px 25px;
+    background: var(--purple);
+    border-radius: 3px;
+    color: white;
+    box-shadow: 0 2px 0 #4a2087;
+}
+
+.scenario-kicker {
+    font-size: 8px;
+    line-height: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+.scenario-number {
+    margin-top: 26px;
+    font-family: var(--heading-font);
+    font-style: italic;
+    font-weight: 800;
+    font-size: 88px;
+    line-height: 88px;
+    color: var(--gold);
+}
+
+.scenario-label {
+    margin-top: 2px;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.scenario-rows {
+    margin-top: 25px;
+    padding-top: 12px;
+    border-top: 1px solid #7a4fc0;
+}
+
+.scenario-rows div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 48px;
+    padding-right: 32px;
+    font-size: 12px;
+}
+
+.scenario-rows dd {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.scenario-rows .scenario-big {
+    font-family: var(--heading-font);
+    font-weight: 700;
+    font-size: 32px;
+}
+
+/* the current GPA is a real input, it just looks like the plain number in the figma */
+.scenario-input {
+    width: 70px;
+    height: 30px;
+    margin-right: -8px;
+    padding: 0 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: white;
+    font-family: var(--body-font);
+    font-size: 15px;
+    font-weight: 500;
+    text-align: right;
+}
+
+.scenario-input:hover,
+.scenario-input:focus,
+.scenario-credits:hover,
+.scenario-credits:focus {
+    outline: none;
+    border-color: #a98be0;
+    background: #6a37b4;
+}
+
+.scenario-input::placeholder,
+.scenario-credits::placeholder {
+    color: #c9b5ee;
+}
+
+.scenario-error {
+    margin: 6px 0;
+    font-size: 10px;
+    color: #ffd9d6;
+}
+
+.scenario-button {
+    width: 100%;
+    height: 44px;
+    margin-top: 19px;
+    background: var(--gold);
+    border: 0;
+    border-radius: 3px;
+    color: var(--ink);
+    font-family: var(--body-font);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scenario-button:hover {
+    background: #f5c12b;
+}
+
+.scenario-button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.scenario-foot {
+    margin-top: 17px;
+    font-size: 9px;
+    line-height: 20px;
+}
+
+.scenario-credits {
+    width: 18px;
+    height: 20px;
+    margin-left: -2px;
+    padding: 0 1px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: white;
+    font-family: var(--body-font);
+    font-size: 9px;
+}
+
+.planning-bottom {
+    display: grid;
+    grid-template-columns: 736fr 371fr;
+    gap: 27px;
+    margin-top: 25px;
+}
+
+.planning-bottom .page-card {
+    min-height: 317px;
+    padding: 19px 22px 18px 23px;
+}
+
+.spring-top {
+    display: flex;
+    justify-content: space-between;
+}
+
+.spring-top .card-sub {
+    margin-top: 5px;
+}
+
+.spring-credits {
+    margin-top: 12px;
+    padding-right: 26px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--purple);
+}
+
+.spring-table {
+    width: 100%;
+    margin-top: 23px;
+    border-collapse: collapse;
+}
+
+.spring-table td {
+    height: 43px;
+    border-top: 1px solid var(--card-line);
+    font-size: 12px;
+    color: var(--ink);
+}
+
+.spring-table td:nth-child(1) {
+    width: 101px;
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.spring-table td:nth-child(3) {
+    width: 132px;
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.spring-bottom {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 14px 0 0;
+    border-top: 1px solid var(--card-line);
+}
+
+.spring-bottom .text-link {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.picture-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.picture-top a {
+    color: var(--ink);
+}
+
+.picture-top svg {
+    width: 22px;
+    height: 22px;
+}
+
+.picture-card .card-sub {
+    margin-top: 5px;
+}
+
+.picture-track {
+    height: 8px;
+    margin-top: 38px;
+    background: #ded8e5;
+    border-radius: 8px;
+}
+
+.picture-track span {
+    display: block;
+    height: 8px;
+    background: var(--purple);
+    border-radius: 8px;
+}
+
+.picture-totals {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-right: 16px;
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.picture-totals strong {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+}
+
+.picture-rows {
+    margin-top: 29px;
+}
+
+.picture-rows div {
+    display: flex;
+    justify-content: space-between;
+    height: 34px;
+    padding-right: 12px;
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.picture-rows dd {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.picture-card .text-link {
+    font-size: 10px;
+}
+
+/* =====================================================
+   PROFILE
+   ===================================================== */
+
+[data-page="profile"] #content {
+    padding-top: 72px;
+}
+
+.profile-layout {
+    display: grid;
+    grid-template-columns: 712fr 396fr;
+    gap: 26px;
+}
+
+.profile-left,
+.profile-right {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+}
+
+.profile-left .page-card {
+    padding-bottom: 23px;
+}
+
+.profile-left .academic-card {
+    padding-bottom: 62px;
+}
+
+.profile-left .field-grid {
+    margin-top: 55px;
+}
+
+/* the figma puts the little arrow right after the words, so each dropdown gets its own spot */
+.profile-left select {
+    appearance: none;
+    background: var(--field) url("tiger_chevron.svg") no-repeat right 14px center;
+    cursor: pointer;
+}
+
+#timezone {
+    background-position: 196px center;
+}
+
+#degree {
+    background-position: 163px center;
+}
+
+#graduation {
+    background-position: 82px center;
+}
+
+#scale {
+    background-position: 77px center;
+}
+
+.record-card textarea {
+    min-height: 110px;
+}
+
+.privacy-card {
+    padding-bottom: 23px;
+}
+
+.privacy-card h2 {
+    margin-bottom: 48px;
+}
+
+.privacy-card .switch-row {
+    height: 77px;
+    padding: 16px 22px 0 0;
+    border-top: 1px solid var(--card-line);
+}
+
+.privacy-card h2 + .switch-row {
+    border-top: 0;
+}
+
+.privacy-card .switch-row input {
+    right: 22px;
+}
+
+.privacy-card .switch-row i {
+    margin-top: 2px;
+}
+
+.transcript-card {
+    display: flex;
+    flex-direction: column;
+    height: 281px;
+    padding: 18px 10px 8px 24px;
+}
+
+.upload-button {
+    display: flex;
+    align-items: center;
+    align-self: center;
+    gap: 46px;
+    width: 244px;
+    height: 52px;
+    margin-top: 64px;
+    margin-right: 14px;
+    padding-left: 14px;
+    background: var(--lilac-soft);
+    border-radius: 3px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.upload-button svg {
+    width: 34px;
+    height: 34px;
+}
+
+.upload-button:hover {
+    background: #d3c6e3;
+}
+
+.transcript-card .page-button {
+    align-self: flex-end;
+    width: 128px;
+    margin-top: auto;
+    font-size: 14px;
+}
+
+.profile-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 13px;
+}
+
+.profile-actions .secondary-button {
+    width: 106px;
+}
+
+.profile-actions .page-button {
+    width: 148px;
+}
+
+/* =====================================================
+   SCHEDULE
+   ===================================================== */
+
+[data-page="schedule"] #content {
+    padding-top: 51px;
+}
+
+.schedule-layout {
+    display: grid;
+    grid-template-columns: 845fr 268fr;
+    gap: 21px;
+}
+
+.schedule-main {
+    min-width: 0;
+}
+
+.schedule-toolbar {
+    display: flex;
+    align-items: center;
+    padding-left: 4px;
+}
+
+/* Week / Month / Day */
+.view-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 188px;
+    height: 42px;
+    padding: 0 12px 0 8px;
+    margin-right: 38px;
+    background: #ddd2f0;
+    border: 1px solid #33244c;
+    border-radius: 21px;
+}
+
+.view-switch button {
+    height: 28px;
+    padding: 0 8px;
+    background: none;
+    border: 0;
+    border-radius: 14px;
+    color: var(--purple);
+    font-family: var(--body-font);
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.view-switch button.active {
+    padding: 0 9px;
+    background: #d3bfff;
+}
+
+.week-arrow {
+    width: 32px;
+    height: 32px;
+    margin-right: 7px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.week-arrow svg {
+    width: 32px;
+    height: 32px;
+}
+
+.calendar-card {
+    margin-top: 28px;
+    padding: 12px 18px 18px 0;
+    border-radius: 20px;
+}
+
+.calendar-scroll {
+    max-height: 666px;
+    overflow: auto;
+}
+
+.week-grid {
+    display: grid;
+    grid-template-columns: 76px repeat(7, minmax(110px, 1fr));
+}
+
+/* The figma only shows Monday to Friday. Saturday and Sunday stay hidden
+   unless one of them really has an event on it. */
+.week-grid:not(:has(.weekend > *)) {
+    grid-template-columns: 76px repeat(5, minmax(110px, 1fr));
+}
+
+.week-grid:not(:has(.weekend > *)) .weekend,
+.week-grid:not(:has(.weekend > *)) .weekend-heading {
+    display: none;
+}
+
+.calendar-day-heading {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: 86px;
+    padding: 11px 0 0 14px;
+    background: var(--card);
+}
+
+.calendar-day-heading span {
+    display: block;
+    padding-left: 5px;
+    font-size: 7px;
+    line-height: 10px;
+    color: var(--muted);
+}
+
+.calendar-day-heading strong {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 33px;
+    height: 33px;
+    margin-top: 6px;
+    border-radius: 3px;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+}
+
+.calendar-day-heading.today strong {
+    background: var(--purple);
+    color: white;
+    font-weight: 600;
+}
+
+/* 48 rows, one for each half hour. 27px each so an hour is 54px like the figma. */
+.week-times {
+    display: grid;
+    grid-template-rows: repeat(24, 54px);
+}
+
+.week-times span {
+    margin-top: -6px;
+    padding-left: 19px;
+    font-size: 7px;
+    line-height: 12px;
+    color: var(--muted);
+}
+
+.calendar-day {
+    position: relative;
+    display: grid;
+    grid-template-rows: repeat(48, 27px);
+    border-left: 1px solid #d9d5de;
+    background-image: linear-gradient(to bottom, #d9d5de 1px, transparent 1px);
+    background-size: 100% 54px;
+}
+
+/* schedule-calendar.js gives every event tailwind classes for its color,
+   these rules change them into the flat boxes from the figma */
+.calendar-day .calendar-event {
+    opacity: 1;
+    margin: 4px 8px 3px 7px;
+    padding: 9px 8px;
+    border: 0;
+    border-radius: 3px;
+    font-size: 9px;
+    line-height: 13px;
+    color: var(--muted-dark);
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+.calendar-day .calendar-event strong {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.calendar-day .calendar-event .event-time {
+    margin-top: 14px;
+    font-size: 7px;
+    color: var(--muted-dark);
+}
+
+.calendar-event.bg-purple-100 {
+    background: #dacdef;
+}
+
+.calendar-event.bg-yellow-100 {
+    background: #f6dea2;
+}
+
+.calendar-event.bg-pink-100 {
+    background: #e5cfe3;
+}
+
+.calendar-event.bg-orange-100 {
+    background: var(--gold);
+}
+
+.calendar-event.bg-blue-100 {
+    background: #d6d1e6;
+}
+
+.calendar-event.bg-green-100 {
+    background: #d3e6cf;
+}
+
+.calendar-event.bg-red-100 {
+    background: #efcfcf;
+}
+
+.calendar-event.bg-teal-100 {
+    background: #cfe5e3;
+}
+
+.schedule-side {
+    padding-top: 45px;
+}
+
+.window-card {
+    height: 253px;
+    padding: 20px 19px 0 19px;
+    background: var(--gold);
+    border-radius: 14px;
+}
+
+.window-kicker {
+    font-size: 7px;
+    line-height: 10px;
+    font-weight: 500;
+    color: #6b3fa0;
+}
+
+.window-card h2 {
+    margin-top: 16px;
+    font-size: 26px;
+    line-height: 30px;
+    color: var(--ink);
+}
+
+.window-time {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 18px;
+    font-weight: 500;
+    color: var(--ink);
+}
+
+.window-text {
+    margin-top: 14px;
+    font-size: 10px;
+    line-height: 17px;
+    color: #b08a3c;
+    max-width: 200px;
+}
+
+.window-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    margin-top: 37px;
+    background: var(--purple);
+    border-radius: 21px;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.window-button:hover {
+    background: #4f2292;
+}
+
+.legend-card {
+    width: 253px;
+    min-height: 222px;
+    margin: 19px 0 0 10px;
+    padding: 31px 20px 20px 20px;
+    background: #ddd4eb;
+    border-radius: 20px;
+}
+
+/* schedule-calendar.js makes each li as a dot + the schedule name */
+#schedule-categories {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#schedule-categories li {
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 13px;
+    min-height: 40px;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--ink);
+    max-width: 105px;
+}
+
+#schedule-categories li span {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    margin-top: 2px;
+    border-radius: 3px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235c29a6' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+    background-size: 10px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+#schedule-categories .bg-purple-500 {
+    background-color: #c9b3f0;
+}
+
+#schedule-categories .bg-yellow-500 {
+    background-color: #f8d36a;
+}
+
+#schedule-categories .bg-pink-500 {
+    background-color: #e3c3df;
+}
+
+#schedule-categories .bg-orange-500 {
+    background-color: var(--gold);
+}
+
+#schedule-categories .bg-blue-500 {
+    background-color: #c6bfe0;
+}
+
+#schedule-categories .bg-green-500 {
+    background-color: #b9d8b3;
+}
+
+#schedule-categories .bg-red-500 {
+    background-color: #e6b5b5;
+}
+
+#schedule-categories .bg-teal-500 {
+    background-color: #b3d8d5;
+}
+
+/* the 2 purple buttons in the corner */
+.float-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 120px;
+    height: 54px;
+    margin: 146px 0 0 71px;
+    background: #ddd2f0;
+    border: 1px solid #c9b3f0;
+    border-radius: 14px;
+}
+
+.float-buttons a,
+.float-buttons button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--purple);
+    border: 0;
+    border-radius: 7px;
+    color: white;
+    cursor: pointer;
+}
+
+.float-buttons a:hover,
+.float-buttons button:hover {
+    background: #4f2292;
+}
+
+.float-buttons button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.float-buttons svg {
+    width: 20px;
+    height: 20px;
+}
+
+.events-card,
+.compare-card {
+    margin-top: 26px;
+}
+
+.events-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.events-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.picker-wrap {
+    position: relative;
+}
+
+#schedule-picker {
+    width: 240px;
+    height: 44px;
+    padding: 0 36px 0 14px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font-family: var(--body-font);
+    font-size: 12px;
+    font-weight: 600;
+    appearance: none;
+    cursor: pointer;
+}
+
+#schedule-add {
+    width: 44px;
+    padding: 0;
+}
+
+#schedule-edit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.events-table {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 12px;
+}
+
+.events-table th {
+    padding: 10px 16px;
+    background: var(--lilac-soft);
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted-dark);
+}
+
+.events-table th:nth-child(1) {
+    width: 20%;
+}
+
+.events-table th:nth-child(2) {
+    width: 12%;
+}
+
+.events-table th:nth-child(3) {
+    width: 20%;
+}
+
+.events-table th:nth-child(4) {
+    width: 22%;
+}
+
+.events-table th:nth-child(5) {
+    width: 18%;
+}
+
+.events-table th:nth-child(6) {
+    width: 8%;
+    text-align: center;
+}
+
+.compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 18px;
+}
+
+.compare-side {
+    padding: 16px;
+    background: var(--field);
+    border-radius: 3px;
+}
+
+.compare-numbers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.compare-numbers > div {
+    padding: 14px 16px;
+    background: var(--card);
+    border-radius: 3px;
+    font-size: 11px;
+    color: var(--muted-dark);
+}
+
+.compare-number {
+    margin-top: 6px;
+    font-family: var(--heading-font);
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 34px;
+    color: var(--purple);
+}
+
+.compare-days {
+    font-size: 20px;
+}
+
+/* pop up message for schedule conflicts and "event created" */
+#schedule-notice {
+    position: fixed;
+    inset: 24px auto auto 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    font-family: var(--body-font);
+}
+
+/* =====================================================
+   FRIENDS
+   ===================================================== */
+
+.friends-tabs {
+    display: flex;
+    align-items: center;
+    height: 38px;
+}
+
+.friends-tab {
+    height: 38px;
+    margin-right: 58px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--muted);
+    font-family: var(--body-font);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.friends-tab span {
+    margin-left: 5px;
+}
+
+.friends-tab.active {
+    min-width: 108px;
+    margin-right: 24px;
+    padding: 0 16px;
+    background: var(--purple);
+    border-radius: 3px;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 0 #4a2087;
+}
+
+.friends-tab:hover {
+    color: var(--purple);
+}
+
+.friends-tab.active:hover {
+    color: white;
+}
+
+.friends-tab:focus-visible,
+.share-link:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
+.invite-button {
+    width: 166px;
+    height: 38px;
+    margin-left: auto;
+    padding: 0;
+    font-size: 11px;
+}
+
+.friends-panel {
+    margin-top: 26px;
+}
+
+.friends-layout {
+    display: grid;
+    grid-template-columns: 324fr 784fr;
+    gap: 26px;
+}
+
+.friends-left,
+.friends-right {
+    min-width: 0;
+}
+
+.joining-card {
+    min-height: 446px;
+    padding: 16px 20px 16px 21px;
+}
+
+.joining-card .card-sub {
+    margin-top: 8px;
+}
+
+#find-friend-form {
+    margin-top: 23px;
+}
+
+#friend-username {
+    width: 100%;
+    height: 38px;
+    padding: 0 14px;
+    background: #dfdae4;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--ink);
+    font-family: var(--body-font);
+    font-size: 10px;
+}
+
+#friend-username::placeholder {
+    color: #b8afc6;
+}
+
+#friend-username:focus {
+    outline: none;
+    border-color: var(--purple);
+}
+
+#friend-search-message {
+    margin-top: 6px;
+    font-size: 10px;
+}
+
+#friends-list {
+    list-style: none;
+    margin: 14px 0 0 0;
+    padding: 0;
+}
+
+.friend-row {
+    display: flex;
+    align-items: flex-start;
+    height: 68px;
+    padding-top: 13px;
+    border-top: 1px solid var(--card-line);
+}
+
+.friend-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.friend-name {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.friend-sub {
+    margin-top: 7px;
+    font-size: 9px;
+    line-height: 12px;
+    color: var(--muted);
+}
+
+.friend-check {
+    appearance: none;
+    flex-shrink: 0;
+    width: 19px;
+    height: 19px;
+    margin: 4px 2px 0 10px;
+    background: #ded7e6;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.friend-check:checked {
+    background-color: var(--purple);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+    background-size: 13px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.friend-check:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
+/* the Remove button only shows when you hover a friend so the list looks like the figma */
+.friend-remove {
+    margin-top: 6px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: #b3261e;
+    font-size: 9px;
+    cursor: pointer;
+    opacity: 0;
+}
+
+.friend-row:hover .friend-remove,
+.friend-remove:focus {
+    opacity: 1;
+}
+
+.friends-empty {
+    margin-top: 14px;
+    font-size: 11px;
+    color: var(--muted-dark);
+}
+
+.share-card {
+    height: 221px;
+    margin-top: 27px;
+    padding: 24px 22px;
+    background: var(--gold);
+    border-radius: 3px;
+}
+
+.share-card h2 {
+    font-size: 30px;
+    line-height: 30px;
+    color: var(--ink);
+}
+
+.share-link {
+    margin-top: 80px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--purple);
+    font-family: var(--body-font);
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+}
+
+.share-link:hover {
+    text-decoration: underline;
+}
+
+.overlap-card {
+    min-height: 387px;
+    padding: 16px 22px 20px 24px;
+}
+
+.overlap-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.overlap-top .card-sub {
+    margin-top: 8px;
+}
+
+.day-picker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 231px;
+    height: 36px;
+    margin-top: 5px;
+    background: #ded8e6;
+    border-radius: 3px;
+    font-size: 10px;
+    color: var(--ink);
+}
+
+.day-picker button {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--ink);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.overlap-chart {
+    min-height: 205px;
+    margin-top: 44px;
+    padding-right: 28px;
+}
+
+.overlap-hours {
+    position: relative;
+    height: 12px;
+    margin-left: 122px;
+}
+
+.overlap-hours span {
+    position: absolute;
+    top: 0;
+    font-size: 7px;
+    line-height: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.overlap-rows {
+    position: relative;
+    margin-top: 16px;
+    padding: 10px 0 18px 0;
+}
+
+.overlap-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 34px;
+    margin-bottom: 22px;
+}
+
+.overlap-row:last-child {
+    margin-bottom: 0;
+}
+
+.overlap-name {
+    width: 122px;
+    font-size: 12px;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.overlap-track {
+    position: relative;
+    flex: 1;
+    height: 34px;
+    background: #dfdae4;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.overlap-busy,
+.overlap-free {
+    position: absolute;
+    top: 0;
+    height: 34px;
+}
+
+.overlap-busy {
+    background: #d1c1e7;
+    border-radius: 3px;
+}
+
+.overlap-free {
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    background: var(--gold);
+    font-size: 9px;
+    font-weight: 600;
+    color: #6b3fa0;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* light gold stripe behind all the rows */
+.overlap-band-track {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 122px;
+    right: 0;
+}
+
+.overlap-band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: #efe2b4;
+}
+
+.overlap-legend {
+    display: flex;
+    align-items: center;
+    gap: 46px;
+    margin-top: 24px;
+    padding-right: 52px;
+    font-size: 8px;
+    color: var(--muted);
+}
+
+.overlap-legend i {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 9px;
+    vertical-align: -1px;
+}
+
+.dot-busy {
+    background: #d1c1e7;
+}
+
+.dot-free {
+    background: var(--gold);
+}
+
+.overlap-zone {
+    margin-left: auto;
+}
+
+.plans-section {
+    margin-top: 31px;
+}
+
+.plans-section h2 {
+    font-size: 24px;
+    line-height: 28px;
+}
+
+.plans-section .card-sub {
+    margin-top: 6px;
+    font-size: 10px;
+}
+
+.plan-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 26px;
+    margin-top: 22px;
+}
+
+.plan-message {
+    display: block;
+    padding: 18px 20px;
+    background: var(--card);
+    border: 1px solid #e9e7ec;
+    border-radius: 3px;
+    font-size: 11px;
+    color: var(--muted-dark);
+}
+
+.plan-error {
+    color: #b3261e;
+}
+
+.plan-card {
+    height: 206px;
+    padding: 22px 19px 0 19px;
+    background: var(--card);
+    border: 1px solid #e9e7ec;
+    border-radius: 3px;
+}
+
+.plan-best {
+    background: var(--gold);
+    border-color: var(--gold);
+}
+
+.plan-day {
+    font-size: 8px;
+    line-height: 10px;
+    font-weight: 600;
+    color: #6b3fa0;
+}
+
+.plan-time {
+    margin-top: 22px;
+    font-family: var(--heading-font);
+    font-weight: 700;
+    font-size: 25px;
+    line-height: 28px;
+    color: var(--ink);
+}
+
+.plan-length {
+    margin-top: 14px;
+    font-size: 10px;
+    line-height: 14px;
+    color: var(--muted);
+}
+
+.plan-best .plan-length {
+    color: #b08a3c;
+}
+
+.plan-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 41px;
+    margin-top: 32px;
+    background: #ded6e8;
+    border-radius: 3px;
+    color: var(--purple);
+    font-size: 10px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.plan-best .plan-button {
+    background: var(--purple);
+    color: white;
+    box-shadow: 0 2px 0 #4a2087;
+}
+
+.plan-button:hover {
+    text-decoration: underline;
+}
+
+.request-list {
+    list-style: none;
+    margin: 14px 0 0 0;
+    padding: 0;
+}
+
+.request-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.request-button {
+    height: 32px;
+    padding: 0 16px;
+}
+
+.sharing-card {
+    margin-bottom: 26px;
+}
+
+.sharing-top,
+.sharing-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.sharing-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 11px;
+    color: var(--muted-dark);
+}
+
+.free-controls {
+    margin-top: 16px;
+}
+
+/* time boxes use the dropdown look but don't need the little arrow */
+.free-controls input {
+    padding-right: 10px;
+    background-image: none;
+}
+
+#schedule-viewers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 30px;
+}
+
+.viewer-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 28px;
+    padding: 0 10px;
+    background: var(--purple);
+    border-radius: 3px;
+    color: white;
+    font-size: 11px;
+}
+
+.viewer-remove {
+    padding: 0;
+    background: none;
+    border: 0;
+    color: #dccdf5;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.viewer-remove:hover {
+    color: var(--gold);
+}
+
+/* =====================================================
+   SMALLER SCREENS
+   ===================================================== */
+
+@media (max-width: 1200px) {
+    .stat-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .dash-middle,
+    .dash-bottom,
+    .planning-top,
+    .planning-bottom,
+    .profile-layout,
+    .schedule-layout,
+    .friends-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .dash-middle .page-card,
+    .dash-bottom > section {
+        height: auto;
+        min-height: 228px;
+        padding-bottom: 20px;
+    }
+
+    .course-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .schedule-side {
+        padding-top: 0;
+    }
+
+    .float-buttons {
+        margin: 20px 0 0 0;
+    }
+
+    .legend-card {
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 700px) {
+    .stat-row,
+    .course-grid,
+    .plan-cards,
+    .compare-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .catalog-search,
+    .catalog-chips {
+        flex-wrap: wrap;
+        height: auto;
+    }
+
+    .catalog-search input {
+        height: 50px;
+        flex-basis: 100%;
+    }
+
+    .friends-tab {
+        margin-right: 16px;
+    }
+}

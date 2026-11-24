@@ -51,7 +51,13 @@ const renderSchedulePicker = () => {
         ({ picker }) => picker.split(" "),
     );
     schedulePicker.classList.remove(...pickerClassNames);
-    const selectedColorClasses = scheduleColors[getSelectedSchedule().color].picker.split(" ");
+    const selectedSchedule = getSelectedSchedule();
+    scheduleEditButton.disabled = !selectedSchedule;
+    if (!selectedSchedule) {
+        // A new student has no schedules yet; the picker stays empty until one is added.
+        return;
+    }
+    const selectedColorClasses = scheduleColors[selectedSchedule.color].picker.split(" ");
     schedulePicker.classList.add(...selectedColorClasses);
     document.querySelector(".schedule-picker-chevron").className =
         `schedule-picker-chevron pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 ${selectedColorClasses.at(-1)}`;
@@ -106,6 +112,9 @@ const initializeScheduleManagement = (renderSchedule) => {
 
     scheduleEditButton.addEventListener("click", () => {
         const selectedSchedule = getSelectedSchedule();
+        if (!selectedSchedule) {
+            return;
+        }
         // Populate the form from the active schedule before opening the edit dialog.
         editScheduleForm.elements.namedItem("name").value = selectedSchedule.name;
         editScheduleForm.elements.namedItem("color").value = selectedSchedule.color;

@@ -1,132 +1,155 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{ url_for('static', path='/css/app.css') }}?v=6" rel="stylesheet" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <title>Schedule</title>
-</head>
-<body class="flex flex-row h-screen w-screen bg-neutrals-0 font-[Lato]">
-    {% include "components/dashboard_nav.html" %}
-    <div id="schedule-notice" popover="manual" style="position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); width: calc(100% - 2rem); max-width: 32rem; margin: 0;"></div>
-    <div id="workspace" class="ml-64 flex min-h-screen min-w-200 grow flex-col">
-        <div id="top-bar" class="flex flex-row w-full h-fit justify-between items-center pl-6 pr-6 pt-4 pb-4 border-b-2 border-neutrals-100 font-bold">
-            <p>Schedule</p>
-            <div id="notifications" class="h-6 w-6 rounded-full bg-neutrals-400"></div>
+{% extends "tiger_base.html" %}
+{% set page_title = "Schedule" %}
+{% block content %}
+
+{# #schedule-calendar has to wrap the calendar AND the side cards because
+   schedule-calendar.js looks inside it for the grid and for #schedule-categories #}
+<div id="schedule-calendar" class="schedule-layout">
+    <div class="schedule-main">
+        <div class="schedule-toolbar">
+            {# TODO: only the week view exists right now, Month and Day and the arrows are just the figma buttons #}
+            <div class="view-switch" role="group" aria-label="Calendar view">
+                <button type="button" class="active" aria-pressed="true">Week</button>
+                <button type="button" aria-pressed="false" title="Month view is not built yet">Month</button>
+                <button type="button" aria-pressed="false" title="Day view is not built yet">Day</button>
+            </div>
+
+            <button type="button" class="week-arrow" aria-label="Previous week" title="Not built yet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+            </button>
+            <button type="button" class="week-arrow" aria-label="Next week" title="Not built yet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
         </div>
-        <div id="content" class="flex w-full max-w-800 flex-col gap-6 bg-neutrals-50 p-6">
-            {% include "components/schedule_calendar.html" %}
-            <section id="schedule-event-management" class="flex h-fit w-full flex-col gap-4 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
-                <p id="schedule-page-error" class="hidden text-sm text-red-700" role="alert"></p>
-                <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="flex flex-col gap-0">
-                        <p class="text-lg font-bold">Schedule Events</p>
-                        <p class="text-sm text-neutrals-300">Manage events in the selected schedule.</p>
-                    </div>
-                    <div id="schedule-form" class="flex w-full flex-row flex-wrap items-center justify-between gap-3 font-[Lato] sm:w-auto sm:justify-end">
-                        <div id="schedule-select" class="flex flex-row items-center gap-3">
-                            <div class="relative h-11">
-                                <select id="schedule-picker" class="h-full w-64 cursor-pointer appearance-none rounded-lg border py-2.5 pl-3 pr-10 font-[Lato] font-sans font-semibold">
-                                </select>
-                                <svg class="schedule-picker-chevron pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-neutrals-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="m6 9 6 6 6-6"/>
-                                </svg>
-                            </div>
-                            <button id="schedule-edit" type="button" class="h-12 rounded-md border border-neutrals-200 bg-white px-3 py-2 font-semibold text-neutrals-900 hover:bg-neutrals-50" aria-label="Edit selected schedule">
-                                Edit Schedule
-                            </button>
-                            <button id="schedule-add" type="button" class="h-11 rounded-md bg-purple-400 px-4 py-2 font-semibold text-white hover:bg-purple-500" aria-label="Add schedule">
-                                {{ plus }}
-                            </button>
-                        </div>
-                    </div>
-                    <div id="schedule-switch" class="flex items-center">
-                        <label class="inline-flex cursor-pointer items-center justify-center gap-3">
-                            <input id="schedule-calendar-toggle" type="checkbox" class="peer sr-only" checked aria-label="Show selected schedule on calendar">
-                            <span class="select-none text-sm font-semibold text-neutrals-700">Show on Calendar</span>
-                            <div class="relative h-7 w-13 rounded-full bg-neutrals-200 transition-colors peer-checked:bg-purple-400 peer-checked:after:translate-x-full peer-focus-visible:outline-2 peer-focus-visible:outline-purple-500 after:absolute after:start-0.5 after:top-0.5 after:size-6 after:rounded-full after:bg-white after:transition-transform after:content-['']"></div>
-                        </label>
-                    </div>
+
+        {% include "components/schedule_calendar.html" %}
+    </div>
+
+    <aside class="schedule-side">
+        {# SAMPLE TEXT from the figma. This page does not load friends' free time yet, the button goes to Friends. #}
+        <section class="window-card">
+            <p class="window-kicker">A WINDOW FOR CONNECTION</p>
+            <h2>Tuesday looks good.</h2>
+            <p class="window-time">2:00–3:30 PM</p>
+            <p class="window-text">You, Maya Chen, and Jordan Lee are all free for 90 minutes.</p>
+            <a class="window-button" href="/friends">Make a plan</a>
+        </section>
+
+        {# the list is filled in by schedule-calendar.js with one line for each of your schedules #}
+        <section class="legend-card">
+            <ul id="schedule-categories" aria-label="Schedule categories"></ul>
+        </section>
+
+        <div class="float-buttons">
+            <a href="/friends" aria-label="Share with friends">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="10" cy="8" r="4"/>
+                    <path d="M2.5 20c0-3.6 3.3-6 7.5-6s7.5 2.4 7.5 6z"/>
+                    <path d="M18.5 3.5v6M15.5 6.5h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                </svg>
+            </a>
+            <button id="add-event-button" type="button" aria-label="Add event">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13"/></svg>
+            </button>
+        </div>
+    </aside>
+</div>
+
+{# ---------- everything under here is not in the figma, but the page needs it to add and edit events ---------- #}
+<section id="schedule-event-management" class="page-card events-card">
+    <p id="schedule-page-error" class="hidden text-sm text-red-700" role="alert"></p>
+
+    <div class="events-top">
+        <div>
+            <h2>Schedule Events</h2>
+            <p class="card-sub">Manage events in the selected schedule.</p>
+        </div>
+
+        <div id="schedule-form" class="events-controls">
+            <div id="schedule-select" class="events-controls">
+                <div class="picker-wrap">
+                    <select id="schedule-picker" aria-label="Selected schedule"></select>
+                    <svg class="schedule-picker-chevron pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-neutrals-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
                 </div>
-                <div id="schedule-table" class="shrink-0 overflow-x-auto rounded-md border border-neutrals-100 bg-neutrals-0">
-                <table class="w-full table-fixed border-collapse text-left text-sm text-neutrals-900 overflow-hidden">
-                    <colgroup>
-                        <col class="w-schedule-title">
-                        <col class="w-schedule-days">
-                        <col class="w-schedule-time">
-                        <col class="w-schedule-location">
-                        <col class="w-schedule-guests">
-                        <col class="w-schedule-favorite">
-                    </colgroup>
-                    <thead class="bg-purple-50 text-xs font-semibold text-neutrals-700">
-                        <tr>
-                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Event Title</th>
-                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Days</th>
-                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Time</th>
-                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Location (Optional)</th>
-                            <th class="border-b border-r border-neutrals-100 px-4 py-3">Guests</th>
-                            <th class="border-b border-neutrals-100 px-4 py-3 text-center">Favorite</th>
-                        </tr>
-                    </thead>
-                    <tbody id="schedule-event-rows">
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td class="p-0" colspan="6">
-                                <button id="add-event-button" type="button" class="flex w-full cursor-pointer items-center justify-center py-3 text-purple-600 hover:bg-purple-50" aria-label="Add event">
-                                    {{ plus }}
-                                    <span class="sr-only">Add event</span>
-                                </button>
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
+                <button id="schedule-edit" type="button" class="secondary-button" aria-label="Edit selected schedule">Edit Schedule</button>
+                <button id="schedule-add" type="button" class="page-button" aria-label="Add schedule">{{ plus }}</button>
+            </div>
+
+            <label id="schedule-switch" class="switch-row switch-inline">
+                <span><strong>Show on Calendar</strong></span>
+                <input id="schedule-calendar-toggle" type="checkbox" checked aria-label="Show selected schedule on calendar">
+                <i aria-hidden="true"></i>
+            </label>
+        </div>
+    </div>
+
+    <div id="schedule-table" class="table-scroll">
+        <table class="events-table">
+            <thead>
+                <tr>
+                    <th>Event Title</th>
+                    <th>Days</th>
+                    <th>Time</th>
+                    <th>Location (Optional)</th>
+                    <th>Guests</th>
+                    <th>Favorite</th>
+                </tr>
+            </thead>
+            <tbody id="schedule-event-rows">
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{# the pop up messages from schedule-ui.js show up in here #}
+<div id="schedule-notice" popover="manual"></div>
+
+{% include "components/add_event_form.html" %}
+{% include "components/edit_event_form.html" %}
+{% include "components/add_schedule_form.html" %}
+{% include "components/edit_schedule_form.html" %}
+
+<section id="schedule-comparison" class="page-card compare-card">
+    <h2 id="schedule-comparison-header">Compare Schedules</h2>
+
+    <div id="schedule-metrics" class="compare-grid">
+        {% for side in ["A", "B"] %}
+        <div id="schedule-{{ side }}" class="compare-side">
+            <label class="visually-hidden" for="schedule-selector-{{ side }}">Schedule {{ side }}</label>
+            <select id="schedule-selector-{{ side }}" class="soft-select"></select>
+
+            <div id="schedule-{{ side }}-metrics" class="compare-numbers">
+                <div id="total-hours-{{ side }}">
+                    <p>Total hours</p>
+                    <p data-comparison-metric="total-hours" class="compare-number">0</p>
                 </div>
-            </section>
-            {% include "components/add_event_form.html" %}
-            {% include "components/edit_event_form.html" %}
-            {% include "components/add_schedule_form.html" %}
-            {% include "components/edit_schedule_form.html" %}
-            <div id="schedule-comparison" class="flex h-fit w-full flex-col gap-4 rounded-lg border-2 border-neutrals-200 bg-neutrals-0 p-5">
-                <p id="schedule-comparison-header" class="text-lg font-bold text-neutrals-900">Compare Schedules</p>
-                <div id="schedule-metrics" class="grid gap-3 md:grid-cols-2">
-                    {% for side in ["A", "B"] %}
-                    {% set side_metrics_id = "schedule-" ~ side ~ "-metrics" %}
-                    <div id="schedule-{{ side }}" class="grid gap-3 rounded-lg border border-neutrals-100 bg-neutrals-50 p-4">
-                        <div class="relative w-fit rounded-lg border border-neutrals-100 bg-neutrals-0 px-3 py-2">
-                            <label class="sr-only" for="schedule-selector-{{ side }}">Schedule {{ side }}</label>
-                            <select id="schedule-selector-{{ side }}" class="cursor-pointer appearance-none bg-transparent pr-6 text-sm font-semibold text-neutrals-900 focus:outline-none font-[Lato] font-sans">
-                            </select>
-                            <svg class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-neutrals-900" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="m6 9 6 6 6-6"/>
-                            </svg>
-                        </div>
-                        <div id="{{ side_metrics_id }}" class="grid grid-cols-2 gap-3">
-                            <div id="total-hours-{{ side }}" class="grid gap-2 rounded-lg border border-neutrals-100 bg-neutrals-0 p-4">
-                                <p class="text-sm font-medium text-neutrals-400">Total hours</p>
-                                <p data-comparison-metric="total-hours" class="text-3xl font-bold text-purple-800">0</p>
-                            </div>
-                            <div id="days-busy-{{ side }}" class="grid gap-2 rounded-lg border border-neutrals-100 bg-neutrals-0 p-4">
-                                <p class="text-sm font-medium text-neutrals-400">Days Busy</p>
-                                <p data-comparison-metric="days-busy" class="text-lg font-bold text-purple-800">—</p>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+                <div id="days-busy-{{ side }}">
+                    <p>Days Busy</p>
+                    <p data-comparison-metric="days-busy" class="compare-number compare-days">—</p>
                 </div>
             </div>
         </div>
+        {% endfor %}
     </div>
-    <script src="{{ url_for('static', path='/js/select-dropdown.js') }}?v=1" defer></script>
+</section>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // put the purple box on today's date like the figma (0 = Monday in our grid)
+        var todayIndex = (new Date().getDay() + 6) % 7;
+        var todayHeading = document.querySelector('[data-heading-day="' + todayIndex + '"]');
+        if (todayHeading) {
+            todayHeading.classList.add("today");
+        }
+    </script>
     <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
     <script src="{{ url_for('static', path='/js/schedule-ui.js') }}?v=1" defer></script>
     <script src="{{ url_for('static', path='/js/schedule-calendar.js') }}?v=4" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-events.js') }}?v=4" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-management.js') }}?v=2" defer></script>
-    <script src="{{ url_for('static', path='/js/schedule-comparison.js') }}?v=2" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-events.js') }}?v=5" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-management.js') }}?v=3" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-comparison.js') }}?v=3" defer></script>
     <script src="{{ url_for('static', path='/js/schedule.js') }}?v=9" defer></script>
-</body>
-</html>
+{% endblock %}

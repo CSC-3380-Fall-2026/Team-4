@@ -1,0 +1,284 @@
+{
+    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php",
+    "retrieved_at": "2026-10-02T23:39:46.051485+00:00",
+    "categories": {
+        "Core Coursework": {
+            "courses": [
+                {
+                    "id": "csc-1350",
+                    "course_code": "CSC 1350",
+                    "course_name": "Computer Science I for Majors",
+                    "credits": 4,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-1351",
+                    "course_code": "CSC 1351",
+                    "course_name": "Computer Science II for Majors",
+                    "credits": 4,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-2259",
+                    "course_code": "CSC 2259",
+                    "course_name": "Discrete Structures",
+                    "credits": 3,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-2262",
+                    "course_code": "CSC 2262",
+                    "course_name": "Numerical Methods",
+                    "credits": 3,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3102",
+                    "course_code": "CSC 3102",
+                    "course_name": "Advanced Data Structures & Algorithmic Analysis",
+                    "credits": 3,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3200",
+                    "course_code": "CSC 3200",
+                    "course_name": "Ethics in Computing",
+                    "credits": 1,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3380",
+                    "course_code": "CSC 3380",
+                    "course_name": "Object Oriented Design",
+                    "credits": 3,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-3501",
+                    "course_code": "CSC 3501",
+                    "course_name": "Computer Organization & Design",
+                    "credits": 3,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4101",
+                    "course_code": "CSC 4101",
+                    "course_name": "Programming Languages",
+                    "credits": 3,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4103",
+                    "course_code": "CSC 4103",
+                    "course_name": "Operating Systems",
+                    "credits": 3,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4330",
+                    "course_code": "CSC 4330",
+                    "course_name": "Software Systems",
+                    "credits": 3,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "csc-4402",
+                    "course_code": "CSC 4402",
+                    "course_name": "Introduction to Database Management",
+                    "credits": 3,
+                    "category": "Core Coursework",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "requirements": [],
+            "notes": [
+                "Course Number",
+                "Course Description",
+                "Credit Hours",
+                "CSC 1350",
+                "Computer Science I for Majors",
+                "4",
+                "CSC 1351",
+                "Computer Science II for Majors",
+                "4",
+                "CSC 2259",
+                "Discrete Structures",
+                "3",
+                "CSC 2262",
+                "Numerical Methods",
+                "3",
+                "CSC 3102",
+                "Advanced Data Structures & Algorithmic Analysis",
+                "3",
+                "CSC 3200",
+                "Ethics in Computing",
+                "1",
+                "CSC 3380",
+                "Object Oriented Design",
+                "3",
+                "CSC 3501",
+                "Computer Organization & Design",
+                "3",
+                "CSC 4101",
+                "Programming Languages",
+                "3",
+                "CSC 4103",
+                "Operating Systems",
+                "3",
+                "CSC 4330",
+                "Software Systems",
+                "3",
+                "CSC 4402",
+                "Introduction to Database Management",
+                "3",
+                "In addition to the above core requirements, students must complete a 3 credits of\n                                                a 2000-level computer science course and 3 credits of a 3000-level computer science\n                                                course."
+            ]
+        },
+        "Technical Requirements": {
+            "courses": [],
+            "requirements": [],
+            "notes": [
+                "Students must complete a total of 6 credits of approved technical electives. At least\n                                                one 3-credit elective must be from Group A while the other credits may come from either\n                                                group.",
+                "Group A – 2000-level and above only chosen from:",
+                "CSC, BE, CHE, CE, CM, EE, ENGR, EVEG, IE, ME, PETE, EMS, ENVS, OCS, MATH, ECON, FIN,\n                                                ASTR, BIOL, CHEM, GEOG, GEOL, PHYS, ISDS 3100, ISDS 3105, ISDS 3120 , ISDS 4+++.",
+                "Group B:",
+                "ART 2050, ART 2055, ART 2210, ART 2220, ART 2230, ART 2551, ART 4020, ART 4050, ART\n                                                4055, ART 4230 ,ART 4240, ART 4290, ART 4550, ART 4059, ART 4560, ART 7250 ART 7255,\n                                                ARTH 4480, ARTH 4482, ARTH 4484, MC 2035, MC 3031, MC 4002, MC 4015, MC 4260, MC 4550,\n                                                MC 4600, MC 4720, MUS 2745, MC 4260, MC 4550, MC 4600, MC 4720, MUS 2745, MUS 4744,\n                                                MUS 4745, MUS 4746, MUS 4748, ENGL 2009, ENGL 2231, ENGL 4000, ENGL 4009, ENGL 7109."
+            ]
+        },
+        "Math Requirements": {
+            "courses": [
+                {
+                    "id": "math-1552",
+                    "course_code": "MATH 1552",
+                    "course_name": "Analytic Geometry & Calculus II",
+                    "credits": 5,
+                    "category": "Math Requirements",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "math-2090",
+                    "course_code": "MATH 2090",
+                    "course_name": "Elementary Differential Equations and Linear Algebra",
+                    "credits": 4,
+                    "category": "Math Requirements",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "ie-3302",
+                    "course_code": "IE 3302",
+                    "course_name": "Engineering Statistics",
+                    "credits": 3,
+                    "category": "Math Requirements",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "requirements": [
+                {
+                    "listed_options": "MATH 1550 or MATH 1551",
+                    "description": "Analytic Geometry & Calculus I or Analytic Geometry & Calculus I (Honors)",
+                    "credits": 5,
+                    "category": "Math Requirements"
+                }
+            ],
+            "notes": [
+                "Course Number",
+                "Course Description",
+                "Credit Hours",
+                "MATH 1550 or MATH 1551",
+                "Analytic Geometry & Calculus I or Analytic Geometry & Calculus I (Honors)",
+                "5",
+                "MATH 1552",
+                "Analytic Geometry & Calculus II",
+                "5",
+                "MATH 2090",
+                "Elementary Differential Equations and Linear Algebra",
+                "4",
+                "IE 3302",
+                "Engineering Statistics",
+                "3"
+            ]
+        },
+        "Other Requirements": {
+            "courses": [
+                {
+                    "id": "engl-1001",
+                    "course_code": "ENGL 1001",
+                    "course_name": "English Composition I",
+                    "credits": 3,
+                    "category": "Other Requirements",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                },
+                {
+                    "id": "engl-2000",
+                    "course_code": "ENGL 2000",
+                    "course_name": "English Composition II",
+                    "credits": 3,
+                    "category": "Other Requirements",
+                    "source_url": "https://www.lsu.edu/eng/cse/programs/undergraduate_program/undergraduate_major.php"
+                }
+            ],
+            "requirements": [
+                {
+                    "listed_options": "-",
+                    "description": "General Education/Humanities",
+                    "credits": 9,
+                    "category": "Other Requirements"
+                },
+                {
+                    "listed_options": "-",
+                    "description": "General Education/Social Science I & II",
+                    "credits": 6,
+                    "category": "Other Requirements"
+                },
+                {
+                    "listed_options": "-",
+                    "description": "General Education/Art",
+                    "credits": 3,
+                    "category": "Other Requirements"
+                },
+                {
+                    "listed_options": "BIOL 1001 or BIOL 1201",
+                    "description": "General Biology or Biology for Science Majors I",
+                    "credits": 3,
+                    "category": "Other Requirements"
+                }
+            ],
+            "notes": [
+                "Course Number",
+                "Course Description",
+                "Credit Hours",
+                "ENGL 1001",
+                "English Composition I",
+                "3",
+                "ENGL 2000",
+                "English Composition II",
+                "3",
+                "-",
+                "General Education/Humanities",
+                "9",
+                "-",
+                "General Education/Social Science I & II",
+                "6",
+                "-",
+                "General Education/Art",
+                "3",
+                "BIOL 1001 or BIOL 1201",
+                "General Biology or Biology for Science Majors I",
+                "3",
+                "In addition to the above requirements, a total of three natural science courses and\n                                                two corresponding lab courses must be taken. One science course must be either BIOL\n                                                1001 (General Biology I) or BIOL 1201 (Biology for Science Majors I), as listed above.\n                                                A sequence of two science courses and their corresponding lab courses are also required.\n                                                This sequence must be from a choice of physics, chemistry, astronomy, or geology (e.g.,\n                                                you can take Physics I and Physics I Lab one semester, then take Physics II and Physics\n                                                II Lab another semester; you can take Chemistry I and Chemistry I Lab one semester,\n                                                then take Chemistry II and Chemistry II Lab another semester; etc.) Please note that\n                                                sequences or courses in geography or physical science will NOT count towards the science\n                                                requirement.",
+                "*One three-credit course must be either English (other than 1001 or 2000) or an honors\n                                                course. One three-credit course must be a Communications Studies course. The last\n                                                three-credit course can be any general education humanities course."
+            ]
+        }
+    }
+}

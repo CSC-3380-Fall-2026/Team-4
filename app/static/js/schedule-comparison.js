@@ -2,6 +2,9 @@
 const { scheduleState } = window.SchedulePrototype;
 
 const renderComparison = () => {
+    if (scheduleState.schedules.length === 0) {
+        return;
+    }
     ["A", "B"].forEach((side) => {
         const selector = document.querySelector(`#schedule-selector-${side}`);
         // Retain a valid selection when the schedule list is rebuilt.
