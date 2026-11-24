@@ -690,3 +690,39 @@ def test_cookies_secure_behind_https_proxy(
     for name in ("tiger_access", "tiger_refresh"):
         cookie = next(c for c in cookies if c.startswith(f"{name}="))
         assert ("; secure" in cookie.lower()) is secure
+
+
+@pytest.mark.parametrize("call", ["get_user", "refresh_session"])
+def test_outage_keeps_session(monkeypatch: pytest.MonkeyPatch, call: str) -> None:
+    """A Supabase outage answers 503 and keeps the login cookies.
+
+    Args:
+        monkeypatch: Fixture replacing the Supabase client.
+        call: The auth call that fails with a network error.
+    """
+    from supabase_auth.errors import AuthApiError, AuthRetryableError
+
+    backend: Mock = Mock()
+    backend.auth.get_user.side_effect = AuthApiError("expired", 401, "bad_jwt")
+    getattr(backend.auth, call).side_effect = AuthRetryableError("down", 0)
+    monkeypatch.setattr(tiger_auth, "auth_client", Mock(return_value=backend))
+    tab = browser("token-alice")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    for path in ("/dashboard", "/api/schedule-data"):
+        response = tab.get(path, follow_redirects=False)
+        assert response.status_code == 503
+        assert "tiger_access" not in response.headers.get("set-cookie", "")
+
+
+def test_server_error_is_outage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 500 or 429 from Supabase is not treated as a signed-out student.
+
+    Args:
+        monkeypatch: Fixture replacing the Supabase client.
+    """
+    from supabase_auth.errors import AuthApiError
+
+    backend: Mock = Mock()
+    backend.auth.get_user.side_effect = AuthApiError("busy", 429, None)
+    monkeypatch.setattr(tiger_auth, "auth_client", Mock(return_value=backend))
+    assert browser("token-alice").get("/api/schedule-data").status_code == 503

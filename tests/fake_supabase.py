@@ -355,7 +355,9 @@ class FakeClient:
     def get_user(self, token: str) -> SimpleNamespace:
         """Verify a token of the form token-<id>."""
         if not token.startswith("token-"):
-            raise ValueError("bad token")
+            from supabase_auth.errors import AuthApiError
+
+            raise AuthApiError("invalid JWT", 401, "bad_jwt")
         uid = token.removeprefix("token-")
         return SimpleNamespace(
             user=SimpleNamespace(id=uid, email=f"{uid}@lsu.edu")
@@ -405,7 +407,9 @@ class FakeClient:
     def refresh(self, refresh_token: str) -> SimpleNamespace:
         """Trade a refresh token of the form refresh-<id> for a new session."""
         if not refresh_token.startswith("refresh-"):
-            raise ValueError("bad refresh token")
+            from supabase_auth.errors import AuthApiError
+
+            raise AuthApiError("Invalid Refresh Token", 400, "refresh_token_not_found")
         uid = refresh_token.removeprefix("refresh-")
         return self.signed_in({"id": uid, "email": f"{uid}@lsu.edu", "meta": {}})
 

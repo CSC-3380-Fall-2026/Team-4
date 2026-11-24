@@ -234,6 +234,22 @@ def user_client(token: str) -> Client:
     return client
 
 
+def raise_outage(error: Exception) -> None:
+    """Tell a refused token apart from Supabase being unreachable.
+
+    Args:
+        error: What the Supabase auth call raised.
+
+    Raises:
+        HTTPException: 503 unless Supabase refused the token with 400, 401
+            or 403, so an outage never signs the student out.
+    """
+    if getattr(error, "status", None) not in (400, 401, 403):
+        raise HTTPException(
+            503, "Account services are temporarily unavailable."
+        ) from error
+
+
 def verify_token(token: str) -> Session | None:
     """Ask Supabase to verify an access token's signature and expiry.
 
@@ -244,7 +260,7 @@ def verify_token(token: str) -> Session | None:
         The verified session, or None for a missing, invalid or expired token.
 
     Raises:
-        HTTPException: If account services are unavailable.
+        HTTPException: 503 if account services are unavailable.
     """
     if not token:
         return None
@@ -252,7 +268,8 @@ def verify_token(token: str) -> Session | None:
         result = auth_client().auth.get_user(token)
     except HTTPException:
         raise
-    except Exception:
+    except Exception as error:
+        raise_outage(error)
         return None
     user = result.user if result is not None else None
     if user is None:
@@ -306,7 +323,8 @@ def refreshed(request: Request) -> Session | None:
         result = auth_client().auth.refresh_session(token)
     except HTTPException:
         raise
-    except Exception:
+    except Exception as error:
+        raise_outage(error)
         return None
     if result is None or not result.session or not result.user:
         return None
