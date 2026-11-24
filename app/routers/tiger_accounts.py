@@ -1,4 +1,4 @@
-"""Account forms for the browser, and the JSON account API."""
+"""Account forms for the browser."""
 
 import re
 
@@ -10,11 +10,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
 
 import tiger_auth
-from models.tiger_accounts import (
-    SignupResponse,
-    TokenResponse,
-    UserAuthSchema,
-)
+from models.tiger_accounts import UserAuthSchema
 from tiger_views import redirect_to, render_page, valid_token
 
 MIN_PASSWORD: int = 8
@@ -134,45 +130,6 @@ async def submit_signup(
 
 
 router: APIRouter = APIRouter()
-router.add_api_route("/logout", tiger_auth.logout, methods=["POST"])
-
-
-@router.post("/login")
-def login_api(credentials: UserAuthSchema) -> TokenResponse:
-    """Sign in through the JSON API.
-
-    Args:
-        credentials: Student email and password.
-
-    Returns:
-        The access token and its type, as a TokenResponse.
-
-    Raises:
-        HTTPException: 401 when the email or password is wrong.
-    """
-    message, accepted, _ = tiger_auth.login(credentials)
-    if not accepted:
-        raise HTTPException(401, message)
-    return TokenResponse(access_token=message)
-
-
-@router.post("/signup")
-def signup_api(credentials: UserAuthSchema) -> SignupResponse:
-    """Register through the JSON API.
-
-    Args:
-        credentials: Student email and chosen password.
-
-    Returns:
-        A SignupResponse confirming the account was requested, with next steps.
-
-    Raises:
-        HTTPException: 400 when registration is refused.
-    """
-    message, accepted = tiger_auth.signup(credentials)
-    if not accepted:
-        raise HTTPException(400, message)
-    return SignupResponse(created=True, message=message)
 
 
 @router.get("/login", response_class=HTMLResponse)
