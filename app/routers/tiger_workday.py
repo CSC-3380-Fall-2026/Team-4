@@ -15,6 +15,7 @@ What a sync saves, with no schema change:
 import os
 import threading
 from datetime import date, datetime, timezone
+from typing import Any
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException
@@ -45,6 +46,7 @@ from tiger_auth import current_session
 
 NOT_LOCAL: str = "Workday sync is only available when running the app locally."
 BUSY: str = "A Workday sync is already running. Finish it first."
+NOTHING_CHANGED: str = "Workday pages could not be read; nothing was changed."
 IMPORTED: str = "workday_imported"
 SUFFIX: str = " (Workday)"
 SYNC_LOCK: threading.Lock = threading.Lock()
@@ -256,6 +258,28 @@ def save_sync(session: Session, data: WorkdayData, reset: bool) -> WorkdaySync:
     )
 
 
+def check_scrape(raw: dict[str, Any], data: WorkdayData) -> None:
+    """Refuse a scrape that looks unreadable rather than empty.
+
+    A changed Workday page reads as no rows, which must not wipe the
+    student's saved GPA, hours, courses or classes.
+
+    Args:
+        raw: The grids as read from the pages.
+        data: What the parser made of them.
+
+    Raises:
+        ValueError: Without graded courses, GPA or GPA hours, or when the
+            courses page has rows but no "Course Listing" column.
+    """
+    graded = [c for c in data.courses if c.term != tiger_workday_parsing.TRANSFER_TERM]
+    if not graded or data.gpa is None or not data.completed_credit_hours:
+        raise ValueError("No grades were read.")
+    rows = [row for table in raw.get("courses") or [] for row in table.get("rows") or []]
+    if rows and not any("Course Listing" in row for row in rows):
+        raise ValueError("No classes were read.")
+
+
 def run_sync(session: Session, reset: bool) -> WorkdaySync:
     """Read Workday in a browser window and save what it shows.
 
@@ -277,11 +301,12 @@ def run_sync(session: Session, reset: bool) -> WorkdaySync:
     try:
         raw = tiger_workday_browser.read_workday()
         data = tiger_workday_parsing.parse_workday(raw, date.today())
+        check_scrape(raw, data)
         return save_sync(session, data, reset)
     except tiger_workday_browser.WorkdayError as error:
         raise HTTPException(502, str(error)) from error
     except ValueError as error:
-        raise HTTPException(502, "Workday's pages could not be read.") from error
+        raise HTTPException(502, NOTHING_CHANGED) from error
     finally:
         SYNC_LOCK.release()
 
