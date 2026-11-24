@@ -6,6 +6,7 @@ from io import BytesIO
 from pypdf import PdfReader
 
 from models.tiger_profiles import ParsedTranscript, ProfileCourse, ProfileRecord
+from routers import tiger_accounts
 
 # Vercel refuses request bodies over 4.5 MB, so stay below it.
 MAX_UPLOAD_BYTES: int = 4 * 1024 * 1024
@@ -70,22 +71,26 @@ def parse_line(line: str) -> ProfileCourse:
     """Read one completed-course line.
 
     Args:
-        line: Text formatted as code, credits, name.
+        line: Text formatted as code, credits, name; a blank name becomes
+            the code.
 
     Returns:
         One course record.
 
     Raises:
-        ValueError: If the line is incomplete or its credits are invalid.
+        ValueError: If the code or credits are missing or the credits are
+            invalid.
     """
     parts: list[str] = [part.strip() for part in line.split(",", 2)]
-    if len(parts) < 3 or not parts[0] or not parts[2]:
+    if len(parts) < 2 or not parts[0]:
         raise ValueError(f"Use code, credits, name on each line: {line.strip()}")
     if not whole_number(parts[1]) or int(parts[1]) > 12:
         raise ValueError(f"Credits must be a whole number: {line.strip()}")
+    code = parts[0][:20]
+    name = parts[2] if len(parts) > 2 else ""
     return ProfileCourse(
-        course_code=parts[0][:20],
-        course_name=parts[2][:100],
+        course_code=code,
+        course_name=name[:100] or code,
         credits=int(parts[1]),
     )
 
@@ -143,8 +148,8 @@ def read_form(data: dict[str, str]) -> ProfileRecord:
         ValueError: With a message for the first invalid field.
     """
     username: str = data.get("username", "").strip()
-    if len(username) > 40:
-        raise ValueError("Username must be 40 characters or fewer.")
+    if username and not tiger_accounts.USERNAME.fullmatch(username):
+        raise ValueError(tiger_accounts.BAD_USERNAME)
     return ProfileRecord(
         username=username or None,
         gpa=parse_gpa(data.get("gpa", "")),

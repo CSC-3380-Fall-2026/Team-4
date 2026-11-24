@@ -254,3 +254,35 @@ def test_signup_taken_username(fake_db: FakeDatabase) -> None:
     assert "already taken" in response.text
     assert 'value="dana_t"' in response.text
     assert fake_db.users == {}
+
+
+@pytest.mark.parametrize("username", ["has space", "ab", "dash-ed"])
+def test_profile_username_rules(fake_db: FakeDatabase, username: str) -> None:
+    """The profile form holds usernames to the same rule as signup.
+
+    Args:
+        fake_db: In-memory database.
+        username: A username signup would refuse.
+    """
+    from routers.tiger_accounts import BAD_USERNAME
+
+    tab = browser("token-casey")
+    response = tab.post(
+        "/profile",
+        data={"csrf_token": form_token(tab, "/profile"), "username": username},
+    )
+    assert response.status_code == 400
+    assert BAD_USERNAME in response.text
+
+
+@pytest.mark.parametrize("line", ["CSC 1350, 4,", "CSC 1350, 4, ", "CSC 1350, 4"])
+def test_course_line_without_name(line: str) -> None:
+    """A course line with no name is named after its code.
+
+    Args:
+        line: A course line whose name was left out.
+    """
+    from routers.tiger_profiles_parsing import parse_line
+
+    course = parse_line(line)
+    assert (course.course_code, course.credits, course.course_name) == ("CSC 1350", 4, "CSC 1350")
