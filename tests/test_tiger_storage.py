@@ -588,3 +588,16 @@ def test_ticked_login_lasts_30_days(fake_db: FakeDatabase) -> None:
     tab, cookie = log_in(fake_db, remember=True)
     assert "Max-Age=2592000" in cookie
     assert "Max-Age=2592000" in renewed_refresh(tab)
+
+
+def test_crash_still_renews_cookies(fake_db: FakeDatabase) -> None:
+    """A server error on the renewing request still hands over the new tokens."""
+    tab = TestClient(app, raise_server_exceptions=False)
+    tab.cookies.set("tiger_access", "expired-token")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    fake_db.broken.add("schedules")
+    response = tab.get("/api/schedule-data")
+    assert response.status_code == 500
+    cookies = response.headers.get_list("set-cookie")
+    assert any(c.startswith("tiger_access=token-alice") for c in cookies)
+    assert any(c.startswith("tiger_refresh=refresh-alice") for c in cookies)

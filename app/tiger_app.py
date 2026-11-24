@@ -1,9 +1,10 @@
 """Start FastAPI and connect page routes, templates, static files, and APIs."""
 
+import logging
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from lucide import lucide_icon
 
@@ -21,6 +22,7 @@ from routers import (
 )
 from tiger_views import APP_DIR
 
+LOG: logging.Logger = logging.getLogger(__name__)
 app: FastAPI = FastAPI(title="Tiger Class Drive")
 app.add_exception_handler(
     tiger_auth.LoginRequired, tiger_auth.login_redirect
@@ -50,9 +52,17 @@ async def renew_cookies(
         call_next: The rest of the app.
 
     Returns:
-        The response, with new login cookies when the session was renewed.
+        The response, with new login cookies when the session was renewed,
+        even when the request failed with a server error.
     """
-    response: Response = await call_next(request)
+    try:
+        response: Response = await call_next(request)
+    except Exception:
+        if not getattr(request.state, "tokens", None):
+            raise
+        # The old refresh token is spent; losing the new one logs the student out.
+        LOG.exception("Exception in ASGI application")
+        response = PlainTextResponse("Internal Server Error", status_code=500)
     tokens: tuple[str, str] | None = getattr(request.state, "tokens", None)
     if tokens:
         remember = bool(request.cookies.get(tiger_auth.REMEMBER_COOKIE))
