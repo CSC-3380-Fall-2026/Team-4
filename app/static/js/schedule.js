@@ -1,45 +1,32 @@
-(() => {
-// Connect the schedule page's modules and provide one renderer for shared UI updates.
-const {
-    initializeCalendar,
-    renderCalendarEvents,
-    renderCategories,
-    renderComparison,
-    initializeEventForms,
-    renderEventRows,
-    initializeScheduleManagement,
-    renderSchedulePicker,
-    initializeDialogs,
-    loadScheduleData,
-    showError,
-} = window.SchedulePrototype;
-
-const calendar = document.querySelector("#schedule-calendar");
-const loadError = document.querySelector("#schedule-page-error");
-
-(async () => {
-if (calendar) {
-    try {
-        await loadScheduleData();
-    } catch (error) {
-        showError(loadError, error.message);
+import { initializeCalendar, renderCalendarEvents, renderCategories, } from "./schedule-calendar.js";
+import { renderComparison } from "./schedule-comparison.js";
+import { errorMessage, loadScheduleData, } from "./schedule-data.js";
+import { initializeEventForms, renderEventRows, } from "./schedule-events.js";
+import { initializeScheduleManagement, renderSchedulePicker, } from "./schedule-management.js";
+import { initializeDialogs, showError, } from "./schedule-ui.js";
+const renderSchedule = () => {
+    renderSchedulePicker();
+    renderCategories();
+    renderEventRows();
+    renderCalendarEvents();
+    renderComparison();
+};
+const initializeSchedule = async () => {
+    if (!document.querySelector("#schedule-calendar")) {
         return;
     }
-
-    // Keep every schedule surface in sync after a schedule or event changes.
-    const renderSchedule = () => {
-        renderSchedulePicker();
-        renderCategories();
-        renderEventRows();
-        renderCalendarEvents();
-        renderComparison();
-    };
-
-    initializeDialogs();
-    initializeScheduleManagement(renderSchedule);
-    initializeEventForms(renderSchedule);
-    renderSchedule();
-    initializeCalendar();
-}
-})();
-})();
+    const todayIndex = (new Date().getDay() + 6) % 7;
+    document.querySelector(`[data-heading-day="${todayIndex}"]`)?.classList.add("today");
+    try {
+        await loadScheduleData();
+        initializeDialogs();
+        initializeScheduleManagement(renderSchedule);
+        initializeEventForms(renderSchedule);
+        renderSchedule();
+        initializeCalendar();
+    }
+    catch (error) {
+        showError(document.querySelector("#schedule-page-error"), errorMessage(error));
+    }
+};
+void initializeSchedule();

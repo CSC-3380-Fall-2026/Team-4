@@ -1,0 +1,233 @@
+"""Check that a Workday sync never saves over data it could not read."""
+
+import copy
+import json
+from datetime import date, timedelta
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+import tiger_auth
+from fake_supabase import FakeDatabase
+from routers import tiger_schedules_store, tiger_workday, tiger_workday_browser
+from tiger_app import app
+
+JORDAN: dict[str, str] = {"Authorization": "Bearer token-jordan"}
+
+SAVED: dict = {
+    "id": "jordan",
+    "username": "Jordan Example",
+    "gpa": 3.5,
+    "completed_credit_hours": 30,
+    "courses": [{
+        "course_code": "CSC 1350",
+        "course_name": "Computer Science I",
+        "credits": 4,
+        "term": "2024 Fall Semester",
+        "grade": "A",
+    }],
+}
+# A changed record page: the grid lost its Grade column.
+UNREADABLE: dict = {
+    "record": [{"rows": [{"Course": "CSC 1351 - Computer Science II", "Credit Hours": "4"}]}],
+}
+# A readable record where every class is still in progress.
+FIRST_TERM: dict = {
+    "record": [{"rows": [
+        {"Course": "CSC 1351 - Computer Science II", "Grade": "", "Credit Hours": "4"}
+    ]}],
+}
+
+
+def sync(fake_db: FakeDatabase, monkeypatch: pytest.MonkeyPatch, raw: dict, path: str) -> int:
+    """Run one Workday sync for Jordan Example on made-up page data.
+
+    Args:
+        fake_db: In-memory database holding Jordan's saved profile.
+        monkeypatch: Replaces the browser and the sync-time call.
+        raw: The page grids the browser pretends to read.
+        path: "sync" or "reset".
+
+    Returns:
+        The response status code.
+    """
+    fake_db.rows("profiles").append(copy.deepcopy(SAVED))
+    monkeypatch.setattr(tiger_workday_browser, "workday_ready", lambda: True)
+    monkeypatch.setattr(tiger_workday_browser, "read_workday", lambda user_id: raw)
+    monkeypatch.setattr(tiger_workday, "mark_synced", lambda session: "2026-01-01T00:00:00+00:00")
+    response = TestClient(app).post(
+        f"/api/workday/{path}", headers={"Authorization": "Bearer token-jordan"}
+    )
+    return response.status_code
+
+
+def test_unreadable_scrape_writes_nothing(fake_db, monkeypatch):
+    """A page that can't be read is refused before anything is saved."""
+    assert sync(fake_db, monkeypatch, UNREADABLE, "reset") == 502
+    assert fake_db.rows("profiles") == [SAVED]
+    assert fake_db.rows("schedules") == []
+
+
+def test_empty_reset_keeps_courses(fake_db, monkeypatch):
+    """A reset that finds no graded courses keeps the saved ones."""
+    assert sync(fake_db, monkeypatch, FIRST_TERM, "reset") == 200
+    assert fake_db.rows("profiles")[0]["courses"] == SAVED["courses"]
+
+
+def test_no_grades_keep_gpa(fake_db, monkeypatch):
+    """A sync without GPA hours keeps the saved GPA and hours."""
+    assert sync(fake_db, monkeypatch, FIRST_TERM, "sync") == 200
+    profile = fake_db.rows("profiles")[0]
+    assert (profile["gpa"], profile["completed_credit_hours"]) == (3.5, 30)
+
+
+# Made-up Jordan Example pages; their fall term is moved to always be current.
+PAGES = Path(__file__).parent / "fixtures" / "workday" / "pages.json"
+FALL = "2025 Fall Semester (08/23/2025-12/13/2025)"
+SPRING = "2026 Spring Semester (01/12/2026-05/02/2026)"
+WORKDAY_EVENTS: list[tuple] = [
+    ("CSC 3102", ["Monday", "Wednesday", "Friday"], "08:30", "09:20", "Patrick F. Taylor Hall 1200", 3),
+    ("CSC 3102 Lab", ["Tuesday"], "13:30", "15:20", "Patrick F. Taylor Hall 2150", None),
+]
+
+
+def current_pages() -> dict:
+    """Load the made-up pages with the fall term running today.
+
+    Returns:
+        The page grids as the browser step would read them.
+    """
+    today = date.today()
+
+    def span(start: int, end: int) -> str:
+        """Date range from start to end days after today, as Workday writes it."""
+        return f"({today + timedelta(start):%m/%d/%Y}-{today + timedelta(end):%m/%d/%Y})"
+
+    text = PAGES.read_text().replace(FALL, f"2025 Fall Semester {span(-30, 30)}")
+    return json.loads(text.replace(SPRING, f"2026 Spring Semester {span(60, 150)}"))
+
+
+@pytest.fixture
+def workday(fake_db: FakeDatabase, monkeypatch: pytest.MonkeyPatch) -> dict:
+    """Give Jordan an empty profile and a browser step returning the pages.
+
+    Args:
+        fake_db: In-memory database.
+        monkeypatch: Replaces the browser and the sync-time call.
+
+    Returns:
+        The pages, which a test may edit between syncs.
+    """
+    pages = current_pages()
+    fake_db.rows("profiles").append({"id": "jordan", "courses": []})
+    monkeypatch.setattr(tiger_workday_browser, "workday_ready", lambda: True)
+    monkeypatch.setattr(tiger_workday_browser, "read_workday", lambda user_id: copy.deepcopy(pages))
+    monkeypatch.setattr(tiger_workday, "mark_synced", lambda session: "2026-01-01T00:00:00+00:00")
+    return pages
+
+
+def run(path: str = "sync") -> dict:
+    """Post one sync as Jordan.
+
+    Args:
+        path: "sync" or "reset".
+
+    Returns:
+        The response body.
+    """
+    response = TestClient(app).post(f"/api/workday/{path}", headers=JORDAN)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def term_events(term: str = "2025 Fall Semester") -> list[tuple]:
+    """List the events on one of Jordan's Workday schedules.
+
+    Args:
+        term: The term the schedule was made for.
+
+    Returns:
+        (title, days, start, end, location, credit) per event.
+    """
+    schedules = tiger_schedules_store.list_schedules(tiger_auth.verify_token("token-jordan"))
+    (schedule,) = [item for item in schedules if item.name == f"{term} (Workday)"]
+    return [
+        (e.title, e.days, e.start, e.end, e.location, getattr(e, "credit", None))
+        for e in schedule.events
+    ]
+
+
+def test_first_sync_imports(workday: dict) -> None:
+    """The first sync saves grades, courses and this term's classes."""
+    body = run()
+    assert (body["courses_added"], body["classes_added"], body["schedule_created"]) == (8, 3, True)
+    assert body["schedule"] == "2025 Fall Semester (Workday), 2026 Spring Semester (Workday)"
+    assert term_events() == WORKDAY_EVENTS
+    assert term_events("2026 Spring Semester") == [
+        ("CSC 3380", ["Tuesday", "Thursday"], "10:30", "11:50", "Lockett Hall 0010", 3)
+    ]
+
+
+def test_sync_again_adds_nothing(workday: dict) -> None:
+    """A second sync of the same pages changes nothing."""
+    run()
+    body = run()
+    assert (body["courses_added"], body["classes_added"]) == (0, 0)
+    assert term_events() == WORKDAY_EVENTS
+
+
+def test_deleted_class_stays_deleted(workday: dict) -> None:
+    """A class the student deleted is not added back by the next sync."""
+    run()
+    session = tiger_auth.verify_token("token-jordan")
+    schedule = tiger_schedules_store.list_schedules(session)[0]
+    schedule.events = [e for e in schedule.events if e.title != "CSC 3102 Lab"]
+    tiger_schedules_store.save_schedule(session, schedule)
+    assert run()["classes_added"] == 0
+    assert term_events() == WORKDAY_EVENTS[:1]
+
+
+def fall_rows(pages: dict) -> list[dict]:
+    """Return the current fall term's enrolled-course rows.
+
+    Args:
+        pages: The made-up Workday pages.
+
+    Returns:
+        The rows of "My Enrolled Courses" for the fall term.
+    """
+    return next(
+        t for t in pages["courses"]
+        if t["semester"].startswith("2025 Fall") and t["title"] == "My Enrolled Courses"
+    )["rows"]
+
+
+def test_same_section_name_two_courses(workday: dict) -> None:
+    """Two courses whose sections share a short name are both imported."""
+    rows = fall_rows(workday)
+    rows[0]["Section"] = "001"
+    rows.append({
+        "Course Listing": "MATH 2057 - Multidimensional Calculus", "Credit Hours": "3",
+        "Section": "001", "Instructional Format": "Lecture",
+        "Meeting Patterns": "Tuesday Thursday | 9:00 AM - 10:20 AM | Lockett Hall 0015",
+        "Registration Status": "Registered",
+    })
+    run()
+    assert sorted(event[0] for event in term_events()) == ["CSC 3102", "CSC 3102 Lab", "MATH 2057"]
+
+
+def test_old_marker_keys_still_count(workday: dict, fake_db: FakeDatabase) -> None:
+    """Sections an earlier sync stored under the old key are not added again."""
+    run()
+    row = fake_db.rows("schedules")[0]
+    marker = next(item for item in row["commitments"] if "workday_imported" in item)
+    assert marker["workday_imported"] == [
+        "CSC 3102 CSC 3102-001 - Advanced Data Structures",
+        "CSC 3102 CSC 3102-L01 - Advanced Data Structures",
+    ]
+    marker["workday_imported"] = [
+        "CSC 3102-001 - Advanced Data Structures",
+        "CSC 3102-L01 - Advanced Data Structures",
+    ]
+    assert run()["classes_added"] == 0

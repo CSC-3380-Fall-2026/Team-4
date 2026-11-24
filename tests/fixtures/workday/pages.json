@@ -1,0 +1,83 @@
+{
+  "courses": [
+    {
+      "semester": "2025 Fall Semester (08/23/2025-12/13/2025)",
+      "title": "My Enrolled Courses",
+      "rows": [
+        {"Course Listing": "CSC 3102 - Advanced Data Structures", "Credit Hours": "3", "Section": "CSC 3102-001 - Advanced Data Structures", "Instructional Format": "Lecture", "Delivery Mode": "In-Person", "Meeting Patterns": "Monday Wednesday Friday | 8:30 AM - 9:20 AM | Patrick F. Taylor Hall 1200", "Registration Status": "Registered", "Instructor": "Ada Lovemore (Primary)"},
+        {"Course Listing": "CSC 3102 - Advanced Data Structures", "Credit Hours": "3", "Section": "CSC 3102-L01 - Advanced Data Structures", "Instructional Format": "Lab", "Delivery Mode": "In-Person", "Meeting Patterns": "Tuesday | 01:30 pm-03:20 pm | Patrick F. Taylor Hall 2150", "Registration Status": "Registered", "Instructor": "Grace Example"},
+        {"Course Listing": "MATH 2090 - Differential Equations and Linear Algebra", "Credit Hours": "4", "Section": "MATH 2090-940 - Differential Equations and Linear Algebra", "Instructional Format": "Lecture", "Delivery Mode": "Online", "Meeting Patterns": "", "Registration Status": "Registered", "Instructor": "Alan Tester"},
+        {"Course Listing": "ENGL 2000 - English Composition II", "Credit Hours": "3", "Section": "ENGL 2000-012 - English Composition II", "Instructional Format": "Lecture", "Delivery Mode": "In-Person", "Meeting Patterns": "Tuesday Thursday | 12:00 PM - 1:20 PM | Allen Hall 0225", "Registration Status": "Dropped", "Instructor": "Mary Sample"},
+        {"Course Listing": "HIST 2057 - Modern World History", "Credit Hours": "3", "Section": "HIST 2057-002 - Modern World History", "Instructional Format": "Lecture", "Delivery Mode": "In-Person", "Meeting Patterns": "Monday Wednesday | 2:30 PM - 3:20 PM | Himes Hall 0130", "Registration Status": "Withdrawn", "Instructor": "Ned Placeholder"}
+      ]
+    },
+    {
+      "semester": "2025 Fall Semester (08/23/2025-12/13/2025)",
+      "title": "My Waitlisted Courses",
+      "rows": [
+        {"Course Listing": "PHYS 2001 - General Physics", "Credit Hours": "3", "Section": "PHYS 2001-001 - General Physics", "Instructional Format": "Lecture", "Delivery Mode": "In-Person", "Meeting Patterns": "Monday Wednesday Friday | 11:30 AM - 12:20 PM | Nicholson Hall 0130", "Registration Status": "Waitlisted", "Instructor": "Pat Dummy"}
+      ]
+    },
+    {
+      "semester": "2026 Spring Semester (01/12/2026-05/02/2026)",
+      "title": "My Enrolled Courses",
+      "rows": [
+        {"Course Listing": "CSC 3380 - Object-Oriented Design", "Credit Hours": "3", "Section": "CSC 3380-001 - Object-Oriented Design", "Instructional Format": "Lecture", "Delivery Mode": "In-Person", "Meeting Patterns": "Tuesday Thursday | 10:30 AM - 11:50 AM | Lockett Hall 0010", "Registration Status": "Registered", "Instructor": "Ada Lovemore (Primary)"}
+      ]
+    }
+  ],
+  "record": [
+    {
+      "semester": null,
+      "title": "Transfer Credit",
+      "rows": [
+        {"Transfer Credit": "MATH 1550 - Analytic Geometry and Calculus I", "Source": "AP Calculus AB", "Credit Hours": "5"},
+        {"Transfer Credit": "MATH 1550 - Analytic Geometry and Calculus I", "Source": "CLEP Calculus", "Credit Hours": "5"},
+        {"Transfer Credit": "HIST 2055 - United States History", "Source": "AP United States History", "Credit Hours": "3"}
+      ]
+    },
+    {
+      "semester": null,
+      "title": "Course History",
+      "rows": [
+        {"Course": "CSC 3102 - Advanced Data Structures", "Grade": "", "Credit Hours": "3", "Earned Grade Points": ""},
+        {"Course": "MATH 2090 - Differential Equations and Linear Algebra", "Grade": "", "Credit Hours": "4", "Earned Grade Points": ""}
+      ]
+    },
+    {
+      "semester": null,
+      "title": "Course History",
+      "rows": [
+        {"Course": "CSC 1351 - Computer Science II", "Grade": "B+", "Credit Hours": "4", "Earned Grade Points": "13.20"},
+        {"Course": "MATH 1552 - Analytic Geometry and Calculus II", "Grade": "C", "Credit Hours": "4", "Earned Grade Points": "8.00"},
+        {"Course": "PHIL 1000 - Introduction to Philosophy", "Grade": "W", "Credit Hours": "3", "Earned Grade Points": ""}
+      ]
+    },
+    {
+      "semester": null,
+      "title": "Course History",
+      "rows": [
+        {"Course": "CSC 1350 - Computer Science I", "Grade": "A", "Credit Hours": "4", "Earned Grade Points": "16.00"},
+        {"Course": "ENGL 1001 - English Composition", "Grade": "A-", "Credit Hours": "3", "Earned Grade Points": "11.10"},
+        {"Course": "BIOL 1001 - General Biology", "Grade": "F", "Credit Hours": "3", "Earned Grade Points": "0.00"}
+      ]
+    }
+  ],
+  "progress": [
+    {
+      "semester": null,
+      "title": "Requirements",
+      "rows": [
+        {"Requirement": "Computer Science Core", "Registrations Used": "CSC 1350 - Computer Science I", "Academic Period": "2024 Fall Semester (08/24/2024-12/14/2024)"},
+        {"Requirement": "Computer Science Core", "Registrations Used": "CSC 1351 - Computer Science II", "Academic Period": "2025 Spring Semester (01/13/2025-05/03/2025)"},
+        {"Requirement": "Computer Science Core", "Registrations Used": "CSC 3102 - Advanced Data Structures", "Academic Period": "2025 Fall Semester (08/23/2025-12/13/2025)"},
+        {"Requirement": "English Composition", "Registrations Used": "ENGL 1001 - English Composition", "Academic Period": "2024 Fall Semester (08/24/2024-12/14/2024)"},
+        {"Requirement": "Natural Sciences", "Registrations Used": "BIOL 1001 - General Biology", "Academic Period": "2024 Fall Semester (08/24/2024-12/14/2024)"},
+        {"Requirement": "Mathematics", "Registrations Used": "MATH 1550 - Analytic Geometry and Calculus I", "Academic Period": ""},
+        {"Requirement": "Mathematics", "Registrations Used": "MATH 1552 - Analytic Geometry and Calculus II", "Academic Period": "2025 Spring Semester (01/13/2025-05/03/2025)"},
+        {"Requirement": "Mathematics", "Registrations Used": "MATH 2090 - Differential Equations and Linear Algebra", "Academic Period": "2025 Fall Semester (08/23/2025-12/13/2025)"},
+        {"Requirement": "Humanities", "Registrations Used": "", "Academic Period": ""}
+      ]
+    }
+  ]
+}

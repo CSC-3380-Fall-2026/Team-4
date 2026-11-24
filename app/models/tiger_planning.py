@@ -94,3 +94,5 @@ class PlanningResult(BaseModel):
     planned_credits: int = Field(gt=0)
     required_gpa: float | None = Field(default=None, ge=0, le=4.3)
     target_error: str = ""
+    # The GPA the plan started from; forecasts saved before it was kept lack it.
+    current_gpa: float | None = Field(default=None, ge=0, le=4.3)

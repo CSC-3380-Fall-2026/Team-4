@@ -29,6 +29,7 @@ use the command based on os:
 	Linux: source .venv/bin/activate
 pip install -r requirements.txt
 ```
+Workday sync (local only, off on Vercel; LSU Workday pages only): `pip install -r requirements-local.txt && playwright install chromium`.
 To build tailwind:
 ```sh
 cd app/tailwindcss
@@ -78,7 +79,7 @@ static void Main(){
 
 This project uses pytest for automated testing.
 
-After setting up the virtual environment and installing the dependencies, run the entire test suite from the project's root folder with:
+After setting up the virtual environment and installing the dependencies (plus `pip install -r requirements-dev.txt`, which the tests need), run the entire test suite from the project's root folder with:
 
 ```bash
 python -m pytest tests/ -v

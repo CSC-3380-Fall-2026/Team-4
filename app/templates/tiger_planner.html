@@ -41,6 +41,11 @@
 
 <form method="post" action="/planning" id="planning-form" class="planning-top" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {# Enter in a text field presses the form's first submit button, so that one calculates #}
+    <button class="visually-hidden" type="submit" name="action" value="calculate"
+            formaction="/planning#planning-results" tabindex="-1" aria-hidden="true">
+        Calculate GPA
+    </button>
 
     {# ---------- left card: the course rows ---------- #}
     <section id="sem-planner" class="page-card projector-card">
@@ -50,8 +55,8 @@
             {# picking a saved schedule fills the rows with its courses #}
             {% if schedules %}
                 <label class="visually-hidden" for="planning-schedule">Saved schedule</label>
-                <select id="planning-schedule" name="schedule_id" class="soft-select"
-                        onchange="document.getElementById('load-button').click()">
+                <div class="projector-load">
+                <select id="planning-schedule" name="schedule_id" class="soft-select">
                     <option value="">Choose a schedule</option>
                     {% for schedule in schedules %}
                         <option value="{{ schedule.id }}" {% if schedule.id == schedule_id %}selected{% endif %}>
@@ -59,10 +64,11 @@
                         </option>
                     {% endfor %}
                 </select>
-                <button id="load-button" class="visually-hidden" type="submit" name="action"
+                <button id="load-button" class="text-link" type="submit" name="action"
                         value="load_schedule" formnovalidate>
                     Load courses
                 </button>
+                </div>
             {% else %}
                 <a class="soft-select soft-select-link" href="/schedule">Create a schedule</a>
             {% endif %}
@@ -305,4 +311,10 @@
         <a class="text-link" href="/catalog">See degree requirements <span aria-hidden="true">↗</span></a>
     </section>
 </div>
+{% endblock %}
+{% block scripts %}
+    <script
+        type="module"
+        src="{{ url_for('static', path='/js/planning.js') }}?v=ts1"
+    ></script>
 {% endblock %}

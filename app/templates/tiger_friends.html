@@ -4,9 +4,9 @@
 
 {# ---------- the 3 tabs + invite button ---------- #}
 <div class="friends-tabs">
-    <button type="button" class="friends-tab active" data-tab="friends">Friends <span id="friend-count"></span></button>
-    <button type="button" class="friends-tab" data-tab="requests">Requests <span id="pending-request-count"></span></button>
-    <button type="button" class="friends-tab" data-tab="sharing">Sharing settings</button>
+    <button type="button" class="friends-tab active" data-tab="friends" aria-pressed="true">Friends <span id="friend-count"></span></button>
+    <button type="button" class="friends-tab" data-tab="requests" aria-pressed="false">Requests <span id="pending-request-count"></span></button>
+    <button type="button" class="friends-tab" data-tab="sharing" aria-pressed="false">Sharing settings</button>
 
     {# this sends the form in the "Who's joining?" card (form="find-friend-form") #}
     <button class="page-button invite-button" type="submit" form="find-friend-form">
@@ -90,12 +90,6 @@
             <div class="sharing-controls">
                 <label class="visually-hidden" for="shared-schedule-picker">Schedule to share</label>
                 <select id="shared-schedule-picker" class="soft-select"></select>
-
-                <label class="switch-row switch-inline">
-                    <span><strong>Public Sharing</strong></span>
-                    <input id="public-sharing-toggle" type="checkbox" aria-label="Enable public schedule sharing">
-                    <i aria-hidden="true"></i>
-                </label>
             </div>
         </div>
 
@@ -117,7 +111,7 @@
 
     <section class="page-card sharing-card">
         <h2>Free time search</h2>
-        <p class="card-sub">These decide which hours the Friends tab looks at when it finds shared free time.</p>
+        <p class="card-sub">These decide which hours, and which of the checked friend's shared schedules, the Friends tab looks at when it finds shared free time.</p>
 
         <div class="sharing-controls free-controls">
             <label for="free-time-start">From</label>
@@ -132,13 +126,13 @@
                 <option value="120">2 hours</option>
                 <option value="180">3 hours</option>
             </select>
+            <label for="friend-schedule-picker">Friend's schedule</label>
+            <select id="friend-schedule-picker" class="soft-select"></select>
         </div>
     </section>
 </div>
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
-    <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=2" defer></script>
-    <script src="{{ url_for('static', path='/js/friends.js') }}?v=16" defer></script>
+    <script type="module" src="{{ url_for('static', path='/js/friends.js') }}?v=ts1"></script>
 {% endblock %}

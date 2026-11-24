@@ -1,10 +1,11 @@
 """Render William's shared navigation with project-relative template paths."""
 
+from collections.abc import Mapping
 from pathlib import Path
 import secrets
 
 from fastapi import Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from lucide import lucide_icon
 from markupsafe import Markup
@@ -54,7 +55,10 @@ def render_page(
         "plus": Markup(lucide_icon("plus", width=18, height=18)),
         "csrf_token": token,
         "profile": None,
-        "account_active": bool(request.cookies.get("tiger_access")),
+        "account_active": bool(
+            request.cookies.get("tiger_access")
+            or request.cookies.get("tiger_refresh")
+        ),
     }
     page_context.update(context)
     response: HTMLResponse = templates.TemplateResponse(
@@ -64,26 +68,64 @@ def render_page(
         status_code=status_code,
     )
     response.headers["Cache-Control"] = "no-store"
-    response.set_cookie(
-        CSRF_COOKIE,
-        token,
-        httponly=True,
-        secure=request.url.scheme == "https",
-        samesite="lax",
-    )
+    set_cookie(response, request, CSRF_COOKIE, token)
     return response
 
 
-def valid_token(request: Request, token: str) -> bool:
-    """Check a browser form token before changing browser account state.
+def set_cookie(
+    response: Response,
+    request: Request,
+    name: str,
+    value: str,
+    max_age: int | None = None,
+) -> None:
+    """Set an HTTP-only, same-site cookie, secure whenever the site is HTTPS.
+
+    Args:
+        response: Response that carries the cookie.
+        request: Current request, used to detect HTTPS, directly or
+            through a proxy's X-Forwarded-Proto header.
+        name: Cookie name.
+        value: Cookie value.
+        max_age: Lifetime in seconds, or None for a browser-session cookie.
+    """
+    # Vercel ends HTTPS at its proxy, so the app may only see http.
+    forwarded: str | None = request.headers.get("x-forwarded-proto")
+    response.set_cookie(
+        name,
+        value,
+        max_age=max_age,
+        httponly=True,
+        secure="https" in (request.url.scheme, forwarded),
+        samesite="lax",
+    )
+
+
+def redirect_to(url: str) -> RedirectResponse:
+    """Redirect a form or page request without letting the browser cache it.
+
+    Args:
+        url: Address to send the browser to.
+
+    Returns:
+        An uncached 303 redirect.
+    """
+    response: RedirectResponse = RedirectResponse(url, status_code=303)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def valid_token(request: Request, form: Mapping[str, object]) -> bool:
+    """Check a submitted form's token before changing browser account state.
 
     Args:
         request: Request carrying the corresponding form-token cookie.
-        token: Hidden token submitted with the form.
+        form: Submitted form fields, including the hidden csrf_token.
 
     Returns:
         Whether the nonempty submitted token matches the browser cookie.
     """
+    token: str = str(form.get("csrf_token", ""))
     expected: str = request.cookies.get(CSRF_COOKIE, "")
     return bool(
         expected

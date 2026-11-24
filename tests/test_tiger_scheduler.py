@@ -113,7 +113,7 @@ def test_students_never_see_each_other(web):
     assert web.put(path, json=other, headers=login("bob")).status_code == 404
     assert add_event(web, schedule_id, "10:00", "11:00", "bob").status_code == 404
     make_schedule(web, "bob")
-    make_schedule(web, "bob")
+    make_schedule(web, "bob", {"name": "Second", "color": "green"})
     assert web.delete(path, headers=login("bob")).status_code == 404
 
 
@@ -196,12 +196,12 @@ def test_shared_schedule_visible_only_to_accepted_friend(web, fake_db):
     bob = web.get("/api/schedule-data", headers=login("bob")).json()
     assert [user["id"] for user in bob["users"]] == ["bob", "alice"]
     friend = bob["users"][1]
-    assert friend["username"] == "alice_u"
+    assert friend["username"] is None
     assert friend["schedules"][0]["id"] == schedule_id
 
     free = web.post(
         "/api/shared-free-time",
-        json={"friendUsername": "alice_u", "startTime": "08:00",
+        json={"friendId": "alice", "startTime": "08:00",
               "endTime": "12:00", "minimumDuration": 30},
         headers=login("bob"),
     )
@@ -218,12 +218,141 @@ def test_shared_schedule_visible_only_to_accepted_friend(web, fake_db):
     assert [user["id"] for user in dave["users"]] == ["dave"]
 
 
-def test_unreadable_friend_username_gets_neutral_label(web, fake_db):
-    first = make_schedule(web, "alice")
-    second = make_schedule(web, "erin")
-    for owner, schedule_id in (("alice", first), ("erin", second)):
+def test_schedule_names_must_be_unique(web):
+    """Refuse a second schedule, or a rename, that reuses a name."""
+    first = make_schedule(web)
+    copy = web.post(
+        "/api/schedules", json={"name": "qa schedule", "color": "red"}, headers=login("alice")
+    )
+    assert copy.status_code == 409
+    assert "already have a schedule" in copy.json()["detail"]
+    other = make_schedule(web, "alice", {"name": "Spring", "color": "green"})
+    clash = web.put(f"/api/schedules/{other}", json=BLUE, headers=login("alice"))
+    assert clash.status_code == 409
+    same = web.put(f"/api/schedules/{first}", json=BLUE, headers=login("alice"))
+    assert same.status_code == 200
+    assert make_schedule(web, "bob") != first
+
+
+def test_name_race_is_409_not_500(web, monkeypatch):
+    """Two creates racing past the name check: the database index answers 409."""
+    from routers import tiger_schedules
+
+    first = make_schedule(web)
+    other = make_schedule(web, "alice", {"name": "Spring", "color": "green"})
+    monkeypatch.setattr(tiger_schedules, "check_name", lambda *args: None)
+    copy = web.post("/api/schedules", json=BLUE, headers=login("alice"))
+    assert copy.status_code == 409
+    assert copy.json()["detail"] == 'You already have a schedule named "QA Schedule".'
+    clash = web.put(f"/api/schedules/{other}", json=BLUE, headers=login("alice"))
+    assert clash.status_code == 409
+    assert web.put(f"/api/schedules/{first}", json=BLUE, headers=login("alice")).status_code == 200
+
+
+def test_shared_schedules_load_in_one_query(web, fake_db):
+    """Three shared schedules cost one schedules query, not two calls each."""
+    names = ("Fall", "Spring", "Summer")
+    ids = [make_schedule(web, "alice", {"name": n, "color": "blue"}) for n in names]
+    for schedule_id in ids:
+        share(fake_db, schedule_id, "alice", "bob")
+    befriend(fake_db, "alice", "bob")
+    fake_db.calls.clear()
+    page = web.get("/api/schedule-data", headers=login("bob")).json()
+    assert [s["id"] for s in page["users"][1]["schedules"]] == ids
+    assert fake_db.calls.count("schedules") == 2  # bob's own, then all shared
+    assert fake_db.calls.count("friendships") == 0  # the read policy checks friendship
+
+
+def test_stale_save_is_409(web):
+    """A save based on an old copy is refused instead of losing the newer edit."""
+    import tiger_auth
+    from fastapi import HTTPException
+    from routers import tiger_schedules_store as store
+
+    schedule_id = make_schedule(web)
+    session = tiger_auth.verify_token("token-alice")
+    first_tab = store.fetch_schedule(session, schedule_id)
+    second_tab = store.fetch_schedule(session, schedule_id)
+    first_tab.name = "Edited in tab one"
+    store.save_schedule(session, first_tab)
+    second_tab.name = "Edited in tab two"
+    with pytest.raises(HTTPException) as refused:
+        store.save_schedule(session, second_tab)
+    assert refused.value.status_code == 409
+    assert store.fetch_schedule(session, schedule_id).name == "Edited in tab one"
+
+
+def test_delete_twice_is_404(web):
+    """Deleting a schedule that is already gone says so, not "keep one"."""
+    first = make_schedule(web)
+    make_schedule(web, "alice", {"name": "Spring", "color": "green"})
+    assert web.delete(f"/api/schedules/{first}", headers=login("alice")).status_code == 204
+    again = web.delete(f"/api/schedules/{first}", headers=login("alice"))
+    assert again.status_code == 404
+
+
+def free_body(friend_id, schedule_id=None):
+    """Build a shared free-time request for Monday 08:00-12:00."""
+    body = {"friendId": friend_id, "startTime": "08:00", "endTime": "12:00",
+            "minimumDuration": 30}
+    if schedule_id:
+        body["scheduleId"] = schedule_id
+    return body
+
+
+def test_free_time_uses_one_chosen_schedule(web, fake_db):
+    """Only the chosen schedule of the student counts, not every alternative."""
+    shared = make_schedule(web, "alice")
+    add_event(web, shared, "10:00", "11:00", "alice")
+    share(fake_db, shared, "alice", "bob")
+    befriend(fake_db, "alice", "bob")
+    plan_a = make_schedule(web, "bob", {"name": "Plan A", "color": "blue"})
+    add_event(web, plan_a, "08:00", "09:00", "bob")
+    plan_b = make_schedule(web, "bob", {"name": "Plan B", "color": "red"})
+    add_event(web, plan_b, "11:00", "12:00", "bob")
+    free = web.post("/api/shared-free-time", json=free_body("alice", plan_b),
+                    headers=login("bob"))
+    assert free.status_code == 200, free.text
+    assert free.json()["days"][0]["periods"] == [{"start": "08:00", "end": "10:00"}]
+    first = web.post("/api/shared-free-time", json=free_body("alice"), headers=login("bob"))
+    assert first.json()["days"][0]["periods"] == [{"start": "09:00", "end": "10:00"},
+                                                  {"start": "11:00", "end": "12:00"}]
+
+
+def test_free_time_friend_by_id_not_label(web, fake_db):
+    """Two friends without readable names are both "Friend"-labelled; ids tell them apart."""
+    for owner, start in (("alice", "08:00"), ("erin", "10:00")):
+        schedule_id = make_schedule(web, owner)
+        add_event(web, schedule_id, start, f"{int(start[:2]) + 1:02}:00", owner)
         share(fake_db, schedule_id, owner, "bob")
         befriend(fake_db, owner, "bob")
-    users = web.get("/api/schedule-data", headers=login("bob")).json()["users"]
-    assert [user["username"] for user in users[1:]] == ["Friend", "Friend 2"]
-    assert all(user["email"] == "" for user in users[1:])
+    erin = web.post("/api/shared-free-time", json=free_body("erin"), headers=login("bob"))
+    assert erin.json()["days"][0]["periods"] == [{"start": "08:00", "end": "10:00"},
+                                                 {"start": "11:00", "end": "12:00"}]
+    other = make_schedule(web, "alice", {"name": "Spring", "color": "red"})
+    stranger = web.post("/api/shared-free-time", json=free_body("carol"), headers=login("bob"))
+    assert stranger.status_code == 404
+    not_mine = web.post("/api/shared-free-time", json=free_body("alice", other),
+                        headers=login("bob"))
+    assert not_mine.status_code == 404
+
+
+def test_free_time_uses_one_friend_schedule(web, fake_db):
+    """Only one of the friend's shared schedules counts; the first by default."""
+    fall = make_schedule(web, "alice", {"name": "Fall", "color": "blue"})
+    add_event(web, fall, "08:00", "09:00", "alice")
+    spring = make_schedule(web, "alice", {"name": "Spring", "color": "red"})
+    add_event(web, spring, "11:00", "12:00", "alice")
+    private = make_schedule(web, "alice", {"name": "Private", "color": "green"})
+    for schedule_id in (fall, spring):
+        share(fake_db, schedule_id, "alice", "bob")
+    befriend(fake_db, "alice", "bob")
+    first = web.post("/api/shared-free-time", json=free_body("alice"), headers=login("bob"))
+    assert first.json()["days"][0]["periods"] == [{"start": "09:00", "end": "12:00"}]
+    body = {**free_body("alice"), "friendScheduleId": spring}
+    chosen = web.post("/api/shared-free-time", json=body, headers=login("bob"))
+    assert chosen.json()["days"][0]["periods"] == [{"start": "08:00", "end": "11:00"}]
+    for hidden in (private, make_schedule(web, "bob")):
+        body = {**free_body("alice"), "friendScheduleId": hidden}
+        refused = web.post("/api/shared-free-time", json=body, headers=login("bob"))
+        assert refused.status_code == 404

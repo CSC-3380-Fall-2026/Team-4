@@ -1,28 +1,33 @@
 """Keep account APIs available without requiring credentials at app startup."""
 
+import logging
 import os
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import requests
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
+
+from fastapi import Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import ValidationError
 from supabase import Client, ClientOptions, create_client
 
-from models.tiger_profile import ProfileCourse, ProfileRecord
-from tiger_models import ProfileUpdate, UserAuthSchema, UserBase
+from tiger_views import redirect_to, set_cookie
+
+from models.tiger_accounts import UserAuthSchema
+from models.tiger_session import Session
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 load_dotenv(Path(__file__).resolve().parent / ".env")
-
-router: APIRouter = APIRouter()
 security: HTTPBearer = HTTPBearer()
 optional_security: HTTPBearer = HTTPBearer(auto_error=False)
 AUTH_COOKIE: str = "tiger_access"
+REFRESH_COOKIE: str = "tiger_refresh"
+REFRESH_AGE: int = 30 * 24 * 3600
+# Set only for "Keep me logged in", so a renewal keeps the student's choice.
+REMEMBER_COOKIE: str = "tiger_remember"
+LOG: logging.Logger = logging.getLogger(__name__)
 
 
 def auth_client() -> Client:
@@ -36,17 +41,14 @@ def auth_client() -> Client:
     """
     url: str = os.getenv("SUPABASE_URL", "").strip()
     key: str = os.getenv("SUPABASE_KEY", "").strip()
-
     if not url or not key:
         raise HTTPException(
             503, "Account services are temporarily unavailable."
         )
-
     try:
-        options = ClientOptions(
-            auto_refresh_token=False,
-            persist_session=False,
-        )
+        # One-off clients: no stored session and no background token refresh,
+        # so each login doesn't leave a refresh timer running in the server.
+        options = ClientOptions(auto_refresh_token=False, persist_session=False)
         return create_client(url, key, options)
     except Exception as error:
         raise HTTPException(
@@ -54,17 +56,21 @@ def auth_client() -> Client:
         ) from error
 
 
-def login(credentials: UserAuthSchema) -> tuple[str, bool]:
+def login(credentials: UserAuthSchema) -> tuple[str, bool, str]:
     """Sign in with Supabase for the HTML login form.
 
     Args:
         credentials: Student email and password.
 
     Returns:
-        An access token and True on success, or a safe message and False.
+        The access token, True and the refresh token on success, or a safe
+        message, False and "" when Supabase refused the email or password.
+
+    Raises:
+        HTTPException: 429 when Supabase rate-limits sign-ins, 503 for any
+            other failure, so neither is reported as a wrong password.
     """
     client: Client = auth_client()
-
     try:
         result = client.auth.sign_in_with_password(
             {
@@ -72,89 +78,115 @@ def login(credentials: UserAuthSchema) -> tuple[str, bool]:
                 "password": credentials.password,
             }
         )
-        if result.session:
-            return result.session.access_token, True
-    except Exception:
-        pass
-
+    except Exception as error:
+        status = getattr(error, "status", None)
+        if status == 429:
+            raise HTTPException(
+                429, "Too many sign-ins, try again in a minute."
+            ) from error
+        if status != 400:
+            raise HTTPException(
+                503, "Sign-in is unavailable right now. Please try again."
+            ) from error
+        result = None
+    if result is not None and result.session:
+        meta: dict[str, Any] = getattr(result.user, "user_metadata", None) or {}
+        claim_username(
+            result.session.access_token,
+            result.user.id,
+            str(meta.get("username") or ""),
+        )
+        return result.session.access_token, True, result.session.refresh_token
     return (
         "Check your email and password, and confirm your email if required.",
         False,
+        "",
     )
 
 
-def signup(credentials: UserAuthSchema) -> tuple[str, bool]:
+def signup(
+    credentials: UserAuthSchema, username: str = "", full_name: str = ""
+) -> tuple[str, bool]:
     """Request account registration with Supabase for the HTML signup form.
 
     Args:
         credentials: Student email and chosen password.
+        username: Username friends will search for, kept in user metadata.
+        full_name: The student's name, kept in user metadata.
 
     Returns:
         A confirmation message and whether the request was accepted.
     """
     client: Client = auth_client()
-
+    meta: dict[str, str] = {"username": username, "full_name": full_name}
     try:
         result = client.auth.sign_up(
             {
                 "email": str(credentials.email),
                 "password": credentials.password,
+                "options": {"data": {k: v for k, v in meta.items() if v}},
             }
         )
-        if result.user:
-            return "Check your email for confirmation, then log in.", True
     except Exception:
-        pass
-
-    return (
-        "Registration could not be completed. Try logging in or try again later.",
-        False,
-    )
-
-
-@router.post("/login")
-def login_api(credentials: UserAuthSchema) -> dict[str, str]:
-    """Sign in through the JSON API.
-
-    Args:
-        credentials: Student email and password.
-
-    Returns:
-        The access token and its type.
-
-    Raises:
-        HTTPException: 401 when the email or password is wrong.
-    """
-    message, accepted = login(credentials)
-
-    if not accepted:
-        raise HTTPException(401, message)
-
-    return {"access_token": message, "token_type": "bearer"}
+        result = None
+    if result is None or not result.user:
+        return (
+            "Registration could not be completed. "
+            "Try logging in or try again later.",
+            False,
+        )
+    if not result.session:
+        return "Check your email for confirmation, then log in.", True
+    claim_username(result.session.access_token, result.user.id, username)
+    return "Your account is ready. Log in to continue.", True
 
 
-@router.post("/signup")
-def signup_api(credentials: UserAuthSchema) -> dict[str, Any]:
-    """Register through the JSON API.
+def username_taken(username: str) -> bool:
+    """Ask the database whether another student already has a username.
 
     Args:
-        credentials: Student email and chosen password.
+        username: Username to check, ignoring case.
 
     Returns:
-        Confirmation that the account was requested, with next steps.
-
-    Raises:
-        HTTPException: 400 when registration is refused.
+        True when taken; False when free or when the check is unavailable
+        (before database/tiger_setup.sql adds it), leaving the unique
+        index as the last guard.
     """
-    message, accepted = signup(credentials)
+    try:
+        found = auth_client().rpc("username_taken", {"name": username}).execute()
+    except Exception:
+        LOG.warning("username_taken() unavailable; re-run tiger_setup.sql.")
+        return False
+    return found.data is True
 
-    if not accepted:
-        raise HTTPException(400, message)
 
-    return {"created": True, "message": message}
+def claim_username(token: str, user_id: str, username: str) -> None:
+    """Copy the signup username onto the student's profile if it has none.
+
+    The profile trigger in database/tiger_setup.sql copies it at signup;
+    this covers databases still running the older trigger.
+
+    Args:
+        token: The student's access token.
+        user_id: The student's id.
+        username: Username from their signup metadata; empty does nothing.
+    """
+    if not username:
+        return
+    try:
+        (
+            user_client(token)
+            .table("profiles")
+            .update({"username": username})
+            .eq("id", user_id)
+            .is_("username", "null")
+            .execute()
+        )
+    except Exception:
+        # Taken meanwhile, or no profile row: the student sets it on Profile.
+        LOG.warning("Could not save the signup username.", exc_info=True)
 
 
-@router.post("/logout")
 def logout(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> bool:
@@ -167,7 +199,6 @@ def logout(
         Whether Supabase accepted the sign-out request.
     """
     auth_client()
-
     try:
         result = requests.post(
             os.environ["SUPABASE_URL"].rstrip("/") + "/auth/v1/logout",
@@ -182,182 +213,41 @@ def logout(
         return False
 
 
-@router.get("/validateToken")
-def validate_token(token: str) -> bool:
-    """Validate an access token with Supabase.
-
-    Args:
-        token: Access token to verify.
-
-    Returns:
-        True only when Supabase returns a verified user.
-    """
-    try:
-        result = auth_client().auth.get_user(token)
-    except Exception:
-        return False
-
-    return result is not None and result.user is not None
-
-
-def readable_courses(raw: Any) -> list[dict[str, Any]]:
-    """Keep the saved courses that have the expected shape.
-
-    One malformed entry must not hide the whole profile, or the student
-    could never reach the form to fix it.
-
-    Args:
-        raw: The profile's stored courses value.
-
-    Returns:
-        Valid course dicts; anything else is skipped.
-    """
-    courses: list[dict[str, Any]] = []
-
-    for item in raw if isinstance(raw, list) else []:
-        try:
-            courses.append(
-                ProfileCourse.model_validate(item).model_dump()
-            )
-        except ValidationError:
-            continue
-
-    return courses
-
-
-def nav_profile(session: "Session") -> dict[str, str]:
-    """Build the name and email shown at the bottom of the sidebar.
-
-    Args:
-        session: The verified student from require_login.
-
-    Returns:
-        The username and email, without reading the database again.
-    """
-    return {
-        "username": session.meta.get("username") or "",
-        "email": session.email,
-    }
-
-
-def session_card(session: "Session") -> dict[str, Any]:
-    """Read account and profile data for an already verified session.
-
-    Args:
-        session: The verified student and their database client.
-
-    Returns:
-        Account information plus owned profile fields when available.
-    """
-    profile: dict[str, Any] = {
-        "id": session.user_id,
-        "username": session.meta.get("username") or "",
-        "email": session.email,
-        "gpa": None,
-        "completed_credit_hours": 0,
-        "courses": [],
-        "data_error": False,
-    }
-
-    try:
-        rows = cast(
-            list[dict[str, Any]],
-            session.db.table("profiles")
-            .select("id,username,gpa,completed_credit_hours,courses")
-            .eq("id", session.user_id)
-            .limit(1)
-            .execute()
-            .data,
-        )
-
-        if rows and rows[0]["id"] == session.user_id:
-            row: ProfileRecord = ProfileRecord.model_validate(
-                {**rows[0], "courses": []}
-            )
-            profile["username"] = row.username or profile["username"]
-            profile["gpa"] = row.gpa
-            profile["completed_credit_hours"] = row.completed_credit_hours
-            profile["courses"] = readable_courses(rows[0].get("courses"))
-
-    except Exception:
-        profile["data_error"] = True
-
-    return profile
-
-
-def token_profile(token: str) -> dict[str, Any]:
-    """Read account and profile data using a verified token and its owner ID.
-
-    Args:
-        token: Browser or API access token to verify with Supabase.
-
-    Returns:
-        Account information plus owned profile fields when available.
-
-    Raises:
-        HTTPException: If the token is invalid or account services are unavailable.
-    """
-    session: Session | None = verify_token(token)
-
-    if session is None:
-        raise HTTPException(401, "Please log in again.")
-
-    return session_card(session)
-
-
-@router.get("/getUser")
-def get_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict[str, Any]:
-    """Return only the profile owned by the verified API caller.
-
-    Args:
-        credentials: Bearer token identifying the caller.
-
-    Returns:
-        The caller's own account and profile information.
-    """
-    return token_profile(credentials.credentials)
-
-
-validateToken = validate_token
-getUser = get_user
-
-
-class Session:
-    """A verified student plus a database client that acts as that student."""
-
-    def __init__(
-        self,
-        user_id: str,
-        email: str,
-        token: str,
-        meta: dict[str, Any] | None = None,
-    ) -> None:
-        """Store the student's identity and build their scoped client.
-
-        Args:
-            user_id: Verified Supabase user ID.
-            email: Verified account email.
-            token: Access token used for database requests.
-            meta: Verified account metadata, such as the username.
-        """
-        self.user_id = user_id
-        self.email = email
-        self.token = token
-        self.meta = meta or {}
-        self.db = user_client(token)
-
-
 class LoginRequired(Exception):
     """Signal that a browser page needs a signed-in student."""
 
 
 def user_client(token: str) -> Client:
-    """Create a database client whose requests are limited to the token's owner."""
+    """Create a database client whose requests are limited to the token's owner.
+
+    Args:
+        token: The student's verified access token.
+
+    Returns:
+        A client that sends the token with every database request.
+
+    Raises:
+        HTTPException: If account services are unavailable.
+    """
     client: Client = auth_client()
     client.postgrest.auth(token)
     return client
+
+
+def raise_outage(error: Exception) -> None:
+    """Tell a refused token apart from Supabase being unreachable.
+
+    Args:
+        error: What the Supabase auth call raised.
+
+    Raises:
+        HTTPException: 503 unless Supabase refused the token with 400, 401
+            or 403, so an outage never signs the student out.
+    """
+    if getattr(error, "status", None) not in (400, 401, 403):
+        raise HTTPException(
+            503, "Account services are temporarily unavailable."
+        ) from error
 
 
 def verify_token(token: str) -> Session | None:
@@ -370,30 +260,106 @@ def verify_token(token: str) -> Session | None:
         The verified session, or None for a missing, invalid or expired token.
 
     Raises:
-        HTTPException: If account services are unavailable.
+        HTTPException: 503 if account services are unavailable.
     """
     if not token:
         return None
-
     try:
         result = auth_client().auth.get_user(token)
     except HTTPException:
         raise
-    except Exception:
+    except Exception as error:
+        raise_outage(error)
         return None
-
     user = result.user if result is not None else None
-
     if user is None:
         return None
-
     meta: dict[str, Any] = getattr(user, "user_metadata", None) or {}
-    return Session(user.id, user.email or "", token, meta)
+    return Session(user.id, user.email or "", token, user_client(token), meta)
+
+
+def store_tokens(
+    response: Response, request: Request, access: str, refresh: str, remember: bool
+) -> None:
+    """Put the tokens in the login cookies.
+
+    Args:
+        response: Response that carries the cookies.
+        request: Current request, used to detect HTTPS.
+        access: Access token, kept for an hour when remembered, else until
+            the browser closes.
+        refresh: Refresh token, kept 30 days when remembered, else until
+            the browser closes.
+        remember: Whether the student ticked "Keep me logged in".
+    """
+    age: int | None = REFRESH_AGE if remember else None
+    set_cookie(response, request, AUTH_COOKIE, access, 3600 if remember else None)
+    set_cookie(response, request, REFRESH_COOKIE, refresh, age)
+    if remember:
+        set_cookie(response, request, REMEMBER_COOKIE, "1", age)
+    else:
+        response.delete_cookie(REMEMBER_COOKIE)
+
+
+def refreshed(request: Request) -> Session | None:
+    """Renew an expired browser session with the refresh-token cookie.
+
+    The new tokens are left on request.state for tiger_app to store in
+    the response cookies.
+
+    Args:
+        request: Current request, which may carry the refresh cookie.
+
+    Returns:
+        The renewed session, or None without a cookie or when Supabase
+        refuses it.
+
+    Raises:
+        HTTPException: If account services are unavailable.
+    """
+    token: str = request.cookies.get(REFRESH_COOKIE, "")
+    if not token:
+        return None
+    try:
+        result = auth_client().auth.refresh_session(token)
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise_outage(error)
+        return None
+    if result is None or not result.session or not result.user:
+        return None
+    access: str = result.session.access_token
+    request.state.tokens = (access, result.session.refresh_token)
+    meta: dict[str, Any] = getattr(result.user, "user_metadata", None) or {}
+    return Session(
+        result.user.id, result.user.email or "", access, user_client(access), meta
+    )
+
+
+def cookie_session(
+    request: Request, credentials: HTTPAuthorizationCredentials | None
+) -> Session | None:
+    """Verify the bearer token or login cookie, renewing an expired cookie.
+
+    Args:
+        request: Current request.
+        credentials: Optional bearer token; API callers renew their own.
+
+    Returns:
+        The verified session, or None when signed out.
+
+    Raises:
+        HTTPException: If account services are unavailable.
+    """
+    session: Session | None = verify_token(request_token(request, credentials))
+    if session is None and credentials is None:
+        session = refreshed(request)
+    return session
 
 
 def request_token(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials | None,
+    request: Request, credentials: HTTPAuthorizationCredentials | None
 ) -> str:
     """Pick the bearer token if present, otherwise the login cookie.
 
@@ -406,7 +372,6 @@ def request_token(
     """
     if credentials:
         return credentials.credentials
-
     return request.cookies.get(AUTH_COOKIE, "")
 
 
@@ -426,17 +391,12 @@ def current_session(
     Raises:
         HTTPException: With status 401 when not signed in or expired.
     """
-    token: str = request_token(request, credentials)
-
-    if not token:
+    session: Session | None = cookie_session(request, credentials)
+    if session is not None:
+        return session
+    if not request_token(request, credentials):
         raise HTTPException(401, "Not signed in.")
-
-    session: Session | None = verify_token(token)
-
-    if session is None:
-        raise HTTPException(401, "Session expired, please log in again.")
-
-    return session
+    raise HTTPException(401, "Session expired, please log in again.")
 
 
 def require_login(
@@ -455,20 +415,29 @@ def require_login(
     Raises:
         LoginRequired: When the token is missing, invalid or expired.
     """
-    session: Session | None = verify_token(
-        request_token(request, credentials)
-    )
-
+    session: Session | None = cookie_session(request, credentials)
     if session is None:
         raise LoginRequired()
-
     return session
 
 
-def login_redirect(
-    request: Request,
-    error: Exception,
-) -> RedirectResponse:
+def optional_login(request: Request) -> Session | None:
+    """Identify the student on a public page without requiring a login.
+
+    Args:
+        request: Current request, which may carry the login cookie.
+
+    Returns:
+        The verified session, or None when signed out, expired, or when
+        account services are unavailable, so the public page still loads.
+    """
+    try:
+        return cookie_session(request, None)
+    except HTTPException:
+        return None
+
+
+def login_redirect(request: Request, error: Exception) -> RedirectResponse:
     """Send a signed-out browser to the login page and drop its stale cookie.
 
     Args:
@@ -478,92 +447,17 @@ def login_redirect(
     Returns:
         An uncached 303 redirect to /login.
     """
-    response: RedirectResponse = RedirectResponse(
-        "/login",
-        status_code=303,
-    )
+    return signed_out()
+
+
+def signed_out() -> RedirectResponse:
+    """Send the browser to /login with its login cookies removed.
+
+    Returns:
+        An uncached 303 redirect to /login that deletes the login cookies.
+    """
+    response: RedirectResponse = redirect_to("/login")
     response.delete_cookie(AUTH_COOKIE)
-    response.headers["Cache-Control"] = "no-store"
+    response.delete_cookie(REFRESH_COOKIE)
+    response.delete_cookie(REMEMBER_COOKIE)
     return response
-
-
-def session_profile(session: Session) -> UserBase:
-    """Read the session owner's saved profile row.
-
-    Args:
-        session: The verified student and their database client.
-
-    Returns:
-        The saved profile, or defaults when no row exists.
-    """
-    rows = cast(
-        list[dict[str, Any]],
-        session.db.table("profiles")
-        .select("*")
-        .eq("id", session.user_id)
-        .execute()
-        .data,
-    )
-
-    row: dict[str, Any] = rows[0] if rows else {}
-
-    return UserBase(
-        id=session.user_id,
-        username=row.get("username"),
-        email=str(row.get("email") or session.email),
-        gpa=float(row["gpa"]) if row.get("gpa") is not None else None,
-        completed_credit_hours=row.get("completed_credit_hours") or 0,
-        courses=row.get("courses") or [],
-    )
-
-
-@router.get("/api/profile")
-def get_profile(session: Session = Depends(current_session)) -> UserBase:
-    """Return only the signed-in student's saved profile."""
-    return session_profile(session)
-
-
-def save_profile(
-    session: Session,
-    fields: dict[str, Any],
-) -> UserBase:
-    """Store validated profile fields for the session's own student.
-
-    Args:
-        session: The verified student and their database client.
-        fields: Username, GPA, credit hours, and courses to save.
-
-    Returns:
-        The profile as saved.
-    """
-    row: dict[str, Any] = {
-        **fields,
-        "id": session.user_id,
-        "email": session.email,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
-
-    session.db.table("profiles").upsert(row).execute()
-    return session_profile(session)
-
-
-@router.put("/api/profile")
-def update_profile(
-    update: ProfileUpdate,
-    session: Session = Depends(current_session),
-) -> UserBase:
-    """Save the signed-in student's username, GPA, credit hours, and courses.
-
-    Args:
-        update: New profile values.
-        session: The verified student making the request.
-    """
-    return save_profile(
-        session,
-        {
-            "username": (update.username or "").strip() or None,
-            "gpa": update.gpa,
-            "completed_credit_hours": update.completed_credit_hours,
-            "courses": [course.model_dump() for course in update.courses],
-        },
-    )

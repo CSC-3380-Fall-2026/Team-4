@@ -1,4 +1,6 @@
-"""Connect HTML account forms to the team's existing account operations."""
+"""Account forms for the browser."""
+
+import re
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -8,10 +10,14 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
 
 import tiger_auth
-from tiger_models import UserAuthSchema
-from tiger_views import render_page, valid_token
+from models.tiger_accounts import UserAuthSchema
+from tiger_views import redirect_to, render_page, valid_token
 
-router: APIRouter = APIRouter()
+MIN_PASSWORD: int = 8
+# Friends search for this exact name, so keep it plain.
+USERNAME: re.Pattern[str] = re.compile(r"[A-Za-z0-9_]{3,40}")
+BAD_USERNAME: str = "Choose a username of 3 to 40 letters, numbers, or underscores."
+TAKEN: str = "That username is already taken. Try another."
 
 
 def account_page(
@@ -21,6 +27,7 @@ def account_page(
     error: str = "",
     message: str = "",
     status_code: int = 200,
+    **typed: str,
 ) -> HTMLResponse:
     """Render an account form without ever redisplaying a submitted password.
 
@@ -31,22 +38,98 @@ def account_page(
         error: Safe error message for the student.
         message: Success message after a registration request.
         status_code: HTTP response status.
+        typed: Other submitted fields to redisplay: username and full_name.
 
     Returns:
         The account form in William's shared layout.
     """
-    template_name: str = (
-        "tiger_login.html" if mode == "login" else "tiger_signin.html"
-    )
     return render_page(
         request,
-        template_name,
+        "tiger_login.html",
         mode=mode,
         email=email,
         error=error,
         message=message,
         status_code=status_code,
+        **typed,
     )
+
+
+async def signout_page(request: Request) -> RedirectResponse:
+    """Clear browser account state and request token revocation when possible.
+
+    After the access cookie's hour is up, the refresh cookie is renewed
+    first so Supabase still revokes the session.
+
+    Args:
+        request: Browser request with optional access and refresh cookies.
+
+    Returns:
+        A redirect with the login cookies removed, even if Supabase fails.
+    """
+    token: str = request.cookies.get(tiger_auth.AUTH_COOKIE, "")
+    try:
+        if not token:
+            session = await run_in_threadpool(tiger_auth.refreshed, request)
+            # Revoked below, so never stored in the cookies.
+            request.state.tokens = None
+            token = session.token if session else ""
+        if token:
+            credentials = HTTPAuthorizationCredentials(
+                scheme="Bearer", credentials=token
+            )
+            await run_in_threadpool(tiger_auth.logout, credentials)
+    except HTTPException:
+        pass
+    return tiger_auth.signed_out()
+
+
+async def submit_signup(
+    request: Request, data: FormData, credentials: UserAuthSchema
+) -> Response:
+    """Check the chosen username, then register with it in user metadata.
+
+    Args:
+        request: Submitted signup form.
+        data: Its fields, including username and full_name.
+        credentials: The already validated email and password.
+
+    Returns:
+        The signup page with a confirmation or an error.
+    """
+    email: str = str(credentials.email)
+    username: str = str(data.get("username", "")).strip()
+    full_name: str = " ".join(str(data.get("full_name", "")).split())[:80]
+    typed: dict[str, str] = {"username": username, "full_name": full_name}
+    if not USERNAME.fullmatch(username):
+        return account_page(
+            request, "signup", email, error=BAD_USERNAME, status_code=400, **typed
+        )
+    try:
+        if await run_in_threadpool(tiger_auth.username_taken, username):
+            return account_page(
+                request, "signup", email, error=TAKEN, status_code=409, **typed
+            )
+        message, accepted = await run_in_threadpool(
+            tiger_auth.signup, credentials, username, full_name
+        )
+    except HTTPException as error:
+        return account_page(
+            request,
+            "signup",
+            email,
+            error=str(error.detail),
+            status_code=error.status_code,
+            **typed,
+        )
+    if not accepted:
+        return account_page(
+            request, "signup", email, error=message, status_code=400, **typed
+        )
+    return account_page(request, "signup", email, message=message)
+
+
+router: APIRouter = APIRouter()
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -98,12 +181,15 @@ async def submit_account(request: Request, mode: str) -> Response:
 
     Returns:
         A useful form response or a redirect after successful login/logout.
+
+    Raises:
+        HTTPException: 404 for an unknown account action.
     """
     if mode not in ("login", "signup", "logout"):
         raise HTTPException(404, "Account action not found.")
     data: FormData = await request.form(max_files=0, max_fields=8)
     email: str = str(data.get("email", "")).strip()
-    if not valid_token(request, str(data.get("csrf_token", ""))):
+    if not valid_token(request, data):
         return account_page(
             request,
             "login" if mode == "logout" else mode,
@@ -122,9 +208,13 @@ async def submit_account(request: Request, mode: str) -> Response:
             error="Enter a valid password.",
             status_code=400,
         )
-    if mode == "signup" and password != str(data.get("confirm_password", "")):
+    if mode == "signup" and len(password) < MIN_PASSWORD:
         return account_page(
-            request, mode, email, error="Passwords must match.", status_code=400
+            request,
+            mode,
+            email,
+            error=f"Password must be at least {MIN_PASSWORD} characters.",
+            status_code=400,
         )
     try:
         credentials: UserAuthSchema = UserAuthSchema(
@@ -138,9 +228,12 @@ async def submit_account(request: Request, mode: str) -> Response:
             error="Enter a valid email address.",
             status_code=400,
         )
+    if mode == "signup":
+        return await submit_signup(request, data, credentials)
     try:
-        operation = tiger_auth.login if mode == "login" else tiger_auth.signup
-        message, accepted = await run_in_threadpool(operation, credentials)
+        message, accepted, refresh = await run_in_threadpool(
+            tiger_auth.login, credentials
+        )
     except HTTPException as error:
         return account_page(
             request,
@@ -153,40 +246,7 @@ async def submit_account(request: Request, mode: str) -> Response:
         return account_page(
             request, mode, email, error=message, status_code=400
         )
-    if mode == "signup":
-        return account_page(request, mode, email, message=message)
-    response: RedirectResponse = RedirectResponse("/dashboard", status_code=303)
-    response.set_cookie(
-        tiger_auth.AUTH_COOKIE,
-        message,
-        max_age=3600,
-        httponly=True,
-        secure=request.url.scheme == "https",
-        samesite="lax",
-    )
-    response.headers["Cache-Control"] = "no-store"
-    return response
-
-
-async def signout_page(request: Request) -> RedirectResponse:
-    """Clear browser account state and request token revocation when possible.
-
-    Args:
-        request: Browser request with an optional access-token cookie.
-
-    Returns:
-        A redirect with the account cookie removed.
-    """
-    token: str = request.cookies.get(tiger_auth.AUTH_COOKIE, "")
-    if token:
-        try:
-            credentials = HTTPAuthorizationCredentials(
-                scheme="Bearer", credentials=token
-            )
-            await run_in_threadpool(tiger_auth.logout, credentials)
-        except HTTPException:
-            pass
-    response: RedirectResponse = RedirectResponse("/login", status_code=303)
-    response.delete_cookie(tiger_auth.AUTH_COOKIE)
-    response.headers["Cache-Control"] = "no-store"
+    response: RedirectResponse = redirect_to("/dashboard")
+    remember = bool(data.get("remember"))
+    tiger_auth.store_tokens(response, request, message, refresh, remember)
     return response

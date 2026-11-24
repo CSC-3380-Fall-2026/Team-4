@@ -1,77 +1,127 @@
 {% from "components/page_message.html" import show_message %}
-<div class="account-panel">
-    {% if error %}{{ show_message("error", "Please check your information", error) }}{% endif %}
-    {% if message %}{{ show_message("success", "Registration requested", message, "/login", "Open Log in") }}{% endif %}
 
-    <form method="post" action="/account/{{ mode }}" class="account-form" id="account-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<div class="account-panel">
+    {% if error %}
+        {{ show_message("error", "Please check your information", error) }}
+    {% endif %}
+
+    {% if message %}
+        {{ show_message(
+            "success",
+            "Registration requested",
+            message,
+            "/login",
+            "Open Log in"
+        ) }}
+    {% endif %}
+
+    <form method="post"
+          action="/account/{{ mode }}"
+          class="account-form"
+          id="account-form"
+          data-mode="{{ mode }}"
+          {% if message %}data-signed-up="1"{% endif %}>
+
+        <input type="hidden"
+               name="csrf_token"
+               value="{{ csrf_token }}">
 
         {% if mode == 'signup' %}
-        {# TODO: full name is not saved yet, the signup backend only takes email + password #}
         <div class="form-field">
             <label for="account-name">Full name</label>
-            <input id="account-name" type="text" name="full_name" autocomplete="name" maxlength="80"
+            <input id="account-name"
+                   type="text"
+                   name="full_name"
+                   value="{{ full_name | default('') }}"
+                   autocomplete="name"
+                   maxlength="80"
                    placeholder="Your first and last name">
+        </div>
+
+        <div class="form-field">
+            <label for="account-username">Choose a unique username</label>
+            <input id="account-username"
+                   type="text"
+                   name="username"
+                   value="{{ username | default('') }}"
+                   autocomplete="username"
+                   autocapitalize="none"
+                   spellcheck="false"
+                   minlength="3"
+                   maxlength="40"
+                   pattern="[A-Za-z0-9_]{3,40}"
+                   title="Use 3 to 40 letters, numbers, or underscores."
+                   aria-describedby="username-help"
+                   required>
+
+            <p id="username-help" class="field-help">
+                Use 3–40 letters, numbers, or underscores.
+                Friends will find you by this name.
+            </p>
         </div>
         {% endif %}
 
         <div class="form-field">
             <label for="account-email">University email</label>
-            <input id="account-email" type="email" name="email" value="{{ email }}" autocomplete="email"
-                   maxlength="254" placeholder="you@university.edu" required>
+            <input id="account-email"
+                   type="email"
+                   name="email"
+                   value="{{ email }}"
+                   autocomplete="email"
+                   maxlength="254"
+                   placeholder="you@university.edu"
+                   required>
         </div>
 
         <div class="form-field">
             <div class="label-row">
-                <label for="account-password">{{ 'Password' if mode == 'login' else 'Create a password' }}</label>
-                {% if mode == 'login' %}
-                    {# TODO: no password reset page yet #}
-                    <a class="small-link" href="/login">Forgot password?</a>
-                {% endif %}
+                <label for="account-password">
+                    {{ 'Password' if mode == 'login' else 'Create a password' }}
+                </label>
             </div>
-            <input id="account-password" type="password" name="password"
+
+            <input id="account-password"
+                   type="password"
+                   name="password"
                    autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}"
+                   {% if mode == 'signup' %}minlength="8"{% endif %}
                    maxlength="1024"
-                   placeholder="{{ 'Enter your password' if mode == 'login' else 'Choose a strong password' }}" required>
+                   placeholder="{{ 'Enter your password' if mode == 'login' else 'Choose a strong password' }}"
+                   required>
+
             {% if mode == 'signup' %}
-                <p class="field-help">Use at least 8 characters, including a number.</p>
+                <p class="field-help">
+                    Use at least 8 characters, including a number.
+                </p>
             {% endif %}
         </div>
 
         {% if mode == 'signup' %}
-            {# the figma only has one password box but the backend still checks confirm_password,
-               so we copy the password into this hidden one when the form is sent #}
-            <input id="confirm-password" type="hidden" name="confirm_password" value="">
-
             <label class="check-row">
                 <input type="checkbox" name="terms" required>
                 <span>I agree to the Terms of Service and Privacy Policy.</span>
             </label>
         {% else %}
-            {# TODO: this box does not change how long you stay logged in yet #}
             <label class="check-row">
-                <input type="checkbox" name="remember" checked>
+                <input type="checkbox" name="remember">
                 <span>Keep me logged in</span>
             </label>
         {% endif %}
 
         <button class="auth-button" type="submit">
-            {% if mode == 'login' %}LOG IN <span aria-hidden="true">↗</span>{% else %}CREATE ACCOUNT{% endif %}
+            {{ 'LOG IN' if mode == 'login' else 'CREATE ACCOUNT' }}
         </button>
     </form>
 
     {% if mode == 'login' %}
-        <p class="auth-switch">New around here? <a href="/signup">Create an account <span aria-hidden="true">↗</span></a></p>
+        <p class="auth-switch">
+            New around here?
+            <a href="/signup">Create an account</a>
+        </p>
     {% else %}
-        <p class="auth-switch">Already have an account? <a href="/login">Log in <span aria-hidden="true">↗</span></a></p>
+        <p class="auth-switch">
+            Already have an account?
+            <a href="/login">Log in</a>
+        </p>
     {% endif %}
 </div>
-
-{% if mode == 'signup' %}
-<script>
-    // copy the password into the hidden confirm box right before the form sends
-    document.getElementById("account-form").addEventListener("submit", function () {
-        document.getElementById("confirm-password").value = document.getElementById("account-password").value;
-    });
-</script>
-{% endif %}

@@ -20,14 +20,14 @@
         {# TODO: the number is the sample one from the figma, the plan count is not saved yet #}
         <a class="page-button my-plan-button" href="/planning">My plan · 4</a>
 
-        <button class="visually-hidden" type="submit">Search</button>
+        <button class="visually-hidden" type="submit" tabindex="-1">Search</button>
     </div>
 
     {# ---------- filter chips ---------- #}
     <div class="catalog-chips">
         {# this one is real, it is the category filter we already had #}
         <label class="visually-hidden" for="category">Department</label>
-        <select id="category" name="category" class="chip chip-select" onchange="this.form.submit()">
+        <select id="category" name="category" class="chip chip-select">
             <option value="">All departments</option>
             {% if category and category not in categories %}
                 <option value="{{ category }}" selected>Invalid category: {{ category }}</option>
@@ -57,7 +57,7 @@
 
 <div class="catalog-heading">
     <h2>Recommended for your next chapter</h2>
-    <p>{{ courses | length }} courses · Sort: Recommended <span aria-hidden="true">⌄</span></p>
+    <p>{{ courses | length }} {{ 'course' if courses | length == 1 else 'courses' }} · Sort: Recommended <span aria-hidden="true">⌄</span></p>
 </div>
 
 <div class="course-grid" role="region" aria-label="Course results">
@@ -79,7 +79,7 @@
 
             <footer>
                 <span>Seats not posted yet</span>
-                <a href="/planning"><span aria-hidden="true">+</span> Add to plan</a>
+                <a href="/planning"><span aria-hidden="true">+</span> Add to plan<span class="visually-hidden"> {{ course.course_code }}</span></a>
             </footer>
         </div>
     </article>
@@ -87,4 +87,10 @@
 </div>
 
 {% endif %}
+{% endblock %}
+{% block scripts %}
+    <script
+        type="module"
+        src="{{ url_for('static', path='/js/catalog.js') }}?v=ts1"
+    ></script>
 {% endblock %}

@@ -232,6 +232,13 @@
     color: var(--muted);
 }
 
+.today-day {
+    display: block;
+    margin-top: 4px;
+    font-size: 7px;
+    letter-spacing: 0.4px;
+}
+
 .today-item {
     height: 46px;
     padding-left: 14px;
@@ -395,7 +402,7 @@
     margin-top: 14px;
     font-size: 12px;
     line-height: 17px;
-    color: #b08a3c;
+    color: #6f5726;
     max-width: 200px;
 }
 
@@ -448,7 +455,7 @@
 }
 
 .catalog-search input::placeholder {
-    color: #b8afc6;
+    color: #68597d;
 }
 
 .catalog-search input:focus,
@@ -603,9 +610,10 @@
     font-size: 24px;
     line-height: 28px;
     color: var(--ink);
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .course-text {
@@ -634,7 +642,7 @@
 }
 
 .course-card footer span {
-    color: #9a80c9;
+    color: var(--purple);
 }
 
 .course-card footer a {
@@ -680,6 +688,12 @@
     width: 167px;
     height: 38px;
     text-align: center;
+}
+
+.projector-load {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .soft-select-link {
@@ -761,7 +775,7 @@
 }
 
 .plain-input::placeholder {
-    color: #b8afc6;
+    color: #68597d;
 }
 
 .credit-input {
@@ -826,7 +840,7 @@
 }
 
 .target-field input {
-    width: 64px;
+    width: 76px;
     height: 30px;
     padding: 0 10px;
     background: var(--field);
@@ -1247,6 +1261,12 @@
     background: #d3c6e3;
 }
 
+/* the file input inside is visually hidden, so the label shows its focus */
+.upload-button:focus-within {
+    outline: 2px solid var(--purple);
+    outline-offset: 2px;
+}
+
 .transcript-card .page-button {
     align-self: flex-end;
     width: 128px;
@@ -1267,6 +1287,62 @@
 
 .profile-actions .page-button {
     width: 148px;
+}
+
+.workday-card p {
+    margin-top: 12px;
+}
+
+.workday-card #workday-progress:empty {
+    margin-top: 0;
+}
+
+.workday-card #workday-last {
+    font-size: 12px;
+}
+
+.workday-card #workday-progress {
+    font-size: 12px;
+    color: var(--ink);
+}
+
+.workday-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.workday-card .page-button:disabled,
+.workday-card .secondary-button:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.term-gpa-table {
+    width: 100%;
+    margin: 16px 0 8px;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.term-gpa-table th {
+    padding: 0 0 6px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted-dark);
+}
+
+.term-gpa-table td {
+    padding: 10px 0;
+    border-top: 1px solid var(--card-line);
+}
+
+.term-gpa-table th:last-child,
+.term-gpa-table td:last-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 /* =====================================================
@@ -1522,7 +1598,7 @@
     margin-top: 14px;
     font-size: 10px;
     line-height: 17px;
-    color: #b08a3c;
+    color: #6f5726;
     max-width: 200px;
 }
 
@@ -1846,7 +1922,7 @@
 
 .friends-tab:focus-visible,
 .share-link:focus-visible {
-    outline: 2px solid var(--gold);
+    outline: 2px solid var(--purple);
     outline-offset: 2px;
 }
 
@@ -1899,7 +1975,7 @@
 }
 
 #friend-username::placeholder {
-    color: #b8afc6;
+    color: #68597d;
 }
 
 #friend-username:focus {
@@ -1968,7 +2044,7 @@
 }
 
 .friend-check:focus-visible {
-    outline: 2px solid var(--gold);
+    outline: 2px solid var(--purple);
     outline-offset: 2px;
 }
 
@@ -1996,7 +2072,7 @@
 }
 
 .share-card {
-    height: 221px;
+    min-height: 221px;
     margin-top: 27px;
     padding: 24px 22px;
     background: var(--gold);
@@ -2266,7 +2342,7 @@
 }
 
 .plan-best .plan-length {
-    color: #b08a3c;
+    color: #6f5726;
 }
 
 .plan-button {
@@ -2438,5 +2514,17 @@
 
     .friends-tab {
         margin-right: 16px;
+    }
+
+    /* the bars are fixed width; let the gaps shrink so the card fits a phone */
+    .growth-bars {
+        justify-content: space-between;
+        gap: 8px;
+        padding-right: 11px;
+    }
+
+    /* every hour label does not fit on a phone, show every other one */
+    .overlap-hours span:nth-child(even) {
+        visibility: hidden;
     }
 }

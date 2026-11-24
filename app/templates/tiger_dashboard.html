@@ -9,8 +9,8 @@
         <p class="stat-label">Cumulative GPA</p>
         <p class="stat-number">{% if data.gpa is not none %}{{ "%.2f" | format(data.gpa) }}{% else %}—{% endif %}</p>
         <p class="stat-note">
-            {% if data.forecast and data.gpa is not none %}
-                {% set change = data.forecast.cumulative_gpa - data.gpa %}
+            {% if data.forecast and data.forecast.current_gpa is not none %}
+                {% set change = data.forecast.cumulative_gpa - data.forecast.current_gpa %}
                 {{ '↑' if change >= 0 else '↓' }} {{ "%.2f" | format(change | abs) }} projected this semester
             {% elif data.forecast %}
                 {{ data.forecast.planned_credits }} planned credit hours
@@ -93,12 +93,11 @@
         <h2>On your schedule</h2>
 
         {% if data.events %}
-            <p class="today-date">{{ data.events[0].starts_at.strftime('%a, %b %d') | upper }}</p>
             <ol class="today-list">
                 {# the figma shows 3, so we only show the next 3 #}
                 {% for event in data.events[:3] %}
                 <li>
-                    <time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%H:%M') }}</time>
+                    <time datetime="{{ event.starts_at.isoformat() }}">{{ event.starts_at.strftime('%H:%M') }}<span class="today-day">{{ event.starts_at.strftime('%b %d') | upper }}</span></time>
                     <div class="today-item {{ loop.cycle('mark-lilac', 'mark-lilac', 'mark-yellow') }}">
                         <strong>{{ event.title }}</strong>
                         {% if event.location %}<span>{{ event.location }}</span>{% endif %}

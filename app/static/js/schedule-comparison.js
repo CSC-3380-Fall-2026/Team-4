@@ -1,13 +1,11 @@
-(() => {
-const { scheduleState } = window.SchedulePrototype;
-
-const renderComparison = () => {
-    if (scheduleState.schedules.length === 0) {
-        return;
-    }
+import { requiredElement } from "./dom.js";
+import { scheduleState } from "./schedule-data.js";
+export const renderComparison = () => {
     ["A", "B"].forEach((side) => {
-        const selector = document.querySelector(`#schedule-selector-${side}`);
-        // Retain a valid selection when the schedule list is rebuilt.
+        const selector = requiredElement(`#schedule-selector-${side}`);
+        const container = requiredElement(`#schedule-${side}-metrics`);
+        const totalHours = requiredElement('[data-comparison-metric="total-hours"]', container);
+        const daysBusy = requiredElement('[data-comparison-metric="days-busy"]', container);
         const previousValue = selector.value;
         selector.replaceChildren();
         scheduleState.schedules.forEach((schedule) => {
@@ -16,24 +14,23 @@ const renderComparison = () => {
             option.textContent = schedule.name;
             selector.append(option);
         });
+        const firstSchedule = scheduleState.schedules[0];
+        const selectedExists = scheduleState.schedules.some((schedule) => schedule.id === scheduleState.selectedScheduleId);
+        const fallback = side === "A" && selectedExists
+            ? scheduleState.selectedScheduleId
+            : firstSchedule?.id ?? "";
         selector.value = scheduleState.schedules.some((schedule) => schedule.id === previousValue)
             ? previousValue
-            : side === "A" ? scheduleState.selectedScheduleId : scheduleState.schedules[0].id;
-
-        const metrics = scheduleState.metrics[selector.value];
-        const container = document.querySelector(`#schedule-${side}-metrics`);
-        container.querySelector('[data-comparison-metric="total-hours"]').textContent = metrics.totalHours;
-        container.querySelector('[data-comparison-metric="days-busy"]').textContent = metrics.daysBusy;
-
-        selector.onchange = () => {
-            const selectedMetrics = scheduleState.metrics[selector.value];
-            container.querySelector('[data-comparison-metric="total-hours"]').textContent =
-                selectedMetrics.totalHours;
-            container.querySelector('[data-comparison-metric="days-busy"]').textContent =
-                selectedMetrics.daysBusy;
+            : fallback;
+        selector.disabled = !firstSchedule;
+        const renderMetrics = () => {
+            const metrics = scheduleState.metrics[selector.value];
+            totalHours.textContent = metrics
+                ? String(metrics.totalHours)
+                : "—";
+            daysBusy.textContent = metrics?.daysBusy ?? "—";
         };
+        renderMetrics();
+        selector.onchange = renderMetrics;
     });
 };
-
-window.SchedulePrototype.renderComparison = renderComparison;
-})();

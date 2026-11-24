@@ -1,0 +1,49 @@
+<dialog id="workday-dialog"
+        class="workday-dialog"
+        aria-labelledby="workday-title"
+        aria-describedby="workday-description">
+
+    <div class="workday-heading">
+        <h2 id="workday-title">Do you want to connect to Workday?</h2>
+
+        <button type="button"
+                class="workday-close"
+                data-workday-close
+                aria-label="Close Workday prompt">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+    </div>
+
+    <div class="workday-content">
+        <p id="workday-description">
+            Import your GPA, completed courses and this term's classes from LSU Workday.
+            A Chromium window will open for you to sign in.
+        </p>
+
+        <p id="workday-progress-dialog" role="status" aria-live="polite" tabindex="-1"></p>
+
+        <div class="workday-actions">
+            <button type="button"
+                    id="workday-connect"
+                    class="workday-button">
+
+                <img
+                    src="https://workday.scene7.com/is/image/workday/logo-workday-primary-registered-1?fmt=webp-alpha"
+                    alt=""
+                    width="100"
+                    height="40"
+                    loading="lazy"
+                    referrerpolicy="no-referrer">
+
+                <span>Connect</span>
+            </button>
+
+            <button type="button"
+                    class="secondary-button workday-later"
+                    data-workday-close
+                    autofocus>
+                Not now
+            </button>
+        </div>
+    </div>
+</dialog>

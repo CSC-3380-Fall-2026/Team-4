@@ -1,7 +1,7 @@
 
 import pytest
 
-from app.tiger_prerequisites import check_prerequisites
+from app.routers.tiger_catalog import check_prerequisites
 
 
 def test_completed_prerequisite():
@@ -50,14 +50,14 @@ def test_unsupported_course():
 
 
 def test_all_17_courses_have_prerequisite_records():
-    from app.tiger_prerequisites import load_prerequisites
+    from app.routers.tiger_catalog import load_prerequisites
 
     catalog = load_prerequisites()
     assert len(catalog) == 17
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from app.tiger_prerequisites import router
+from app.routers.tiger_catalog import router
 
 
 def test_prerequisite_api_missing_course():
@@ -89,3 +89,15 @@ def test_prerequisite_api_unsupported_course():
     )
 
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize("grade", ["F", "W"])
+def test_no_minimum_still_needs_a_pass(grade):
+    """A prerequisite without a minimum grade is not met by F or W."""
+    result = check_prerequisites("CSC 1350", {"MATH 1550": grade})
+    assert result["eligible"] is False
+    assert result["satisfied"] == []
+
+
+def test_no_minimum_accepts_d_minus():
+    assert check_prerequisites("CSC 1350", {"MATH 1550": "D-"})["eligible"] is True

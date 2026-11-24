@@ -17,9 +17,9 @@ from vercel_entry import app
 import tiger_auth
 from fake_supabase import FakeDatabase
 from test_connor_pages import sample_plan, submit_plan
-from tiger_dashboard import upcoming_events
-from tiger_models import Classes, Schedule, ScheduleEvent
-from tiger_schedule_store import to_row
+from routers.tiger_dashboard import upcoming_events
+from models.tiger_schedules import Classes, Schedule, ScheduleEvent
+from routers.tiger_schedules_store import to_row
 
 PROTECTED: list[str] = [
     "/",
@@ -309,11 +309,32 @@ def test_events_from_schedules(fake_db: FakeDatabase) -> None:
     )
     items = page.select("#upcoming-events li")
     stamps = [item.select_one("time")["datetime"] for item in items]
-    assert len(items) == 6 and stamps == sorted(stamps)
+    assert len(items) == 3 and stamps == sorted(stamps)
     assert "Bob event" not in page.get_text()
-    selected: str = page.select_one("#selected-schedule").get_text(" ", strip=True)
-    assert "Fall plan" in selected and "Fall 2026" in selected
-    assert "Courses 1" in selected and "Credit hours 3" in selected
+
+    selected = page.select_one("#selected-schedule")
+    assert selected.select_one(".stat-number").get_text(strip=True) == "3"
+    assert "credits across 1 classes" in selected.get_text(" ", strip=True)
+    assert "Fall 2026" in page.select_one(".top-semester").get_text()
+
+
+def test_dashboard_item_dates(fake_db: FakeDatabase) -> None:
+    """Print each upcoming item's own day, not the first item's day.
+
+    Args:
+        fake_db: Fake Supabase.
+    """
+    add_schedule(fake_db, "alice", "Daily", [meeting("Late", EVERY_DAY, "23:58", "23:59")])
+    page: BeautifulSoup = BeautifulSoup(
+        browser("token-alice").get("/dashboard").text, "html.parser"
+    )
+    items = page.select("#upcoming-events li")
+    days = [item.select_one(".today-day").get_text() for item in items]
+    expected = [
+        datetime.fromisoformat(item.select_one("time")["datetime"]).strftime("%b %d").upper()
+        for item in items
+    ]
+    assert len(set(days)) == 3 and days == expected
 
 
 def test_dashboard_empty(fake_db: FakeDatabase) -> None:
@@ -334,10 +355,25 @@ def test_dashboard_profile(fake_db: FakeDatabase) -> None:
         fake_db: Fake Supabase.
     """
     fake_db.rows("profiles").append(
-        {"id": "alice", "gpa": 3.4, "completed_credit_hours": 45}
+        {
+            "id": "alice",
+            "gpa": 3.4,
+            "completed_credit_hours": 45,
+        }
     )
-    page: str = browser("token-alice").get("/dashboard").text
-    assert "Current GPA 3.40" in page and "45 completed credit hours" in page
+
+    page: BeautifulSoup = BeautifulSoup(
+        browser("token-alice").get("/dashboard").text,
+        "html.parser",
+    )
+
+    assert page.select_one(
+        "#gpa-summary .stat-number"
+    ).get_text(strip=True) == "3.40"
+
+    assert page.select_one(
+        ".stat-gold .stat-number"
+    ).get_text(strip=True) == "45 / 120"
 
 
 def test_dashboard_storage_down(fake_db: FakeDatabase) -> None:
@@ -371,3 +407,455 @@ def test_occurrences() -> None:
     ]
     assert len(found) == 6
     assert all(item.starts_at.tzinfo is not None for item in found)
+
+
+def test_semester_uses_campus_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    """At 10 pm on May 31 in Baton Rouge it is still spring, though UTC says June.
+
+    Args:
+        monkeypatch: Fixture that freezes the clock.
+    """
+    from routers import tiger_schedules_store
+
+    instant = datetime(2026, 6, 1, 3, 0, tzinfo=ZoneInfo("UTC"))
+
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return instant.astimezone(tz) if tz else instant.replace(tzinfo=None)
+
+        @classmethod
+        def today(cls):
+            return instant.date()  # a server clock running on UTC, as on Vercel
+
+    monkeypatch.setattr(tiger_schedules_store, "datetime", Frozen)
+    monkeypatch.setattr(tiger_schedules_store, "date", Frozen)
+    assert tiger_schedules_store.current_semester() == "Spring 2026"
+
+
+def course(code: str, credit: int, day: str) -> Classes:
+    """Build a class entry as the Schedule page stores it.
+
+    Args:
+        code: Course code, such as "CSC 3380".
+        credit: Credit hours.
+        day: Meeting day.
+
+    Returns:
+        The class.
+    """
+    department, number = code.split()
+    return Classes(
+        title=code, days=[day], start="10:00", end="11:00", department=department,
+        number=int(number), grade=0.0, semester="Fall 2026", category="Core", credit=credit,
+    )
+
+
+def load_into_plan(fake_db: FakeDatabase, events: list[ScheduleEvent]) -> httpx.Response:
+    """Save a schedule for alice and press "Load courses" on the planner.
+
+    Args:
+        fake_db: Fake Supabase.
+        events: The schedule's events.
+
+    Returns:
+        The planner response.
+    """
+    add_schedule(fake_db, "alice", "Fall plan", events)
+    schedule_id = fake_db.rows("schedules")[-1]["id"]
+    values = {**sample_plan(), "action": "load_schedule", "schedule_id": schedule_id}
+    return submit_plan(browser("token-alice"), values)
+
+
+def test_planner_loads_schedule_courses(fake_db: FakeDatabase) -> None:
+    """Loading a schedule fills one row per course with its credits."""
+    response = load_into_plan(
+        fake_db, [course("CSC 3380", 3, "Monday"), course("MATH 2057", 4, "Tuesday")]
+    )
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.text, "html.parser")
+    assert [f["value"] for f in soup.select("[name=course_name]")] == ["CSC 3380", "MATH 2057"]
+    assert [f["value"] for f in soup.select("[name=course_credit]")] == ["3", "4"]
+
+
+def test_planner_duplicate_course_keeps_rows(fake_db: FakeDatabase) -> None:
+    """A schedule listing a course twice is refused and the typed rows stay."""
+    response = load_into_plan(
+        fake_db, [course("CSC 3380", 3, "Monday"), course("CSC 3380", 3, "Tuesday")]
+    )
+    assert response.status_code == 409
+    assert "multiple entries for the same course" in response.text
+    soup = BeautifulSoup(response.text, "html.parser")
+    names = [f["value"] for f in soup.select("[name=course_name]")]
+    assert names == sample_plan()["course_name"]
+
+
+def test_failed_target_not_saved(fake_db: FakeDatabase) -> None:
+    """A plan whose target cannot be calculated is shown but not saved."""
+    tab = browser("token-alice")
+    values = {**sample_plan(), "target_gpa": "4.3"}
+    assert submit_plan(tab, values).status_code == 400
+    assert fake_db.rows("forecasts") == []
+    assert "No GPA forecast yet" in tab.get("/dashboard").text
+
+
+def test_dashboard_events_from_first_schedule(fake_db: FakeDatabase) -> None:
+    """Upcoming events come from one schedule, not every alternative mixed."""
+    add_schedule(fake_db, "alice", "Plan A", [meeting("Plan A class", EVERY_DAY, "23:58", "23:59")])
+    add_schedule(fake_db, "alice", "Plan B", [meeting("Plan B class", EVERY_DAY, "23:58", "23:59")])
+    page = browser("token-alice").get("/dashboard").text
+    assert "Plan A class" in page
+    assert "Plan B class" not in page
+
+
+def add_synced(db: FakeDatabase, uid: str, term: str, title: str) -> None:
+    """Store a schedule the way a Workday sync leaves it, marker included.
+
+    Args:
+        db: Fake database.
+        uid: Owner id.
+        term: The Workday term the schedule was made for.
+        title: Title of its one class meeting.
+    """
+    add_schedule(db, uid, f"{term} (Workday)", [meeting(title, EVERY_DAY, "23:58", "23:59")])
+    marker = {"workday_term": term, "workday_imported": []}
+    db.rows("schedules")[-1]["commitments"].append(marker)
+
+
+def test_dashboard_prefers_workday_schedule(fake_db: FakeDatabase) -> None:
+    """A Workday schedule whose term is not over beats the oldest schedule."""
+    add_schedule(fake_db, "alice", "Plan A", [meeting("Plan A class", EVERY_DAY, "23:58", "23:59")])
+    add_synced(fake_db, "alice", "Fall Semester 2000", "Old term class")
+    add_synced(fake_db, "alice", "Spring Semester 9999", "Later term class")
+    add_synced(fake_db, "alice", "Fall Semester 9998", "Next term class")
+    page = browser("token-alice").get("/dashboard").text
+    assert "Next term class" in page
+    assert not any(title in page for title in ("Plan A class", "Old term class", "Later term class"))
+
+
+def test_dashboard_past_workday_term_ignored(fake_db: FakeDatabase) -> None:
+    """With only a finished Workday term, the oldest schedule is still shown."""
+    add_schedule(fake_db, "alice", "Plan A", [meeting("Plan A class", EVERY_DAY, "23:58", "23:59")])
+    add_synced(fake_db, "alice", "Fall Semester 2000", "Old term class")
+    page = browser("token-alice").get("/dashboard").text
+    assert "Plan A class" in page and "Old term class" not in page
+
+
+def test_dashboard_counts_earned_hours(fake_db: FakeDatabase) -> None:
+    """Degree progress counts transfer and Pass credit, not only GPA hours."""
+    courses = [
+        {"course_code": "MATH 1550", "course_name": "Calc", "credits": 12,
+         "term": "Transfer Credit", "grade": "Pass"},
+        {"course_code": "CSC 1350", "course_name": "CS I", "credits": 12,
+         "term": "Fall Semester 2025", "grade": "A (HNR)"},
+        {"course_code": "HIST 1001", "course_name": "History", "credits": 3,
+         "term": "Fall Semester 2025", "grade": "F"},
+    ]
+    fake_db.rows("profiles").append(
+        {"id": "alice", "gpa": 3.2, "completed_credit_hours": 15, "courses": courses}
+    )
+    page = BeautifulSoup(browser("token-alice").get("/dashboard").text, "html.parser")
+    assert page.select_one(".stat-gold .stat-number").get_text(strip=True) == "24 / 120"
+
+
+def test_login_sets_refresh_cookie(fake_db: FakeDatabase) -> None:
+    """Signing in stores both tokens in HTTP-only cookies."""
+    fake_db.users["alice@lsu.edu"] = {
+        "id": "alice", "email": "alice@lsu.edu", "password": "12345678", "meta": {}
+    }
+    tab = browser()
+    tab.get("/login")
+    response = tab.post(
+        "/account/login",
+        data={"csrf_token": tab.cookies["tiger_csrf"], "email": "alice@lsu.edu",
+              "password": "12345678"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    cookies = response.headers.get_list("set-cookie")
+    assert any(c.startswith("tiger_access=token-alice") and "HttpOnly" in c for c in cookies)
+    assert any(c.startswith("tiger_refresh=refresh-alice") and "HttpOnly" in c for c in cookies)
+
+
+@pytest.mark.parametrize("path", ["/dashboard", "/api/schedule-data"])
+def test_expired_access_is_refreshed(fake_db: FakeDatabase, path: str) -> None:
+    """After the one-hour token expires, pages and the API renew the session."""
+    tab = browser("expired-token")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    response = tab.get(path, follow_redirects=False)
+    assert response.status_code == 200
+    cookies = response.headers.get_list("set-cookie")
+    assert any(c.startswith("tiger_access=token-alice") for c in cookies)
+    assert any(c.startswith("tiger_refresh=refresh-alice") for c in cookies)
+
+
+def test_bad_refresh_still_signs_out(fake_db: FakeDatabase) -> None:
+    """A refresh token Supabase refuses leads to the login page or a 401."""
+    tab = browser()
+    tab.cookies.set("tiger_refresh", "stolen")
+    assert tab.get("/dashboard", follow_redirects=False).headers["location"] == "/login"
+    assert tab.get("/api/schedule-data").status_code == 401
+
+
+def test_logout_clears_both_cookies(fake_db: FakeDatabase, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Logging out removes the access and refresh cookies."""
+    monkeypatch.setattr(tiger_auth, "logout", Mock(return_value=True))
+    tab = browser("token-alice")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    tab.get("/login")
+    response = tab.post(
+        "/account/logout", data={"csrf_token": tab.cookies["tiger_csrf"]},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    cleared = response.headers.get_list("set-cookie")
+    for name in ("tiger_access", "tiger_refresh"):
+        assert any(c.startswith(f'{name}=""') and "Max-Age=0" in c for c in cleared)
+
+
+def test_login_form_has_no_dead_options(fake_db: FakeDatabase) -> None:
+    """An unticked "Keep me logged in" box, and no "Forgot password?" link."""
+    page = BeautifulSoup(browser().get("/login").text, "html.parser")
+    box = page.find("input", attrs={"name": "remember"})
+    assert box is not None and box.get("type") == "checkbox"
+    assert not box.has_attr("checked")
+    assert "Keep me logged in" in page.text
+    assert "Forgot password" not in page.text
+
+
+def log_in(fake_db: FakeDatabase, remember: bool) -> tuple[TestClient, str]:
+    """Sign alice in through the form, with or without "Keep me logged in".
+
+    Args:
+        fake_db: Fake Supabase holding alice's account.
+        remember: Whether the box is ticked.
+
+    Returns:
+        The browser and the refresh cookie header it was sent.
+    """
+    fake_db.users["alice@lsu.edu"] = {
+        "id": "alice", "email": "alice@lsu.edu", "password": "12345678", "meta": {}
+    }
+    tab = browser()
+    tab.get("/login")
+    form = {"csrf_token": tab.cookies["tiger_csrf"], "email": "alice@lsu.edu",
+            "password": "12345678"}
+    if remember:
+        form["remember"] = "on"
+    response = tab.post("/account/login", data=form, follow_redirects=False)
+    cookies = response.headers.get_list("set-cookie")
+    return tab, next(c for c in cookies if c.startswith("tiger_refresh="))
+
+
+def renewed_refresh(tab: TestClient) -> str:
+    """Let the access token expire and return the renewed refresh cookie header.
+
+    Args:
+        tab: A signed-in browser.
+
+    Returns:
+        The refresh cookie header set while renewing.
+    """
+    tab.cookies.set("tiger_access", "expired-token")
+    cookies = tab.get("/api/schedule-data").headers.get_list("set-cookie")
+    return next(c for c in cookies if c.startswith("tiger_refresh="))
+
+
+def test_unticked_login_ends_with_browser(fake_db: FakeDatabase) -> None:
+    """Without "Keep me logged in" the refresh cookie lasts one browser session."""
+    tab, cookie = log_in(fake_db, remember=False)
+    assert "Max-Age" not in cookie and "expires" not in cookie.lower()
+    renewed = renewed_refresh(tab)
+    assert "Max-Age" not in renewed and "expires" not in renewed.lower()
+
+
+def test_ticked_login_lasts_30_days(fake_db: FakeDatabase) -> None:
+    """With "Keep me logged in" the refresh cookie lasts 30 days, also once renewed."""
+    tab, cookie = log_in(fake_db, remember=True)
+    assert "Max-Age=2592000" in cookie
+    assert "Max-Age=2592000" in renewed_refresh(tab)
+
+
+def test_crash_still_renews_cookies(fake_db: FakeDatabase) -> None:
+    """A server error on the renewing request still hands over the new tokens."""
+    tab = TestClient(app, raise_server_exceptions=False)
+    tab.cookies.set("tiger_access", "expired-token")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    fake_db.broken.add("schedules")
+    response = tab.get("/api/schedule-data")
+    assert response.status_code == 500
+    cookies = response.headers.get_list("set-cookie")
+    assert any(c.startswith("tiger_access=token-alice") for c in cookies)
+    assert any(c.startswith("tiger_refresh=refresh-alice") for c in cookies)
+
+
+def log_out(tab: TestClient) -> list[str]:
+    """Submit the logout form.
+
+    Args:
+        tab: Browser to sign out.
+
+    Returns:
+        The set-cookie headers of the response.
+    """
+    tab.get("/login")
+    response = tab.post(
+        "/account/logout", data={"csrf_token": tab.cookies["tiger_csrf"]},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    return response.headers.get_list("set-cookie")
+
+
+def test_late_logout_revokes_session(
+    fake_db: FakeDatabase, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """After the hour, logout renews first so Supabase can revoke the session."""
+    revoke = Mock(return_value=True)
+    monkeypatch.setattr(tiger_auth, "logout", revoke)
+    tab = browser()
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    cookies = log_out(tab)
+    assert revoke.call_args.args[0].credentials == "token-alice"
+    for name in ("tiger_access", "tiger_refresh"):
+        assert [c for c in cookies if c.startswith(f"{name}=")] == [
+            c for c in cookies if c.startswith(f'{name}=""') and "Max-Age=0" in c
+        ]
+
+
+def test_logout_clears_when_supabase_fails(
+    fake_db: FakeDatabase, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Supabase being down never keeps the student signed in here."""
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(tiger_auth, "logout", Mock(side_effect=HTTPException(503)))
+    tab = browser("token-alice")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    cleared = log_out(tab)
+    for name in ("tiger_access", "tiger_refresh"):
+        assert any(c.startswith(f'{name}=""') and "Max-Age=0" in c for c in cleared)
+
+
+@pytest.mark.parametrize("proto,secure", [("https", True), (None, False)])
+def test_cookies_secure_behind_https_proxy(
+    fake_db: FakeDatabase, proto: str | None, secure: bool
+) -> None:
+    """Both login cookies are Secure when a proxy says HTTPS, not on plain http."""
+    fake_db.users["alice@lsu.edu"] = {
+        "id": "alice", "email": "alice@lsu.edu", "password": "12345678", "meta": {}
+    }
+    tab = browser()
+    headers = {"X-Forwarded-Proto": proto} if proto else {}
+    tab.get("/login")
+    response = tab.post(
+        "/account/login",
+        data={"csrf_token": tab.cookies["tiger_csrf"], "email": "alice@lsu.edu",
+              "password": "12345678"},
+        headers=headers,
+        follow_redirects=False,
+    )
+    cookies = response.headers.get_list("set-cookie")
+    for name in ("tiger_access", "tiger_refresh"):
+        cookie = next(c for c in cookies if c.startswith(f"{name}="))
+        assert ("; secure" in cookie.lower()) is secure
+
+
+@pytest.mark.parametrize("call", ["get_user", "refresh_session"])
+def test_outage_keeps_session(monkeypatch: pytest.MonkeyPatch, call: str) -> None:
+    """A Supabase outage answers 503 and keeps the login cookies.
+
+    Args:
+        monkeypatch: Fixture replacing the Supabase client.
+        call: The auth call that fails with a network error.
+    """
+    from supabase_auth.errors import AuthApiError, AuthRetryableError
+
+    backend: Mock = Mock()
+    backend.auth.get_user.side_effect = AuthApiError("expired", 401, "bad_jwt")
+    getattr(backend.auth, call).side_effect = AuthRetryableError("down", 0)
+    monkeypatch.setattr(tiger_auth, "auth_client", Mock(return_value=backend))
+    tab = browser("token-alice")
+    tab.cookies.set("tiger_refresh", "refresh-alice")
+    for path in ("/dashboard", "/api/schedule-data"):
+        response = tab.get(path, follow_redirects=False)
+        assert response.status_code == 503
+        assert "tiger_access" not in response.headers.get("set-cookie", "")
+
+
+def test_server_error_is_outage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 500 or 429 from Supabase is not treated as a signed-out student.
+
+    Args:
+        monkeypatch: Fixture replacing the Supabase client.
+    """
+    from supabase_auth.errors import AuthApiError
+
+    backend: Mock = Mock()
+    backend.auth.get_user.side_effect = AuthApiError("busy", 429, None)
+    monkeypatch.setattr(tiger_auth, "auth_client", Mock(return_value=backend))
+    assert browser("token-alice").get("/api/schedule-data").status_code == 503
+
+
+def test_forecast_change_from_plan_start(fake_db: FakeDatabase) -> None:
+    """The GPA tile compares the forecast with the GPA the plan started from.
+
+    Args:
+        fake_db: Fake Supabase.
+    """
+    fake_db.rows("profiles").append({"id": "alice", "gpa": 3.5, "courses": []})
+    alice = browser("token-alice")
+    submit_plan(alice, sample_plan())
+    assert fake_db.rows("forecasts")[0]["result"]["current_gpa"] == pytest.approx(3.0)
+    tile = BeautifulSoup(alice.get("/dashboard").text, "html.parser")
+    assert tile.select_one("#gpa-summary .stat-note").get_text(" ", strip=True) == (
+        "↑ 0.20 projected this semester"
+    )
+
+
+def test_old_forecast_shows_credits(fake_db: FakeDatabase) -> None:
+    """A forecast saved before the starting GPA was kept shows planned credits.
+
+    Args:
+        fake_db: Fake Supabase.
+    """
+    fake_db.rows("profiles").append({"id": "alice", "gpa": 3.5, "courses": []})
+    fake_db.rows("forecasts").append({"user_id": "alice", "result": {
+        "semester_gpa": 4.0, "cumulative_gpa": 3.2, "planned_credits": 15,
+    }})
+    tile = BeautifulSoup(browser("token-alice").get("/dashboard").text, "html.parser")
+    assert tile.select_one("#gpa-summary .stat-note").get_text(" ", strip=True) == (
+        "15 planned credit hours"
+    )
+
+
+@pytest.mark.parametrize("remember", [False, True])
+def test_access_cookie_follows_remember(fake_db: FakeDatabase, remember: bool) -> None:
+    """The access cookie ends with the browser unless "Keep me logged in" is ticked.
+
+    Args:
+        fake_db: Fake Supabase holding alice's account.
+        remember: Whether the box is ticked.
+    """
+    tab, _ = log_in(fake_db, remember)
+    tab.cookies.set("tiger_access", "expired-token")
+    cookies = tab.get("/api/schedule-data").headers.get_list("set-cookie")
+    renewed = next(c for c in cookies if c.startswith("tiger_access="))
+    assert ("Max-Age=3600" in renewed) is remember
+    assert "expires" not in renewed.lower() or remember
+
+
+def test_dashboard_logs_storage_errors(
+    fake_db: FakeDatabase, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Storage errors the dashboard hides are still logged with their trace.
+
+    Args:
+        fake_db: Fake Supabase.
+        caplog: Captures log records.
+    """
+    fake_db.broken.update({"schedules", "profiles"})
+    assert browser("token-alice").get("/dashboard").status_code == 200
+    logged = [r for r in caplog.records if r.name == "routers.tiger_dashboard"]
+    assert len(logged) == 2
+    assert all(r.exc_info for r in logged)

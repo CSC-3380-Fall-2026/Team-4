@@ -20,7 +20,8 @@ create unique index if not exists profiles_username_key
   on public.profiles (lower(username));
 
 -- Every account gets a profile row, so schedules and friends work before the
--- student fills in their profile.
+-- student fills in their profile. It carries the username chosen at signup;
+-- if another student took that name meanwhile, the row is made without it.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -28,8 +29,14 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email) values (new.id, new.email)
-  on conflict (id) do nothing;
+  begin
+    insert into public.profiles (id, email, username)
+    values (new.id, new.email, nullif(new.raw_user_meta_data ->> 'username', ''))
+    on conflict (id) do nothing;
+  exception when unique_violation then
+    insert into public.profiles (id, email) values (new.id, new.email)
+    on conflict (id) do nothing;
+  end;
   return new;
 end;
 $$;
@@ -60,6 +67,18 @@ create table if not exists public.schedules (
 alter table public.schedules
   add column if not exists color text not null default 'blue';
 
+-- A student's schedule names are unique ignoring case, so a double-click
+-- cannot create the same schedule twice. Older duplicates are renamed first.
+update public.schedules s
+set name = left(s.name, 49) || ' (' || left(s.id::text, 8) || ')'
+where exists (
+  select 1 from public.schedules o
+  where o.user_id = s.user_id and lower(o.name) = lower(s.name)
+    and (o.created_at, o.id) < (s.created_at, s.id)
+);
+create unique index if not exists schedules_user_name_key
+  on public.schedules (user_id, lower(name));
+
 -- Forecasts -----------------------------------------------------------------
 create table if not exists public.forecasts (
   user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,
@@ -77,6 +96,10 @@ create table if not exists public.friendships (
   check (requester_id <> addressee_id),
   unique (requester_id, addressee_id)
 );
+-- One friendship per pair whichever way it was sent, so crossed requests
+-- cannot both be stored.
+create unique index if not exists friendships_pair_key
+  on public.friendships (least(requester_id, addressee_id), greatest(requester_id, addressee_id));
 
 create table if not exists public.schedule_shares (
   id          uuid primary key default gen_random_uuid(),
@@ -98,6 +121,46 @@ as $$
   select id from public.profiles where lower(username) = lower(name) limit 1;
 $$;
 
+-- Usernames of the students linked to the caller by a friendship or request.
+-- Profiles stay private; this exposes only id and username to the two people
+-- involved, so the Friends page can show who sent a request.
+create or replace function public.friend_profiles()
+returns table (id uuid, username text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.id, p.username
+  from public.profiles p
+  where exists (
+    select 1 from public.friendships f
+    where (f.requester_id = auth.uid() and f.addressee_id = p.id)
+       or (f.addressee_id = auth.uid() and f.requester_id = p.id)
+  );
+$$;
+
+-- The signup form checks a username before the account exists, so this
+-- answers only yes or no and is open to signed-out visitors.
+create or replace function public.username_taken(name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.profiles where lower(username) = lower(name));
+$$;
+
+revoke all on function public.username_taken(text) from public;
+grant execute on function public.username_taken(text) to anon, authenticated;
+
+-- Only signed-in students may look up usernames.
+revoke all on function public.profile_id_for_username(text) from public, anon;
+grant execute on function public.profile_id_for_username(text) to authenticated;
+revoke all on function public.friend_profiles() from public, anon;
+grant execute on function public.friend_profiles() to authenticated;
+
 -- Row level security --------------------------------------------------------
 alter table public.profiles        enable row level security;
 alter table public.schedules       enable row level security;
@@ -109,16 +172,9 @@ drop policy if exists "own profile" on public.profiles;
 create policy "own profile" on public.profiles
   for all to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
+-- Friends see only each other's username, through friend_profiles(), never
+-- the whole profile row (GPA, courses, email).
 drop policy if exists "friends read profiles" on public.profiles;
-create policy "friends read profiles" on public.profiles
-  for select to authenticated using (
-    exists (
-      select 1 from public.friendships f
-      where f.status = 'accepted'
-      and ((f.requester_id = auth.uid() and f.addressee_id = profiles.id)
-        or (f.addressee_id = auth.uid() and f.requester_id = profiles.id))
-    )
-  );
 
 drop policy if exists "own schedules" on public.schedules;
 create policy "own schedules" on public.schedules
@@ -157,6 +213,10 @@ create policy "accept friend requests" on public.friendships
   using (addressee_id = auth.uid() and status = 'pending')
   with check (addressee_id = auth.uid() and status = 'accepted');
 
+-- Accepting changes only the status; the two students in a row never change.
+revoke update on public.friendships from authenticated;
+grant update (status) on public.friendships to authenticated;
+
 drop policy if exists "remove friendships" on public.friendships;
 create policy "remove friendships" on public.friendships
   for delete to authenticated using (requester_id = auth.uid() or addressee_id = auth.uid());
@@ -184,6 +244,12 @@ create policy "share own schedule with accepted friends" on public.schedule_shar
 drop policy if exists "stop sharing own schedules" on public.schedule_shares;
 create policy "stop sharing own schedules" on public.schedule_shares
   for delete to authenticated using (owner_id = auth.uid());
+
+-- The recipient can remove a share pointing at them, so unfriending clears
+-- shares in both directions.
+drop policy if exists "recipient removes share" on public.schedule_shares;
+create policy "recipient removes share" on public.schedule_shares
+  for delete to authenticated using (friend_id = auth.uid());
 
 -- Make the new tables visible to the API immediately.
 notify pgrst, 'reload schema';
