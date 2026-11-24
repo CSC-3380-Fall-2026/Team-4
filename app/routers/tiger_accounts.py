@@ -13,7 +13,7 @@ from models.tiger_accounts import (
     TokenResponse,
     UserAuthSchema,
 )
-from models.tiger_profile import AccountCard
+from models.tiger_profiles import AccountCard
 from tiger_views import redirect_to, render_page, set_cookie, valid_token
 
 MIN_PASSWORD: int = 8

@@ -17,7 +17,7 @@ from supabase import Client, ClientOptions, create_client
 from tiger_views import redirect_to
 
 from models.tiger_accounts import UserAuthSchema
-from models.tiger_profile import AccountCard, ProfileCourse, ProfileRecord
+from models.tiger_profiles import AccountCard, ProfileCourse, ProfileRecord
 from models.tiger_schedule import UserBase
 from models.tiger_session import Session
 

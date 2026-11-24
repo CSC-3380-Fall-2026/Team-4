@@ -7,8 +7,7 @@ from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException
 
 import tiger_auth
-import tiger_transcript
-from models.tiger_profile import (
+from models.tiger_profiles import (
     AccountCard,
     ProfileCourse,
     ProfileRecord,
@@ -16,10 +15,10 @@ from models.tiger_profile import (
 )
 from models.tiger_schedule import UserBase
 from models.tiger_session import Session
+from routers import tiger_profiles_transcript
 from tiger_auth import current_session, require_login
 from tiger_views import redirect_to, render_page, valid_token
 
-router: APIRouter = APIRouter()
 TOO_LARGE: str = "That PDF is too large (5 MB limit)."
 FORM_SLACK: int = 64 * 1024
 UNIQUE_VIOLATION: str = "23505"
@@ -193,7 +192,7 @@ def show_error(
 
 
 def draft_profile(
-    session: Session, parsed: tiger_transcript.ParsedTranscript
+    session: Session, parsed: tiger_profiles_transcript.ParsedTranscript
 ) -> AccountCard:
     """Merge a parsed transcript onto the student's saved profile for review.
 
@@ -245,6 +244,9 @@ def save_error(error: Exception) -> tuple[str, int]:
     return "Your profile couldn't be saved right now. Please try again.", 503
 
 
+router: APIRouter = APIRouter()
+
+
 @router.post("/profile/transcript", response_class=HTMLResponse)
 async def upload_transcript(
     request: Request, session: Session = Depends(require_login)
@@ -258,7 +260,7 @@ async def upload_transcript(
     Returns:
         The profile form pre-filled for review, or an error.
     """
-    if body_size(request) > tiger_transcript.MAX_UPLOAD_BYTES + FORM_SLACK:
+    if body_size(request) > tiger_profiles_transcript.MAX_UPLOAD_BYTES + FORM_SLACK:
         return show_error(request, session, TOO_LARGE, 400)
     try:
         form = await request.form(max_files=1, max_fields=2)
@@ -275,11 +277,11 @@ async def upload_transcript(
         return show_error(
             request, session, "Choose a transcript PDF to upload.", 400
         )
-    data = await upload.read(tiger_transcript.MAX_UPLOAD_BYTES + 1)
-    if len(data) > tiger_transcript.MAX_UPLOAD_BYTES:
+    data = await upload.read(tiger_profiles_transcript.MAX_UPLOAD_BYTES + 1)
+    if len(data) > tiger_profiles_transcript.MAX_UPLOAD_BYTES:
         return show_error(request, session, TOO_LARGE, 400)
     try:
-        parsed = await run_in_threadpool(tiger_transcript.parse_upload, data)
+        parsed = await run_in_threadpool(tiger_profiles_transcript.parse_upload, data)
     except ValueError as error:
         return show_error(request, session, str(error), 400)
     return render_page(

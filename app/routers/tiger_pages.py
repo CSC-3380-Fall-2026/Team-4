@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from lucide import lucide_icon
 
 import tiger_auth
-from models.tiger_profile import AccountCard
+from models.tiger_profiles import AccountCard
 from models.tiger_session import Session
 from tiger_auth import require_login
 from grade_scale import GRADE_POINTS

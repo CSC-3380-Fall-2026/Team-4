@@ -5,7 +5,7 @@ from io import BytesIO
 
 from pypdf import PdfReader
 
-from models.tiger_profile import ParsedTranscript, ProfileCourse
+from models.tiger_profiles import ParsedTranscript, ProfileCourse
 
 MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
 MAX_PAGES: int = 20
