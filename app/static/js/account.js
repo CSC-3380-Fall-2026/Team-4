@@ -32,15 +32,9 @@ function initializeAccount() {
     if (form.dataset.signedUp) {
         setPrompt(true);
     }
-    const password = document.querySelector("#account-password");
-    const confirmation = document.querySelector("#confirm-password");
     form.addEventListener("submit", (submitEvent) => {
         if (!form.checkValidity()) {
             submitEvent.preventDefault();
-            return;
-        }
-        if (password && confirmation) {
-            confirmation.value = password.value;
         }
     });
 }

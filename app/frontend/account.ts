@@ -44,22 +44,9 @@ function initializeAccount(): void {
         setPrompt(true);
     }
 
-    const password = document.querySelector<HTMLInputElement>(
-        "#account-password",
-    );
-
-    const confirmation = document.querySelector<HTMLInputElement>(
-        "#confirm-password",
-    );
-
     form.addEventListener("submit", (submitEvent) => {
         if (!form.checkValidity()) {
             submitEvent.preventDefault();
-            return;
-        }
-
-        if (password && confirmation) {
-            confirmation.value = password.value;
         }
     });
 }
