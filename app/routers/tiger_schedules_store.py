@@ -2,6 +2,7 @@
 
 from datetime import date, datetime, timezone
 from typing import Any, get_args
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 
@@ -18,6 +19,7 @@ from models.tiger_schedules import (
     UserBase,
 )
 
+ZONE: ZoneInfo = ZoneInfo("America/Chicago")
 TABLE: str = "schedules"
 SHARED_FIELDS: str = "id,name,semester,color,sections,commitments"
 FRIEND_LABEL: str = "Friend"
@@ -36,12 +38,12 @@ def current_semester(today: date | None = None) -> str:
     """Name the academic term that contains a date.
 
     Args:
-        today: Date to name, or None for the current date.
+        today: Date to name, or None for today in Baton Rouge.
 
     Returns:
         A label such as "Fall 2026".
     """
-    day = today or date.today()
+    day = today or datetime.now(ZONE).date()
     term = next(name for end, name in TERMS if day.month < end)
     return f"{term} {day.year}"
 

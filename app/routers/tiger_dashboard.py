@@ -1,7 +1,6 @@
 """Serve the dashboard page, built from the student's saved data."""
 
 from datetime import date, datetime, time, timedelta
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -17,13 +16,12 @@ from models.tiger_schedules import WEEKDAYS, Classes, Schedule, ScheduleEvent
 from models.tiger_session import Session
 from routers.tiger_catalog import check_prerequisites
 from routers.tiger_planning import read_forecast
-from routers.tiger_schedules_store import current_semester, list_schedules
+from routers.tiger_schedules_store import ZONE, current_semester, list_schedules
 from routers import tiger_profiles
 from routers.tiger_profiles import session_profile
 from tiger_auth import require_login
 from tiger_views import redirect_to, render_page
 
-ZONE: ZoneInfo = ZoneInfo("America/Chicago")
 WEEKS: int = 6
 LIMIT: int = 6
 

@@ -371,3 +371,27 @@ def test_occurrences() -> None:
     ]
     assert len(found) == 6
     assert all(item.starts_at.tzinfo is not None for item in found)
+
+
+def test_semester_uses_campus_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    """At 10 pm on May 31 in Baton Rouge it is still spring, though UTC says June.
+
+    Args:
+        monkeypatch: Fixture that freezes the clock.
+    """
+    from routers import tiger_schedules_store
+
+    instant = datetime(2026, 6, 1, 3, 0, tzinfo=ZoneInfo("UTC"))
+
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return instant.astimezone(tz) if tz else instant.replace(tzinfo=None)
+
+        @classmethod
+        def today(cls):
+            return instant.date()  # a server clock running on UTC, as on Vercel
+
+    monkeypatch.setattr(tiger_schedules_store, "datetime", Frozen)
+    monkeypatch.setattr(tiger_schedules_store, "date", Frozen)
+    assert tiger_schedules_store.current_semester() == "Spring 2026"
