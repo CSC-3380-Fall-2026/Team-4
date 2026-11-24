@@ -234,7 +234,8 @@ def save_sync(session: Session, data: WorkdayData, reset: bool) -> WorkdaySync:
     """
     row = tiger_profiles.profile_row(session)
     saved = tiger_profiles.readable_courses(row.get("courses"))
-    courses = list(data.courses) if reset else merge_courses(saved, list(data.courses))
+    found: list[ProfileCourse] = list(data.courses)
+    courses = found if reset else merge_courses(saved, found)
     stored = tiger_profiles.write_profile(
         session,
         ProfileRecord(

@@ -191,6 +191,7 @@ def read_workday() -> dict[str, Any]:
             raise WorkdayError(
                 "The Workday window was closed before the sync finished."
             ) from error
-        raise WorkdayError(f"Chromium could not open Workday: {str(error).splitlines()[0]}") from error
+        reason = str(error).splitlines()[0]
+        raise WorkdayError(f"Chromium could not open Workday: {reason}") from error
     (PROFILE_DIR / "last_sync.json").write_text(json.dumps(raw), encoding="utf-8")
     return raw

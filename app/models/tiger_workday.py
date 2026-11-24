@@ -37,13 +37,9 @@ class WorkdayPages(BaseModel):
 class WorkdayCourse(ProfileCourse):
     """A past course with the term it was taken in and its final grade.
 
-    Attributes:
-        term: Term name, such as "2024 Fall Semester" or "Transfer Credit".
-        grade: Grade as Workday shows it, such as "A-", "P" or "W".
+    The parser always sets term (such as "2024 Fall Semester" or "Transfer
+    Credit") and grade (as Workday shows it, such as "A-", "P" or "W").
     """
-
-    term: str  # pyright: ignore[reportIncompatibleVariableOverride]
-    grade: str  # pyright: ignore[reportIncompatibleVariableOverride]
 
 
 class WorkdaySection(BaseModel):

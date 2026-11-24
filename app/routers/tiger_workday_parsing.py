@@ -214,7 +214,7 @@ def past_courses(pages: WorkdayPages) -> list[WorkdayCourse]:
     courses = [
         course for table in pages.record for course in graded_courses(table, periods)
     ]
-    ordered = sorted(courses, key=lambda course: starts.get(course.term, date.max))
+    ordered = sorted(courses, key=lambda course: starts.get(course.term or "", date.max))
     return transfer_courses(pages.record) + ordered
 
 
@@ -312,7 +312,7 @@ def meeting_days(text: str) -> list[Weekday]:
         if word in DAY_NAMES:
             days.append(DAY_NAMES[word])
         elif re.fullmatch(f"{COMPACT_DAYS}+", word):
-            days += [DAY_NAMES[part] for part in re.findall(COMPACT_DAYS, word)]
+            days.extend(DAY_NAMES[part] for part in re.findall(COMPACT_DAYS, word))
     return list(dict.fromkeys(days))
 
 
