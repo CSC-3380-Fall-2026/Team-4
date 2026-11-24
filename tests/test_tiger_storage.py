@@ -508,6 +508,56 @@ def test_dashboard_events_from_first_schedule(fake_db: FakeDatabase) -> None:
     assert "Plan B class" not in page
 
 
+def add_synced(db: FakeDatabase, uid: str, term: str, title: str) -> None:
+    """Store a schedule the way a Workday sync leaves it, marker included.
+
+    Args:
+        db: Fake database.
+        uid: Owner id.
+        term: The Workday term the schedule was made for.
+        title: Title of its one class meeting.
+    """
+    add_schedule(db, uid, f"{term} (Workday)", [meeting(title, EVERY_DAY, "23:58", "23:59")])
+    marker = {"workday_term": term, "workday_imported": []}
+    db.rows("schedules")[-1]["commitments"].append(marker)
+
+
+def test_dashboard_prefers_workday_schedule(fake_db: FakeDatabase) -> None:
+    """A Workday schedule whose term is not over beats the oldest schedule."""
+    add_schedule(fake_db, "alice", "Plan A", [meeting("Plan A class", EVERY_DAY, "23:58", "23:59")])
+    add_synced(fake_db, "alice", "Fall Semester 2000", "Old term class")
+    add_synced(fake_db, "alice", "Spring Semester 9999", "Later term class")
+    add_synced(fake_db, "alice", "Fall Semester 9998", "Next term class")
+    page = browser("token-alice").get("/dashboard").text
+    assert "Next term class" in page
+    assert not any(title in page for title in ("Plan A class", "Old term class", "Later term class"))
+
+
+def test_dashboard_past_workday_term_ignored(fake_db: FakeDatabase) -> None:
+    """With only a finished Workday term, the oldest schedule is still shown."""
+    add_schedule(fake_db, "alice", "Plan A", [meeting("Plan A class", EVERY_DAY, "23:58", "23:59")])
+    add_synced(fake_db, "alice", "Fall Semester 2000", "Old term class")
+    page = browser("token-alice").get("/dashboard").text
+    assert "Plan A class" in page and "Old term class" not in page
+
+
+def test_dashboard_counts_earned_hours(fake_db: FakeDatabase) -> None:
+    """Degree progress counts transfer and Pass credit, not only GPA hours."""
+    courses = [
+        {"course_code": "MATH 1550", "course_name": "Calc", "credits": 12,
+         "term": "Transfer Credit", "grade": "Pass"},
+        {"course_code": "CSC 1350", "course_name": "CS I", "credits": 12,
+         "term": "Fall Semester 2025", "grade": "A (HNR)"},
+        {"course_code": "HIST 1001", "course_name": "History", "credits": 3,
+         "term": "Fall Semester 2025", "grade": "F"},
+    ]
+    fake_db.rows("profiles").append(
+        {"id": "alice", "gpa": 3.2, "completed_credit_hours": 15, "courses": courses}
+    )
+    page = BeautifulSoup(browser("token-alice").get("/dashboard").text, "html.parser")
+    assert page.select_one(".stat-gold .stat-number").get_text(strip=True) == "24 / 120"
+
+
 def test_login_sets_refresh_cookie(fake_db: FakeDatabase) -> None:
     """Signing in stores both tokens in HTTP-only cookies."""
     fake_db.users["alice@lsu.edu"] = {

@@ -18,7 +18,7 @@ from models.tiger_session import Session
 from routers.tiger_catalog import check_prerequisites
 from routers.tiger_planning import read_forecast
 from routers.tiger_schedules_store import ZONE, current_semester, list_schedules
-from routers import tiger_profiles
+from routers import tiger_profiles, tiger_workday, tiger_workday_parsing
 from routers.tiger_profiles import session_profile
 from tiger_auth import require_login
 from tiger_views import redirect_to, render_page
@@ -103,6 +103,27 @@ def summarize(schedule: Schedule) -> ScheduleSummary:
     )
 
 
+def current_schedule(schedules: list[Schedule], today: date) -> Schedule:
+    """Pick the schedule the dashboard shows.
+
+    Args:
+        schedules: The student's schedules, oldest first; not empty.
+        today: The date that decides which Workday terms are over.
+
+    Returns:
+        The Workday schedule of the term under way or coming next, else
+        the oldest schedule.
+    """
+    synced: list[tuple[date, Schedule]] = []
+    for schedule in schedules:
+        marker = tiger_workday.workday_marker(schedule)
+        term = str(marker.get(tiger_workday.TERM_KEY, "")) if marker else ""
+        start, end = tiger_workday_parsing.term_dates(term)
+        if marker and end >= today:
+            synced.append((start, schedule))
+    return min(synced, key=lambda pair: pair[0])[1] if synced else schedules[0]
+
+
 def load_schedules(session: Session) -> list[Schedule]:
     """Read saved schedules, treating a database failure as no schedules.
 
@@ -132,13 +153,21 @@ def dashboard_data(session: Session) -> DashboardData:
     try:
         profile = session_profile(session)
         data.gpa = profile.gpa
-        data.completed_hours = profile.completed_credit_hours
+        # Degree progress counts transfer and Pass credit; the profile holds GPA hours.
+        data.completed_hours = max(
+            profile.completed_credit_hours,
+            tiger_workday_parsing.earned_hours(
+                tiger_profiles.readable_courses(profile.courses)
+            ),
+        )
     except Exception:
         logger.exception("Could not load the profile for the dashboard.")
     schedules: list[Schedule] = load_schedules(session)
-    if schedules:
-        data.selected = summarize(schedules[0])
-    data.events = upcoming_events(schedules[:1], datetime.now(ZONE))
+    now: datetime = datetime.now(ZONE)
+    shown = [current_schedule(schedules, now.date())] if schedules else []
+    if shown:
+        data.selected = summarize(shown[0])
+    data.events = upcoming_events(shown, now)
     return data
 
 
