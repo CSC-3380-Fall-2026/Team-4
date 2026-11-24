@@ -242,7 +242,7 @@ def term_gpas(courses: list[ProfileCourse]) -> dict[str, float]:
     """Compute each term's GPA from saved courses with the LSU grade scale.
 
     Grades outside the scale (W, P, in-progress, transfer) and courses
-    without a term do not count.
+    without a known term do not count.
 
     Args:
         courses: Courses carrying their term, grade and credit hours.
@@ -254,10 +254,11 @@ def term_gpas(courses: list[ProfileCourse]) -> dict[str, float]:
     hours: dict[str, int] = {}
     for course in courses:
         grade = (course.grade or "").strip()
-        if course.term and grade in GRADE_POINTS and course.credits:
+        term = course.term or UNKNOWN_TERM
+        if term != UNKNOWN_TERM and grade in GRADE_POINTS and course.credits:
             earned = GRADE_POINTS[grade] * course.credits
-            points[course.term] = points.get(course.term, 0) + earned
-            hours[course.term] = hours.get(course.term, 0) + course.credits
+            points[term] = points.get(term, 0) + earned
+            hours[term] = hours.get(term, 0) + course.credits
     return {term: round(points[term] / hours[term], 3) for term in hours}
 
 
