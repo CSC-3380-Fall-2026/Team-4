@@ -98,6 +98,29 @@ as $$
   select id from public.profiles where lower(username) = lower(name) limit 1;
 $$;
 
+-- Return a username only for someone connected to the signed-in user.
+create or replace function public.username_for_friend(friend_user_id uuid)
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select p.username
+  from public.profiles p
+  where p.id = friend_user_id
+    and auth.uid() is not null
+    and exists (
+      select 1
+      from public.friendships f
+      where (f.requester_id = auth.uid() and f.addressee_id = p.id)
+         or (f.addressee_id = auth.uid() and f.requester_id = p.id)
+    )
+  limit 1;
+$$;
+
+revoke all on function public.username_for_friend(uuid) from public;
+grant execute on function public.username_for_friend(uuid) to authenticated;
+
 -- Row level security --------------------------------------------------------
 alter table public.profiles        enable row level security;
 alter table public.schedules       enable row level security;

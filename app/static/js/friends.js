@@ -2,12 +2,16 @@
     // Keep friend requests, sharing controls, and schedule comparison local to this page.
     const { apiRequest, scheduleState, getUserById, loadScheduleData } = window.SchedulePrototype;
     const searchMessage = document.querySelector("#friend-search-message");
-    loadScheduleData().then(initializeFriends).catch((error) => {
+    Promise.all([
+        loadScheduleData(),
+        apiRequest("/api/friends/list"),
+        apiRequest("/api/friends/shared-by-me"),
+    ]).then(([, friendsData, sharesData]) => initializeFriends(friendsData, sharesData)).catch((error) => {
         searchMessage.textContent = error.message;
         searchMessage.className = "text-sm text-red-600";
     });
 
-    function initializeFriends() {
+    function initializeFriends(friendsData, sharesData) {
     const sampleUsers = scheduleState.sampleUsers;
     const currentUser = getUserById(scheduleState.currentUserId);
     const schedules = currentUser.schedules;
@@ -16,18 +20,31 @@
     const usersByUsername = new Map(sampleUsers.map((user) => [user.username, user]));
 
     const state = {
-        requests: [],
-        friends: friendUsers.map((user) => ({ username: user.username })),
-        viewers: Object.fromEntries(schedules.map((schedule) => [schedule.id, []])),
+        shares: sharesData,
+        requests: friendsData.incoming_requests,
+        friends: friendsData.friends,
+        viewers: Object.fromEntries(schedules.map((schedule) => [
+            schedule.id,
+            sharesData.filter((share) => share.schedule_id === schedule.id)
+                .map((share) => {
+                    const friend = friendsData.friends.find((item) =>
+                        item.requester_id === share.friend_id ||
+                        item.addressee_id === share.friend_id
+                    );
+                    return friend?.username;
+                }).filter(Boolean),
+        ])),
         publicSchedules: new Set(),
         selectedScheduleId: schedules[0]?.id ?? "",
-        selectedFriend: friendUsers[0]?.username ?? "",
+
+        selectedFriend: friendsData.friends[0]?.username ?? "",
         // which day the overlap chart shows, 0 = Monday. Starts on today.
         selectedDay: (new Date().getDay() + 6) % 7,
         // turns true when you press the day arrows, after that we stop moving the day for you
         dayPicked: false,
         // the last answer from /api/shared-free-time so the chart can draw the gold parts
         freeDays: [],
+
     };
 
     const requestList = document.querySelector("#pending-requests");
@@ -218,27 +235,34 @@
 
             const actions = makeElement("div", "request-actions");
             actions.append(
-                makeButton("Accept", "page-button request-button", () => {
-                    const directoryEntry = usersByUsername.get(request.username);
-                    if (!directoryEntry) {
-                        const newUser = {
-                            username: request.username,
-                            major: request.major,
-                            status: "Free now",
-                            schedules: [],
-                        };
-                        sampleUsers.push(newUser);
-                        usersByUsername.set(request.username, newUser);
+
+                makeButton("Accept","page-button request-button" , async () => {
+                    try {
+                        await apiRequest(`/api/friends/requests/${request.id}/accept`, {
+                            method: "POST",
+                        });
+                        window.location.reload();
+                    } catch (error) {
+                        searchMessage.textContent = error.message;
+                        searchMessage.className = "text-sm text-red-600";
                     }
-                    state.friends.push({
-                        username: request.username,
-                    });
-                    state.requests = state.requests.filter((item) => item.id !== request.id);
-                    renderAll();
+
+
                 }, `Accept ${requestName}'s request`),
-                makeButton("Decline", "secondary-button request-button", () => {
-                    state.requests = state.requests.filter((item) => item.id !== request.id);
-                    renderRequests();
+
+                makeButton("Decline","secondary-button request-button" , async () => {
+                    try {
+                        await apiRequest(`/api/friends/requests/${request.id}`, {
+                            method: "DELETE",
+                        });
+                        window.location.reload();
+                    } catch (error) {
+                        searchMessage.textContent = error.message;
+                        searchMessage.className = "text-sm text-red-600";
+                    }
+
+
+
                 }, `Decline ${requestName}'s request`),
             );
             item.append(details, actions);
@@ -257,6 +281,18 @@
             const status = `${count} shared ${count === 1 ? "schedule" : "schedules"}`;
             const friendName = displayName(friend.username);
 
+
+            const removeButton = makeButton("Remove", "friend-remove", async () => {
+                try {
+                    await apiRequest(`/api/friends/${friend.id}`, { method: "DELETE" });
+                    window.location.reload();
+                } catch (error) {
+                    searchMessage.textContent = error.message;
+                    searchMessage.className = "text-sm text-red-600";
+                }
+            }, `Remove ${displayName(friend.username)} from friends`);
+
+
             const item = makeElement("li", "friend-row");
             const details = makeElement("div", "friend-details");
             details.append(
@@ -264,19 +300,7 @@
                 makeElement("p", "friend-sub", status),
             );
 
-            const removeButton = makeButton("Remove", "friend-remove", () => {
-                state.friends = state.friends.filter((item) => item.username !== friend.username);
-                Object.values(state.viewers).forEach((viewers) => {
-                    const viewerIndex = viewers.indexOf(friend.username);
-                    if (viewerIndex >= 0) {
-                        viewers.splice(viewerIndex, 1);
-                    }
-                });
-                if (state.selectedFriend === friend.username) {
-                    state.selectedFriend = state.friends[0]?.username ?? "";
-                }
-                renderAll();
-            }, `Remove ${friendName} from friends`);
+
 
             // The check box picks who you compare with. The free time API only takes
             // one friend at a time, so checking one friend unchecks the other ones.
@@ -292,6 +316,7 @@
             });
 
             item.append(details, removeButton, checkbox);
+
             friendsList.append(item);
         });
     };
@@ -323,10 +348,26 @@
         addScheduleViewerButton.disabled = addScheduleViewer.options.length <= 1;
 
         viewers.forEach((username) => {
+
             const chip = makeElement("span", "viewer-chip", displayName(username));
-            const removeButton = makeButton("×", "viewer-remove", () => {
-                state.viewers[schedule.id] = viewers.filter((viewer) => viewer !== username);
-                renderViewers();
+            const removeButton = makeButton("×", "viewer-remove", async () => {
+                const friend = state.friends.find((item) => item.username === username);
+                const friendId = friend?.requester_id === scheduleState.currentUserId
+                    ? friend?.addressee_id : friend?.requester_id;
+                const share = state.shares.find((item) =>
+                    item.schedule_id === schedule.id && item.friend_id === friendId
+                );
+                if (!share) return;
+                try {
+                    await apiRequest(`/api/friends/shares/${share.id}`, { method: "DELETE" });
+                    state.shares = state.shares.filter((item) => item.id !== share.id);
+                    state.viewers[schedule.id] = viewers.filter((viewer) => viewer !== username);
+                    renderViewers();
+                } catch (error) {
+                    searchMessage.textContent = error.message;
+                    searchMessage.className = "text-sm text-red-600";
+                }
+
             }, `Stop sharing with ${displayName(username)}`);
             chip.append(removeButton);
             scheduleViewers.append(chip);
@@ -407,17 +448,39 @@
         renderViewers();
     });
 
-    addScheduleViewerButton.addEventListener("click", () => {
-        const username = addScheduleViewer.value;
-        if (!username) {
-            return;
-        }
+    addScheduleViewerButton.addEventListener("click", async () => {
+    const username = addScheduleViewer.value;
+    if (!username || !state.selectedScheduleId) return;
+
+    const friend = state.friends.find((item) => item.username === username);
+    if (!friend) return;
+
+    const friendId = friend.requester_id === scheduleState.currentUserId
+        ? friend.addressee_id
+        : friend.requester_id;
+
+    try {
+        const result = await apiRequest("/api/friends/shares", {
+            method: "POST",
+            body: JSON.stringify({
+                schedule_id: state.selectedScheduleId,
+                friend_id: friendId,
+            }),
+        });
+        state.shares = state.shares.filter((item) =>
+            !(item.schedule_id === state.selectedScheduleId && item.friend_id === friendId)
+        );
+        state.shares.push(result.share);
         const viewers = state.viewers[state.selectedScheduleId];
         if (viewers && !viewers.includes(username)) {
             viewers.push(username);
         }
         renderViewers();
-    });
+    } catch (error) {
+        searchMessage.textContent = error.message;
+        searchMessage.className = "text-sm text-red-600";
+    }
+      });
 
     publicSharingToggle.addEventListener("change", () => {
         if (publicSharingToggle.checked) {

@@ -238,6 +238,7 @@ def send_request(
     if not username:
         raise HTTPException(422, "Username is required.")
 
+
     if not own_username(session):
         raise HTTPException(
             400,
@@ -603,7 +604,16 @@ def shared_rows(
 
     return results
 
-
+@router.get("/shared-by-me")
+def shared_by_me(session: Session = Depends(current_session)) -> list[dict]:
+    """List schedule shares created by the signed-in user."""
+    return (
+        session.db.table("schedule_shares")
+        .select("id,schedule_id,friend_id")
+        .eq("owner_id", session.user_id)
+        .execute()
+        .data
+    )
 @router.get("/shared-with-me")
 def shared_schedules(
     session: Session = Depends(current_session),
@@ -698,6 +708,15 @@ def list_friends(
         if row["status"] == "pending"
     ]
 
+    for row in rows:
+        other_id = (
+            row["addressee_id"]
+            if row["requester_id"] == session.user_id
+            else row["requester_id"]
+        )
+        row["username"] = session.db.rpc(
+            "username_for_friend", {"friend_user_id": other_id}
+        ).execute().data
     return {
         "friends": [
             describe_row(row, me, names)
