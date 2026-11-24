@@ -1,5 +1,6 @@
 """Serve the dashboard page, built from the student's saved data."""
 
+import logging
 from datetime import date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, Request
@@ -22,6 +23,7 @@ from routers.tiger_profiles import session_profile
 from tiger_auth import require_login
 from tiger_views import redirect_to, render_page
 
+logger: logging.Logger = logging.getLogger(__name__)
 WEEKS: int = 6
 LIMIT: int = 6
 
@@ -113,6 +115,7 @@ def load_schedules(session: Session) -> list[Schedule]:
     try:
         return list_schedules(session)
     except Exception:
+        logger.exception("Could not load schedules for the dashboard.")
         return []
 
 
@@ -131,7 +134,7 @@ def dashboard_data(session: Session) -> DashboardData:
         data.gpa = profile.gpa
         data.completed_hours = profile.completed_credit_hours
     except Exception:
-        pass
+        logger.exception("Could not load the profile for the dashboard.")
     schedules: list[Schedule] = load_schedules(session)
     if schedules:
         data.selected = summarize(schedules[0])

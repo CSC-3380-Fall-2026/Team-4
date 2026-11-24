@@ -774,3 +774,19 @@ def test_access_cookie_follows_remember(fake_db: FakeDatabase, remember: bool) -
     renewed = next(c for c in cookies if c.startswith("tiger_access="))
     assert ("Max-Age=3600" in renewed) is remember
     assert "expires" not in renewed.lower() or remember
+
+
+def test_dashboard_logs_storage_errors(
+    fake_db: FakeDatabase, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Storage errors the dashboard hides are still logged with their trace.
+
+    Args:
+        fake_db: Fake Supabase.
+        caplog: Captures log records.
+    """
+    fake_db.broken.update({"schedules", "profiles"})
+    assert browser("token-alice").get("/dashboard").status_code == 200
+    logged = [r for r in caplog.records if r.name == "routers.tiger_dashboard"]
+    assert len(logged) == 2
+    assert all(r.exc_info for r in logged)
