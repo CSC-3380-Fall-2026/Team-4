@@ -15,13 +15,12 @@ from models.tiger_profiles import (
     AccountCard,
     ProfileCourse,
     ProfileRecord,
-    ProfileUpdate,
 )
 from models.tiger_schedules import UserBase
 from models.tiger_session import Session
 from routers import tiger_profiles_parsing, tiger_workday_browser, tiger_workday_parsing
 from routers.tiger_profiles_parsing import friendly, read_form
-from tiger_auth import current_session, require_login
+from tiger_auth import require_login
 from tiger_views import redirect_to, render_page, valid_token
 
 TOO_LARGE: str = "That PDF is too large (4 MB limit)."
@@ -414,34 +413,3 @@ async def save_profile(
         return show_error(request, session, message, status, data)
     return redirect_to("/profile?saved=1")
 
-
-@router.get("/api/profile")
-def get_profile(session: Session = Depends(current_session)) -> UserBase:
-    """Return only the signed-in student's saved profile.
-
-    Args:
-        session: The verified student making the request.
-
-    Returns:
-        The student's saved profile.
-    """
-    return session_profile(session)
-
-
-@router.put("/api/profile")
-def update_profile(
-    update: ProfileUpdate, session: Session = Depends(current_session)
-) -> UserBase:
-    """Save the signed-in student's username, GPA, credit hours, and courses.
-
-    Args:
-        update: New profile values.
-        session: The verified student making the request.
-
-    Returns:
-        The profile as saved.
-    """
-    username = (update.username or "").strip() or None
-    return write_profile(
-        session, update.model_copy(update={"username": username})
-    )

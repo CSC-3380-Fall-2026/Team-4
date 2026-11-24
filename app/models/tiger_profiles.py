@@ -51,5 +51,3 @@ class AccountCard(ProfileRecord):
     username: str = ""  # pyright: ignore[reportIncompatibleVariableOverride]
     data_error: bool = False
 
-
-ProfileUpdate = ProfileRecord
