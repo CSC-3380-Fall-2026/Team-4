@@ -40,7 +40,7 @@ app.include_router(tiger_workday.router)
 
 
 @app.middleware("http")
-async def keep_signed_in(
+async def renew_cookies(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
     """Store tokens renewed during the request in the login cookies.
