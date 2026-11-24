@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
+from postgrest.exceptions import APIError
 
 from models.tiger_friends import FriendRequestIn, ScheduleShareIn, Student
 from models.tiger_session import Session
@@ -156,15 +157,23 @@ def send_request(
     )
     if existing:
         raise existing_error(existing[0], session.user_id, username)
-    result = (
-        session.db.table("friendships")
-        .insert({
-            "requester_id": session.user_id,
-            "addressee_id": friend_id,
-            "status": "pending",
-        })
-        .execute()
-    )
+    try:
+        result = (
+            session.db.table("friendships")
+            .insert({
+                "requester_id": session.user_id,
+                "addressee_id": friend_id,
+                "status": "pending",
+            })
+            .execute()
+        )
+    except APIError as error:
+        # The pair index caught a request sent the other way at the same moment.
+        if error.code == tiger_profiles.UNIQUE_VIOLATION:
+            raise HTTPException(
+                409, f"You and {username} already have a friend request."
+            ) from error
+        raise
     name = friend_names(session).get(friend_id, username)
     return {"message": f"Friend request sent to {name}.", "request": result.data[0]}
 

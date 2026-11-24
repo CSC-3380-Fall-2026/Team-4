@@ -96,6 +96,10 @@ create table if not exists public.friendships (
   check (requester_id <> addressee_id),
   unique (requester_id, addressee_id)
 );
+-- One friendship per pair whichever way it was sent, so crossed requests
+-- cannot both be stored.
+create unique index if not exists friendships_pair_key
+  on public.friendships (least(requester_id, addressee_id), greatest(requester_id, addressee_id));
 
 create table if not exists public.schedule_shares (
   id          uuid primary key default gen_random_uuid(),

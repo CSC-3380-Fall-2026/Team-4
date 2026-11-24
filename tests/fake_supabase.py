@@ -213,14 +213,24 @@ class FakeQuery:
         return self.matching()
 
     def check_unique(self, row: Row) -> None:
-        """Enforce the unique index on (user_id, lower(name)) of schedules.
+        """Enforce the unique indexes on schedules and friendships.
 
         Args:
             row: The row as it would be stored.
 
         Raises:
-            APIError: With Postgres code 23505 for a second schedule name.
+            APIError: With Postgres code 23505 for a second schedule name,
+                or a second friendship between the same two students.
         """
+        if self.name == "friendships":
+            pair = {row["requester_id"], row["addressee_id"]}
+            if any(
+                other["id"] != row["id"]
+                and {other["requester_id"], other["addressee_id"]} == pair
+                for other in self.db.rows(self.name)
+            ):
+                raise APIError({"code": "23505", "message": "duplicate key value"})
+            return
         if self.name != "schedules":
             return
         for other in self.db.rows(self.name):

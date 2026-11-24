@@ -301,3 +301,25 @@ def test_self_share_refused(web: TestClient) -> None:
     body = {"schedule_id": schedule_id, "friend_id": "alex"}
     response = web.post("/api/friends/shares", json=body, headers=login("alex"))
     assert response.status_code == 403
+
+
+def test_crossed_requests_are_409(
+    web: TestClient, fake_db: FakeDatabase, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two requests crossing at the same moment: the second gets a 409.
+
+    Args:
+        web: Test client.
+        fake_db: In-memory database.
+        monkeypatch: Hides the first request from the duplicate check, as
+            when both checks run before either insert.
+    """
+    send(web, "alex", "blaketiger")
+    shown = FakeDatabase.visible
+    monkeypatch.setattr(
+        FakeDatabase, "visible",
+        lambda db, name, row, uid: name != "friendships" and shown(db, name, row, uid),
+    )
+    reverse = send(web, "blake", "AlexTiger")
+    assert reverse.status_code == 409
+    assert len(fake_db.rows("friendships")) == 1
