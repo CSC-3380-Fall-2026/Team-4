@@ -27,6 +27,7 @@ from tiger_views import redirect_to, render_page, valid_token
 TOO_LARGE: str = "That PDF is too large (5 MB limit)."
 FORM_SLACK: int = 64 * 1024
 UNIQUE_VIOLATION: str = "23505"
+LINE: set[str] = {"course_code", "course_name", "credits"}
 
 
 def profile_row(session: Session, columns: str = "*") -> dict[str, Any]:
@@ -199,7 +200,8 @@ def with_terms(session: Session, profile: ProfileRecord) -> ProfileRecord:
     """Keep saved terms and grades on courses submitted through the form.
 
     The form has no term or grade fields, so each submitted course takes
-    them from a saved course with the same code, each saved course once.
+    them from a saved course: the same line if it is unchanged, else the
+    first with the same code. Each saved course is used once.
 
     Args:
         session: The verified student.
@@ -211,7 +213,10 @@ def with_terms(session: Session, profile: ProfileRecord) -> ProfileRecord:
     left = readable_courses(profile_row(session, "courses").get("courses"))
     courses: list[ProfileCourse] = []
     for course in profile.courses:
-        match = next((old for old in left if old.course_code == course.course_code), None)
+        line = course.model_dump(include=LINE)
+        same_line = [old for old in left if old.model_dump(include=LINE) == line]
+        same_code = [old for old in left if old.course_code == course.course_code]
+        match = (same_line or same_code or [None])[0]
         if match:
             left.remove(match)
             course = course.model_copy(update={"term": match.term, "grade": match.grade})
