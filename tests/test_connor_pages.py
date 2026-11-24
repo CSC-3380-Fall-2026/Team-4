@@ -432,7 +432,7 @@ def test_accountflow(
         monkeypatch: Fixture replacing only external account operations.
     """
     monkeypatch.setattr(
-        tiger_auth, "login", Mock(return_value=("test-token", True))
+        tiger_auth, "login", Mock(return_value=("test-token", True, "test-refresh"))
     )
     monkeypatch.setattr(tiger_auth, "logout", Mock(return_value=True))
     submit_plan(client, sample_plan())

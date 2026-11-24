@@ -273,7 +273,7 @@ async def submit_account(request: Request, mode: str) -> Response:
     if mode == "signup":
         return await submit_signup(request, data, credentials)
     try:
-        message, accepted, *refresh = await run_in_threadpool(
+        message, accepted, refresh = await run_in_threadpool(
             tiger_auth.login, credentials
         )
     except HTTPException as error:
@@ -290,12 +290,7 @@ async def submit_account(request: Request, mode: str) -> Response:
         )
     response: RedirectResponse = redirect_to("/dashboard")
     set_cookie(response, request, tiger_auth.AUTH_COOKIE, message, 3600)
-    if refresh and refresh[0]:
-        set_cookie(
-            response,
-            request,
-            tiger_auth.REFRESH_COOKIE,
-            refresh[0],
-            tiger_auth.REFRESH_AGE,
-        )
+    set_cookie(
+        response, request, tiger_auth.REFRESH_COOKIE, refresh, tiger_auth.REFRESH_AGE
+    )
     return response
