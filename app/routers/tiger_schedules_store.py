@@ -21,7 +21,7 @@ from models.tiger_schedules import (
 
 ZONE: ZoneInfo = ZoneInfo("America/Chicago")
 TABLE: str = "schedules"
-SHARED_FIELDS: str = "id,name,semester,color,sections,commitments"
+SHARED_FIELDS: str = "id,user_id,name,semester,color,sections,commitments"
 FRIEND_LABEL: str = "Friend"
 COLORS: tuple[str, ...] = get_args(ScheduleColor)
 NAME_LIMIT: int = 60

@@ -258,3 +258,17 @@ def test_name_race_is_409_not_500(web, monkeypatch):
     clash = web.put(f"/api/schedules/{other}", json=BLUE, headers=login("alice"))
     assert clash.status_code == 409
     assert web.put(f"/api/schedules/{first}", json=BLUE, headers=login("alice")).status_code == 200
+
+
+def test_shared_schedules_load_in_one_query(web, fake_db):
+    """Three shared schedules cost one schedules query, not two calls each."""
+    names = ("Fall", "Spring", "Summer")
+    ids = [make_schedule(web, "alice", {"name": n, "color": "blue"}) for n in names]
+    for schedule_id in ids:
+        share(fake_db, schedule_id, "alice", "bob")
+    befriend(fake_db, "alice", "bob")
+    fake_db.calls.clear()
+    page = web.get("/api/schedule-data", headers=login("bob")).json()
+    assert [s["id"] for s in page["users"][1]["schedules"]] == ids
+    assert fake_db.calls.count("schedules") == 2  # bob's own, then all shared
+    assert fake_db.calls.count("friendships") == 0  # the read policy checks friendship

@@ -128,36 +128,33 @@ def is_friend(session: Session, other: str) -> bool:
 def shared_rows(session: Session, columns: str) -> list[dict]:
     """Return schedules shared with the student by accepted friends.
 
+    The "read schedules shared with me" policy in database/tiger_setup.sql
+    returns a schedule only when it is shared with the student and its
+    owner is an accepted friend, so one query covers every share.
+
     Args:
         session: Authenticated session.
-        columns: Schedule columns to select.
+        columns: Schedule columns to select; must include user_id.
 
     Returns:
-        List of dicts with the owner id and the schedule row.
+        List of dicts with the owner id and the schedule row, in share order.
     """
     shares = (
         session.db.table("schedule_shares")
-        .select("schedule_id,owner_id")
+        .select("schedule_id")
         .eq("friend_id", session.user_id)
         .execute()
         .data
     )
-    results = []
-    for share in shares:
-        if not is_friend(session, share["owner_id"]):
-            continue
-        rows = (
-            session.db.table("schedules")
-            .select(columns)
-            .eq("id", share["schedule_id"])
-            .eq("user_id", share["owner_id"])
-            .execute()
-            .data
-        )
-        results.extend(
-            {"owner_id": share["owner_id"], "schedule": row} for row in rows
-        )
-    return results
+    ids = [share["schedule_id"] for share in shares]
+    if not ids:
+        return []
+    rows = session.db.table("schedules").select(columns).in_("id", ids).execute().data
+    found = {row["id"]: row for row in rows if row["user_id"] != session.user_id}
+    return [
+        {"owner_id": found[key]["user_id"], "schedule": found[key]}
+        for key in ids if key in found
+    ]
 
 
 def describe_row(row: dict[str, Any], user_id: str, names: dict[str, str]) -> Friend:

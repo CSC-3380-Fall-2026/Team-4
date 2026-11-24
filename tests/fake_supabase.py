@@ -54,6 +54,7 @@ class FakeDatabase:
         self.tables: dict[str, list[Row]] = {}
         self.clock = count(1)
         self.broken: set[str] = set()
+        self.calls: list[str] = []
 
     def rows(self, name: str) -> list[Row]:
         """Return the mutable row list of a table.
@@ -172,6 +173,12 @@ class FakeQuery:
         self.rules.append(lambda row: str(row.get(column)) == str(value))
         return self
 
+    def in_(self, column: str, values: list[Any]) -> "FakeQuery":
+        """Keep rows whose column is one of the values."""
+        wanted = {str(value) for value in values}
+        self.rules.append(lambda row: str(row.get(column)) in wanted)
+        return self
+
     def or_(self, text: str) -> "FakeQuery":
         """Keep rows matching a PostgREST or filter."""
         self.rules.append(parse_or(text))
@@ -260,6 +267,7 @@ class FakeQuery:
         """Run the query and return an object with .data."""
         if self.name in self.db.broken:
             raise RuntimeError("table unavailable")
+        self.db.calls.append(self.name)
         rows = getattr(self, "run_" + self.action)()
         if self.sort:
             column, desc = self.sort
