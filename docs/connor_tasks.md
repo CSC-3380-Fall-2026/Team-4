@@ -116,7 +116,7 @@ From the repository root:
 The supplied version passed 45 tests on Python 3.12.14. This includes the four existing tests. It also passed the browser calculation check and a 390px-wide iframe layout check.
 
 For accounts, use your existing .env settings if they are already correct. Otherwise copy .env.example to .env, then enter the current SUPABASE_URL and SUPABASE_KEY locally. Never commit .env.
-Run the `forecasts` section of database/tiger_schema.sql once in the Supabase SQL editor so forecasts can be saved. The calculator still works without it; the page then says the forecast could not be saved.
+Run database/tiger_setup.sql once in the Supabase SQL editor so forecasts can be saved. The calculator still works without it; the page then says the forecast could not be saved.
 
 Start the server:
 
