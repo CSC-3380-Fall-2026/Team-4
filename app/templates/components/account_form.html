@@ -86,6 +86,7 @@
                    type="password"
                    name="password"
                    autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}"
+                   {% if mode == 'signup' %}minlength="8"{% endif %}
                    maxlength="1024"
                    placeholder="{{ 'Enter your password' if mode == 'login' else 'Choose a strong password' }}"
                    required>

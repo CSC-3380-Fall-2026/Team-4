@@ -57,7 +57,7 @@
 
 <div class="catalog-heading">
     <h2>Recommended for your next chapter</h2>
-    <p>{{ courses | length }} courses · Sort: Recommended <span aria-hidden="true">⌄</span></p>
+    <p>{{ courses | length }} {{ 'course' if courses | length == 1 else 'courses' }} · Sort: Recommended <span aria-hidden="true">⌄</span></p>
 </div>
 
 <div class="course-grid" role="region" aria-label="Course results">

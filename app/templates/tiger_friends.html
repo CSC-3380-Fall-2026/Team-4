@@ -90,12 +90,6 @@
             <div class="sharing-controls">
                 <label class="visually-hidden" for="shared-schedule-picker">Schedule to share</label>
                 <select id="shared-schedule-picker" class="soft-select"></select>
-
-                <label class="switch-row switch-inline">
-                    <span><strong>Public Sharing</strong></span>
-                    <input id="public-sharing-toggle" type="checkbox" aria-label="Enable public schedule sharing">
-                    <i aria-hidden="true"></i>
-                </label>
             </div>
         </div>
 
@@ -138,7 +132,7 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
+    <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=7" defer></script>
     <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=2" defer></script>
-    <script src="{{ url_for('static', path='/js/friends.js') }}?v=16" defer></script>
+    <script src="{{ url_for('static', path='/js/friends.js') }}?v=18" defer></script>
 {% endblock %}

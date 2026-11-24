@@ -5,6 +5,7 @@
 
 {% if saved %}{{ show_message("success", "Profile saved", "Your username, GPA, credit hours, and courses were saved.") }}{% endif %}
 {% if error %}{{ show_message("error", "Profile problem", error) }}{% endif %}
+{% if draft %}{{ show_message("success", "Transcript parsed", "Review the GPA, credit hours, and courses below, then click Save changes to keep them. Nothing is saved yet.") }}{% endif %}
 
 {% if not profile %}
     {{ show_message("empty", "Log in to see your profile", "Your own account information will appear after you log in.", "/login", "Log in") }}
@@ -18,6 +19,9 @@
    those fields yet (TODO), so they don't have a name="" and don't get sent.
    The fields that really save (username, gpa, hours, courses) are in the 3rd card. #}
 {% set name_parts = (profile.username or '').split(' ') %}
+<form method="post" action="/profile/transcript" id="transcript-form" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+</form>
 <form method="post" action="/profile" id="profile-form" class="profile-layout" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
@@ -94,26 +98,26 @@
             <div class="field-grid">
                 <div class="form-field field-wide">
                     <label for="username">Username</label>
-                    <input id="username" name="username" value="{{ profile.username or '' }}" maxlength="40"
+                    <input id="username" name="username" value="{{ form.username if form else (profile.username or '') }}" maxlength="40"
                            placeholder="Friends find you by this name">
                 </div>
 
                 <div class="form-field">
                     <label for="gpa">Current cumulative GPA</label>
                     <input id="gpa" name="gpa"
-                           value="{% if profile.gpa is not none %}{{ '%.2f' | format(profile.gpa) }}{% endif %}"
+                           value="{% if form %}{{ form.gpa }}{% elif profile.gpa is not none %}{{ '%.2f' | format(profile.gpa) }}{% endif %}"
                            type="text" inputmode="decimal" maxlength="5" placeholder="For example, 3.25">
                 </div>
                 <div class="form-field">
                     <label for="hours">Completed GPA credit hours</label>
-                    <input id="hours" name="hours" value="{{ profile.completed_credit_hours }}" type="text"
+                    <input id="hours" name="hours" value="{{ form.hours if form else profile.completed_credit_hours }}" type="text"
                            inputmode="numeric" maxlength="3" placeholder="For example, 60">
                 </div>
 
                 <div class="form-field field-wide">
                     <label for="courses">Completed courses</label>
-                    <textarea id="courses" name="courses" rows="5" maxlength="5000" aria-describedby="courses-help">{% for course in profile.courses %}{{ course.course_code }}, {{ course.credits }}, {{ course.course_name }}
-{% endfor %}</textarea>
+                    <textarea id="courses" name="courses" rows="5" maxlength="5000" aria-describedby="courses-help">{% if form %}{{ form.courses }}{% else %}{% for course in profile.courses %}{{ course.course_code }}, {{ course.credits }}, {{ course.course_name }}
+{% endfor %}{% endif %}</textarea>
                     <p id="courses-help" class="field-help">One course per line: code, credits, name. For example, CSC 1350, 4, Computer Science I.</p>
                 </div>
             </div>
@@ -152,8 +156,7 @@
             </label>
         </section>
 
-        {# TODO: transcript upload has no backend yet, so the file is not sent anywhere.
-           the Submit button saves the form the same way Save changes does #}
+        {# the upload belongs to #transcript-form above; it fills the record card for review #}
         <section class="page-card transcript-card">
             <h2>Upload your Transcript</h2>
 
@@ -164,11 +167,11 @@
                     <path d="M3 14v6h18v-6"/>
                 </svg>
                 <span>Upload</span>
-                <input class="visually-hidden" type="file" accept=".pdf">
+                <input class="visually-hidden" type="file" name="transcript" accept="application/pdf" form="transcript-form">
             </label>
 
             {% if not profile.data_error %}
-                <button class="page-button" type="submit">Submit</button>
+                <button class="page-button" type="submit" form="transcript-form">Submit</button>
             {% endif %}
         </section>
 
