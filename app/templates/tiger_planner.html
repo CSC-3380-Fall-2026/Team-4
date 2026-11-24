@@ -55,8 +55,8 @@
             {# picking a saved schedule fills the rows with its courses #}
             {% if schedules %}
                 <label class="visually-hidden" for="planning-schedule">Saved schedule</label>
-                <select id="planning-schedule" name="schedule_id" class="soft-select"
-                        onchange="document.getElementById('load-button').click()">
+                <div class="projector-load">
+                <select id="planning-schedule" name="schedule_id" class="soft-select">
                     <option value="">Choose a schedule</option>
                     {% for schedule in schedules %}
                         <option value="{{ schedule.id }}" {% if schedule.id == schedule_id %}selected{% endif %}>
@@ -64,10 +64,11 @@
                         </option>
                     {% endfor %}
                 </select>
-                <button id="load-button" class="visually-hidden" type="submit" name="action"
+                <button id="load-button" class="text-link" type="submit" name="action"
                         value="load_schedule" formnovalidate>
                     Load courses
                 </button>
+                </div>
             {% else %}
                 <a class="soft-select soft-select-link" href="/schedule">Create a schedule</a>
             {% endif %}
