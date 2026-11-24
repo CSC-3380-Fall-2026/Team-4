@@ -464,13 +464,34 @@ h3 {
     text-decoration: underline;
 }
 
+/* one focus ring everywhere: purple on the light pages, gold on the dark sidebar */
+:focus-visible,
 .page-button:focus-visible,
 .secondary-button:focus-visible,
 .text-link:focus-visible,
-.nav-link:focus-visible,
 .auth-button:focus-visible {
     outline: 2px solid var(--gold);
     outline-offset: 2px;
+}
+
+.dashboard-nav :focus-visible,
+.auth-left :focus-visible {
+    outline-color: var(--gold);
+}
+
+.nav-link:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: -2px;
+}
+
+.nav-link.active:focus-visible {
+    outline-color: var(--sidebar);
+}
+
+.page-button:disabled,
+.secondary-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* ---------- form fields ---------- */
@@ -508,9 +529,11 @@ h3 {
 
 .form-field input:focus,
 .form-field select:focus,
-.form-field textarea:focus {
+.form-field textarea:focus,
+.account-form .form-field input:focus {
     outline: none;
     border-color: var(--purple);
+    box-shadow: 0 0 0 1px var(--purple);
 }
 
 .form-field input::placeholder,
