@@ -8,16 +8,74 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
 
 import tiger_auth
-from models.tiger_profile import (
-    AccountCard,
+from models.tiger_accounts import (
     SignupResponse,
     TokenResponse,
     UserAuthSchema,
 )
+from models.tiger_profile import AccountCard
 from tiger_views import redirect_to, render_page, set_cookie, valid_token
 
-router: APIRouter = APIRouter()
 MIN_PASSWORD: int = 8
+
+
+def account_page(
+    request: Request,
+    mode: str,
+    email: str = "",
+    error: str = "",
+    message: str = "",
+    status_code: int = 200,
+) -> HTMLResponse:
+    """Render an account form without ever redisplaying a submitted password.
+
+    Args:
+        request: Current browser request.
+        mode: Either login or signup.
+        email: Submitted email to preserve after validation.
+        error: Safe error message for the student.
+        message: Success message after a registration request.
+        status_code: HTTP response status.
+
+    Returns:
+        The account form in William's shared layout.
+    """
+    template_name: str = (
+        "tiger_login.html" if mode == "login" else "tiger_signin.html"
+    )
+    return render_page(
+        request,
+        template_name,
+        mode=mode,
+        email=email,
+        error=error,
+        message=message,
+        status_code=status_code,
+    )
+
+
+async def signout_page(request: Request) -> RedirectResponse:
+    """Clear browser account state and request token revocation when possible.
+
+    Args:
+        request: Browser request with an optional access-token cookie.
+
+    Returns:
+        A redirect with the account cookie removed.
+    """
+    token: str = request.cookies.get(tiger_auth.AUTH_COOKIE, "")
+    if token:
+        try:
+            credentials = HTTPAuthorizationCredentials(
+                scheme="Bearer", credentials=token
+            )
+            await run_in_threadpool(tiger_auth.logout, credentials)
+        except HTTPException:
+            pass
+    return tiger_auth.signed_out()
+
+
+router: APIRouter = APIRouter()
 router.add_api_route("/logout", tiger_auth.logout, methods=["POST"])
 router.add_api_route("/validateToken", tiger_auth.validate_token, methods=["GET"])
 
@@ -73,41 +131,6 @@ def get_user(
         The caller's own account and profile as an AccountCard.
     """
     return tiger_auth.token_profile(credentials.credentials)
-
-
-def account_page(
-    request: Request,
-    mode: str,
-    email: str = "",
-    error: str = "",
-    message: str = "",
-    status_code: int = 200,
-) -> HTMLResponse:
-    """Render an account form without ever redisplaying a submitted password.
-
-    Args:
-        request: Current browser request.
-        mode: Either login or signup.
-        email: Submitted email to preserve after validation.
-        error: Safe error message for the student.
-        message: Success message after a registration request.
-        status_code: HTTP response status.
-
-    Returns:
-        The account form in William's shared layout.
-    """
-    template_name: str = (
-        "tiger_login.html" if mode == "login" else "tiger_signin.html"
-    )
-    return render_page(
-        request,
-        template_name,
-        mode=mode,
-        email=email,
-        error=error,
-        message=message,
-        status_code=status_code,
-    )
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -230,24 +253,3 @@ async def submit_account(request: Request, mode: str) -> Response:
     response: RedirectResponse = redirect_to("/dashboard")
     set_cookie(response, request, tiger_auth.AUTH_COOKIE, message, 3600)
     return response
-
-
-async def signout_page(request: Request) -> RedirectResponse:
-    """Clear browser account state and request token revocation when possible.
-
-    Args:
-        request: Browser request with an optional access-token cookie.
-
-    Returns:
-        A redirect with the account cookie removed.
-    """
-    token: str = request.cookies.get(tiger_auth.AUTH_COOKIE, "")
-    if token:
-        try:
-            credentials = HTTPAuthorizationCredentials(
-                scheme="Bearer", credentials=token
-            )
-            await run_in_threadpool(tiger_auth.logout, credentials)
-        except HTTPException:
-            pass
-    return tiger_auth.signed_out()
