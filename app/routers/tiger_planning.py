@@ -132,7 +132,7 @@ def schedule_courses(session: Session, schedule_id: str) -> list[Classes]:
         raise HTTPException(
             503, "Your saved courses could not be loaded. Try again."
         ) from error
-    if schedule._kept.get("sections"):
+    if schedule.unreadable_sections:
         raise HTTPException(
             409,
             "Some courses in this schedule could not be read. "

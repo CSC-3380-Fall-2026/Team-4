@@ -259,6 +259,15 @@ class Schedule(ScheduleDefinition):
     # The row's updated_at when loaded, used to refuse overwriting newer edits.
     _version: str | None = PrivateAttr(default=None)
 
+    @property
+    def unreadable_sections(self) -> list[Any]:
+        """Stored course entries this version could not read.
+
+        Returns:
+            The kept course entries; empty when every course was read.
+        """
+        return self._kept.get("sections", [])
+
 
 class UserBase(ScheduleModel):
     """A user profile with GPA, courses, and schedules."""
