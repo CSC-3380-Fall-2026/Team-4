@@ -108,6 +108,9 @@ def friendship_rows(session: Session) -> list[dict[str, Any]]:
 def is_friend(session: Session, other: str) -> bool:
     """Check that the session's student has an accepted friendship with another.
 
+    The other id comes from the request, so it is compared in Python and
+    never pasted into a filter.
+
     Args:
         session: Authenticated session.
         other: Id of the other student.
@@ -115,15 +118,11 @@ def is_friend(session: Session, other: str) -> bool:
     Returns:
         True when an accepted friendship exists in either direction.
     """
-    rows = (
-        session.db.table("friendships")
-        .select("id")
-        .eq("status", "accepted")
-        .or_(pair_filter(session.user_id, other))
-        .execute()
-        .data
+    return any(
+        row["status"] == "accepted"
+        and other in (row["requester_id"], row["addressee_id"])
+        for row in friendship_rows(session)
     )
-    return bool(rows)
 
 
 def shared_rows(session: Session, columns: str) -> list[dict]:

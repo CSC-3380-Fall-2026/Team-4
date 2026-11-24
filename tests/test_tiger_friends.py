@@ -250,3 +250,45 @@ def test_pages_survive_missing_name_function(
     assert web.get("/api/schedule-data", headers=login("alex")).status_code == 200
     friends = lists(web, "alex")["friends"]
     assert [friend["username"] for friend in friends] == ["Student"]
+
+
+EVENT: dict = {"title": "E", "days": ["Monday"], "start": "10:00", "end": "11:00"}
+
+
+@pytest.mark.parametrize(
+    "method,path,body",
+    [
+        ("put", "/api/schedules/not-an-id", {"name": "Fall", "color": "blue"}),
+        ("delete", "/api/schedules/not-an-id", None),
+        ("post", "/api/schedules/not-an-id/events", EVENT),
+        ("post", "/api/schedules/not-an-id/courses", {**EVENT, "courseId": "CSC 1350"}),
+        ("put", "/api/schedules/not-an-id/events/e1", EVENT),
+        ("delete", "/api/schedules/not-an-id/events/e1", None),
+        ("post", "/api/friends/requests/not-an-id/accept", None),
+        ("delete", "/api/friends/requests/not-an-id", None),
+        ("delete", "/api/friends/shares/not-an-id", None),
+        ("delete", "/api/friends/not-an-id", None),
+    ],
+)
+def test_bad_ids_are_422(
+    web: TestClient, method: str, path: str, body: dict | None
+) -> None:
+    """A malformed id is the caller's mistake (422), never a server error."""
+    response = web.request(method, path, json=body, headers=login("alex"))
+    assert response.status_code == 422
+    assert "uuid" in response.text.lower()
+
+
+def test_share_bad_schedule_id_is_422(web: TestClient) -> None:
+    body = {"schedule_id": "1 or 1=1", "friend_id": "blake"}
+    response = web.post("/api/friends/shares", json=body, headers=login("alex"))
+    assert response.status_code == 422
+
+
+def test_friend_id_never_becomes_filter_text(web: TestClient) -> None:
+    """A friend id with PostgREST filter syntax is just an unknown student."""
+    befriend(web)
+    schedule_id = make_schedule(web, "alex")
+    body = {"schedule_id": schedule_id, "friend_id": "blake,status.eq.accepted"}
+    response = web.post("/api/friends/shares", json=body, headers=login("alex"))
+    assert response.status_code == 403

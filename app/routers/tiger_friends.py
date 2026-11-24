@@ -1,6 +1,7 @@
 """Friends page, and the friends and schedule-sharing JSON API."""
 
 from typing import Any, cast
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -170,7 +171,7 @@ def send_request(
 
 @api.post("/requests/{request_id}/accept")
 def accept_request(
-    request_id: str,
+    request_id: UUID,
     session: Session = Depends(current_session),
 ) -> dict:
     """Accept a pending friend request addressed to the user.
@@ -188,7 +189,7 @@ def accept_request(
     result = (
         session.db.table("friendships")
         .update({"status": "accepted"})
-        .eq("id", request_id)
+        .eq("id", str(request_id))
         .eq("addressee_id", session.user_id)
         .eq("status", "pending")
         .execute()
@@ -200,7 +201,7 @@ def accept_request(
 
 @api.delete("/requests/{request_id}")
 def reject_request(
-    request_id: str,
+    request_id: UUID,
     session: Session = Depends(current_session),
 ) -> dict:
     """Decline an incoming request or cancel one the user sent.
@@ -218,7 +219,7 @@ def reject_request(
     result = (
         session.db.table("friendships")
         .delete()
-        .eq("id", request_id)
+        .eq("id", str(request_id))
         .eq("status", "pending")
         .or_(mine_filter(session.user_id))
         .execute()
@@ -277,7 +278,7 @@ def share_schedule(
     schedules = (
         session.db.table("schedules")
         .select("id")
-        .eq("id", request.schedule_id)
+        .eq("id", str(request.schedule_id))
         .eq("user_id", session.user_id)
         .execute()
         .data
@@ -289,7 +290,7 @@ def share_schedule(
     existing = (
         session.db.table("schedule_shares")
         .select("id,schedule_id,friend_id")
-        .eq("schedule_id", request.schedule_id)
+        .eq("schedule_id", str(request.schedule_id))
         .eq("friend_id", request.friend_id)
         .execute()
         .data
@@ -299,7 +300,7 @@ def share_schedule(
     result = (
         session.db.table("schedule_shares")
         .insert({
-            "schedule_id": request.schedule_id,
+            "schedule_id": str(request.schedule_id),
             "owner_id": session.user_id,
             "friend_id": request.friend_id,
         })
@@ -310,7 +311,7 @@ def share_schedule(
 
 @api.delete("/shares/{share_id}")
 def stop_sharing(
-    share_id: str,
+    share_id: UUID,
     session: Session = Depends(current_session),
 ) -> dict:
     """Stop sharing a schedule the user owns.
@@ -328,7 +329,7 @@ def stop_sharing(
     result = (
         session.db.table("schedule_shares")
         .delete()
-        .eq("id", share_id)
+        .eq("id", str(share_id))
         .eq("owner_id", session.user_id)
         .execute()
     )
@@ -339,7 +340,7 @@ def stop_sharing(
 
 @api.delete("/{friendship_id}")
 def remove_friend(
-    friendship_id: str,
+    friendship_id: UUID,
     session: Session = Depends(current_session),
 ) -> dict:
     """Remove an accepted friendship and every share between the two.
@@ -357,7 +358,7 @@ def remove_friend(
     result = (
         session.db.table("friendships")
         .delete()
-        .eq("id", friendship_id)
+        .eq("id", str(friendship_id))
         .eq("status", "accepted")
         .or_(mine_filter(session.user_id))
         .execute()

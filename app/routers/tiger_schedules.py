@@ -1,6 +1,7 @@
 """Schedule page and JSON API, and the scheduling logic behind it."""
 
 from datetime import datetime, timedelta
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse
@@ -291,7 +292,7 @@ def create_schedule(
 
 @api.put("/schedules/{schedule_id}", response_model=Schedule)
 def update_schedule(
-    schedule_id: str,
+    schedule_id: UUID,
     definition: ScheduleDefinition,
     session: Session = Depends(current_session),
 ) -> Schedule:
@@ -305,8 +306,8 @@ def update_schedule(
     Returns:
         The updated schedule.
     """
-    schedule = fetch_schedule(session, schedule_id)
-    check_name(session, definition.name, schedule_id)
+    schedule = fetch_schedule(session, str(schedule_id))
+    check_name(session, definition.name, str(schedule_id))
 
     schedule.name = definition.name
     schedule.color = definition.color
@@ -320,7 +321,7 @@ def update_schedule(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_schedule(
-    schedule_id: str,
+    schedule_id: UUID,
     session: Session = Depends(current_session),
 ) -> Response:
     """Delete a schedule, keeping at least one.
@@ -342,7 +343,7 @@ def delete_schedule(
             detail="At least one schedule must remain.",
         )
 
-    remove_schedule(session, schedule_id)
+    remove_schedule(session, str(schedule_id))
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -353,7 +354,7 @@ def delete_schedule(
     status_code=status.HTTP_201_CREATED,
 )
 def create_event(
-    schedule_id: str,
+    schedule_id: UUID,
     event: ScheduleEventData,
     session: Session = Depends(current_session),
 ) -> ScheduleEvent:
@@ -367,7 +368,7 @@ def create_event(
     Returns:
         The created event.
     """
-    schedule = fetch_schedule(session, schedule_id)
+    schedule = fetch_schedule(session, str(schedule_id))
     created = ScheduleEvent(**event.model_dump())
 
     check_conflicts(schedule, created)
@@ -384,7 +385,7 @@ def create_event(
     status_code=status.HTTP_201_CREATED,
 )
 def add_course(
-    schedule_id: str,
+    schedule_id: UUID,
     selection: CourseSelection,
     session: Session = Depends(current_session),
 ) -> Classes:
@@ -398,7 +399,7 @@ def add_course(
     Returns:
         The created class entry.
     """
-    schedule = fetch_schedule(session, schedule_id)
+    schedule = fetch_schedule(session, str(schedule_id))
     event = class_event(find_preset(selection.course_id), selection)
 
     check_conflicts(schedule, event)
@@ -414,7 +415,7 @@ def add_course(
     response_model=Classes | ScheduleEvent,
 )
 def update_event(
-    schedule_id: str,
+    schedule_id: UUID,
     event_id: str,
     event: ScheduleEventData,
     session: Session = Depends(current_session),
@@ -430,7 +431,7 @@ def update_event(
     Returns:
         The updated event.
     """
-    schedule = fetch_schedule(session, schedule_id)
+    schedule = fetch_schedule(session, str(schedule_id))
     event_index = find_event(schedule, event_id)
     existing = schedule.events[event_index]
 
@@ -459,7 +460,7 @@ def update_event(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_event(
-    schedule_id: str,
+    schedule_id: UUID,
     event_id: str,
     session: Session = Depends(current_session),
 ) -> Response:
@@ -473,7 +474,7 @@ def delete_event(
     Returns:
         An empty 204 response.
     """
-    schedule = fetch_schedule(session, schedule_id)
+    schedule = fetch_schedule(session, str(schedule_id))
     event_index = find_event(schedule, event_id)
 
     del schedule.events[event_index]
