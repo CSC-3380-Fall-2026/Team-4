@@ -95,3 +95,15 @@ def test_planning_starts_from_profile(fake_db: FakeDatabase) -> None:
     page = browser("token-casey").get("/planning").text
     assert 'value="3.20"' in page
     assert 'value="45"' in page
+
+
+def test_upload_limit_under_vercel_cap(fake_db: FakeDatabase) -> None:
+    """Refuse a PDF over 4 MB with a clear message; Vercel drops bodies over 4.5 MB."""
+    tab = browser("token-casey")
+    response = tab.post(
+        "/profile/transcript",
+        data={"csrf_token": form_token(tab, "/profile")},
+        files={"transcript": ("t.pdf", b"%PDF" + b"0" * (4 * 1024 * 1024), "application/pdf")},
+    )
+    assert response.status_code == 400
+    assert "That PDF is too large (4 MB limit)." in response.text

@@ -24,7 +24,7 @@ from routers.tiger_profiles_parsing import friendly, read_form
 from tiger_auth import current_session, require_login
 from tiger_views import redirect_to, render_page, valid_token
 
-TOO_LARGE: str = "That PDF is too large (5 MB limit)."
+TOO_LARGE: str = "That PDF is too large (4 MB limit)."
 FORM_SLACK: int = 64 * 1024
 UNIQUE_VIOLATION: str = "23505"
 LINE: set[str] = {"course_code", "course_name", "credits"}

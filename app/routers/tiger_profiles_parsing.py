@@ -7,7 +7,8 @@ from pypdf import PdfReader
 
 from models.tiger_profiles import ParsedTranscript, ProfileCourse, ProfileRecord
 
-MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
+# Vercel refuses request bodies over 4.5 MB, so stay below it.
+MAX_UPLOAD_BYTES: int = 4 * 1024 * 1024
 MAX_PAGES: int = 20
 
 # A course row's description may wrap onto one extra line (for example a
@@ -205,7 +206,7 @@ def extract_text(data: bytes) -> str:
             PDF with text.
     """
     if len(data) > MAX_UPLOAD_BYTES:
-        raise ValueError("That PDF is too large (5 MB limit).")
+        raise ValueError("That PDF is too large (4 MB limit).")
     try:
         text = read_pages(data)
     except ValueError:
