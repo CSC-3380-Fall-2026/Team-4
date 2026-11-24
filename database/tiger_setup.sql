@@ -60,6 +60,18 @@ create table if not exists public.schedules (
 alter table public.schedules
   add column if not exists color text not null default 'blue';
 
+-- A student's schedule names are unique ignoring case, so a double-click
+-- cannot create the same schedule twice. Older duplicates are renamed first.
+update public.schedules s
+set name = left(s.name, 49) || ' (' || left(s.id::text, 8) || ')'
+where exists (
+  select 1 from public.schedules o
+  where o.user_id = s.user_id and lower(o.name) = lower(s.name)
+    and (o.created_at, o.id) < (s.created_at, s.id)
+);
+create unique index if not exists schedules_user_name_key
+  on public.schedules (user_id, lower(name));
+
 -- Forecasts -----------------------------------------------------------------
 create table if not exists public.forecasts (
   user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,

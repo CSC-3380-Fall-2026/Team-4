@@ -163,11 +163,17 @@ def term_schedule(session: Session, term: str) -> tuple[Schedule, dict[str, Any]
     Returns:
         The schedule, its marker, and True when it was just created.
     """
-    for schedule in tiger_schedules_store.list_schedules(session):
+    schedules = tiger_schedules_store.list_schedules(session)
+    for schedule in schedules:
         marker = workday_marker(schedule)
         if marker and marker.get(TERM_KEY) == term:
             return schedule, marker, False
-    name = term[: 60 - len(SUFFIX)] + SUFFIX
+    # Schedule names are unique per student, so step past one already taken.
+    taken = {schedule.name.lower() for schedule in schedules}
+    suffix, count = SUFFIX, 1
+    while (name := term[: 60 - len(suffix)] + suffix).lower() in taken:
+        count += 1
+        suffix = f" (Workday {count})"
     schedule = tiger_schedules_store.insert_schedule(
         session, ScheduleDefinition(name=name, color="purple")
     )

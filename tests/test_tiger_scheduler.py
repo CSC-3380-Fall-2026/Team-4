@@ -243,3 +243,18 @@ def test_schedule_names_must_be_unique(web):
     same = web.put(f"/api/schedules/{first}", json=BLUE, headers=login("alice"))
     assert same.status_code == 200
     assert make_schedule(web, "bob") != first
+
+
+def test_name_race_is_409_not_500(web, monkeypatch):
+    """Two creates racing past the name check: the database index answers 409."""
+    from routers import tiger_schedules
+
+    first = make_schedule(web)
+    other = make_schedule(web, "alice", {"name": "Spring", "color": "green"})
+    monkeypatch.setattr(tiger_schedules, "check_name", lambda *args: None)
+    copy = web.post("/api/schedules", json=BLUE, headers=login("alice"))
+    assert copy.status_code == 409
+    assert copy.json()["detail"] == 'You already have a schedule named "QA Schedule".'
+    clash = web.put(f"/api/schedules/{other}", json=BLUE, headers=login("alice"))
+    assert clash.status_code == 409
+    assert web.put(f"/api/schedules/{first}", json=BLUE, headers=login("alice")).status_code == 200

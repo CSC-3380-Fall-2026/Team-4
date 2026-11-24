@@ -1,10 +1,12 @@
 """Schedule page and JSON API, and the scheduling logic behind it."""
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse
+from postgrest.exceptions import APIError
 
 from models.tiger_schedules import (
     Classes,
@@ -136,6 +138,20 @@ def find_event(schedule: Schedule, event_id: str) -> int:
     return index
 
 
+def name_taken(name: str) -> HTTPException:
+    """Explain that the student already has a schedule with this name.
+
+    Args:
+        name: The schedule name in use.
+
+    Returns:
+        A 409 error naming the schedule.
+    """
+    return HTTPException(
+        status_code=409, detail=f'You already have a schedule named "{name}".'
+    )
+
+
 def check_name(session: Session, name: str, skip_id: str | None = None) -> None:
     """Refuse a schedule name the student already uses.
 
@@ -151,10 +167,31 @@ def check_name(session: Session, name: str, skip_id: str | None = None) -> None:
     wanted = name.strip().lower()
     for schedule in list_schedules(session):
         if schedule.id != skip_id and schedule.name.strip().lower() == wanted:
-            raise HTTPException(
-                status_code=409,
-                detail=f'You already have a schedule named "{schedule.name}".',
-            )
+            raise name_taken(schedule.name)
+
+
+def store_name[T](save: Callable[[], T], name: str) -> T:
+    """Run an insert or rename, reporting a name taken in the meantime as 409.
+
+    The unique index on (user_id, lower(name)) catches a second request,
+    such as a double-click, that passed check_name at the same moment.
+
+    Args:
+        save: The database write to run.
+        name: The schedule name being stored.
+
+    Returns:
+        Whatever the write returned.
+
+    Raises:
+        HTTPException: 409 when the database reports the name is taken.
+    """
+    try:
+        return save()
+    except APIError as error:
+        if error.code == tiger_profiles.UNIQUE_VIOLATION:
+            raise name_taken(name) from error
+        raise
 
 
 def check_conflicts(
@@ -287,7 +324,9 @@ def create_schedule(
         The new schedule.
     """
     check_name(session, definition.name)
-    return insert_schedule(session, definition)
+    return store_name(
+        lambda: insert_schedule(session, definition), definition.name
+    )
 
 
 @api.put("/schedules/{schedule_id}", response_model=Schedule)
@@ -311,7 +350,7 @@ def update_schedule(
 
     schedule.name = definition.name
     schedule.color = definition.color
-    save_schedule(session, schedule)
+    store_name(lambda: save_schedule(session, schedule), definition.name)
 
     return schedule
 

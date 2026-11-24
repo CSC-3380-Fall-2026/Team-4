@@ -6,6 +6,8 @@ from types import SimpleNamespace
 from typing import Any, Callable
 from uuid import uuid4
 
+from postgrest.exceptions import APIError
+
 Row = dict[str, Any]
 Rule = Callable[[Row], bool]
 
@@ -196,6 +198,25 @@ class FakeQuery:
         """Return matching rows."""
         return self.matching()
 
+    def check_unique(self, row: Row) -> None:
+        """Enforce the unique index on (user_id, lower(name)) of schedules.
+
+        Args:
+            row: The row as it would be stored.
+
+        Raises:
+            APIError: With Postgres code 23505 for a second schedule name.
+        """
+        if self.name != "schedules":
+            return
+        for other in self.db.rows(self.name):
+            if (
+                other["id"] != row["id"]
+                and other["user_id"] == row["user_id"]
+                and other["name"].lower() == row["name"].lower()
+            ):
+                raise APIError({"code": "23505", "message": "duplicate key value"})
+
     def run_insert(self) -> list[Row]:
         """Store and return a new row with database defaults."""
         row = {
@@ -204,6 +225,7 @@ class FakeQuery:
             "created_at": next(self.db.clock),
             **self.payload,
         }
+        self.check_unique(row)
         self.db.rows(self.name).append(row)
         return [row]
 
@@ -223,6 +245,7 @@ class FakeQuery:
         """Update and return the matching rows."""
         rows = self.matching()
         for row in rows:
+            self.check_unique({**row, **self.payload})
             row.update(self.payload)
         return rows
 

@@ -96,6 +96,9 @@ const initializeScheduleManagement = (renderSchedule) => {
 
         const formData = new FormData(scheduleForm);
         const name = String(formData.get("name"));
+        // A second click while this request runs would create the schedule twice.
+        const createButton = scheduleForm.querySelector('button[type="submit"]');
+        createButton.disabled = true;
         try {
             const schedule = await apiRequest("/api/schedules", {
                 method: "POST",
@@ -107,6 +110,8 @@ const initializeScheduleManagement = (renderSchedule) => {
             renderSchedule();
         } catch (error) {
             showError(errorElement, error.message);
+        } finally {
+            createButton.disabled = false;
         }
     });
 
