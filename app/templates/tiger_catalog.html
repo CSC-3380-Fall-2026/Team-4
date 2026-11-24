@@ -2,19 +2,89 @@
 {% from "components/page_message.html" import show_message %}
 {% set page_title = "Course Catalog" %}
 {% block content %}
-<div class="page-intro"><p class="eyebrow">FIND YOUR COURSES</p><h2>Explore the course catalog</h2><p>Search the project's curated course dataset by course code, name, or category.</p></div>
-<section class="page-card">
-    <form method="get" action="/catalog" class="catalog-form">
-        <div class="form-field"><label for="query">Course code or name</label><input id="query" name="query" type="search" value="{{ query }}" maxlength="100" placeholder="Example: CSC 1350"></div>
-        <div class="form-field"><label for="category">Category</label><select id="category" name="category"><option value="">All categories</option>{% if category and category not in categories %}<option value="{{ category }}" selected>Invalid category: {{ category }}</option>{% endif %}{% for item in categories %}<option value="{{ item }}" {% if item == category %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></div>
-        <button class="page-button" type="submit">Search</button><a class="text-link" href="/catalog">Clear filters</a>
-    </form>
-</section>
-{% if error %}{{ show_message("error", "Search could not be completed", error, "/catalog", "Try again") }}
-{% elif not courses %}{{ show_message("empty", "No matching courses.", "Try a different search or clear the category filter.", "/catalog", "Clear filters") }}
+
+<form method="get" action="/catalog" class="catalog-form" id="catalog-form">
+    {# ---------- search bar row ---------- #}
+    <div class="catalog-search">
+        <label class="visually-hidden" for="query">Search by course code or name</label>
+        <input id="query" name="query" type="search" value="{{ query }}" maxlength="100"
+               placeholder="Search by course, code, or instructor...">
+
+        {# TODO: the semester picker does not filter anything yet, the catalog only has one list of courses #}
+        <label class="visually-hidden" for="catalog-term">Semester</label>
+        <select id="catalog-term" class="catalog-term">
+            <option>Spring 2026</option>
+            <option>Fall 2026</option>
+        </select>
+
+        {# TODO: the number is the sample one from the figma, the plan count is not saved yet #}
+        <a class="page-button my-plan-button" href="/planning">My plan · 4</a>
+
+        <button class="visually-hidden" type="submit">Search</button>
+    </div>
+
+    {# ---------- filter chips ---------- #}
+    <div class="catalog-chips">
+        {# this one is real, it is the category filter we already had #}
+        <label class="visually-hidden" for="category">Department</label>
+        <select id="category" name="category" class="chip chip-select" onchange="this.form.submit()">
+            <option value="">All departments</option>
+            {% if category and category not in categories %}
+                <option value="{{ category }}" selected>Invalid category: {{ category }}</option>
+            {% endif %}
+            {% for item in categories %}
+                <option value="{{ item }}" {% if item == category %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+        </select>
+
+        {# TODO: these 4 chips are in the figma but the catalog data has no times or seats to filter by yet #}
+        <button class="chip chip-credits" type="button">Credits <span aria-hidden="true">⌄</span></button>
+        <button class="chip chip-days" type="button">Days &amp; times <span aria-hidden="true">⌄</span></button>
+        <button class="chip chip-gold" type="button">Open seats only <span aria-hidden="true">✓</span></button>
+        <button class="chip chip-fits" type="button">Fits my schedule</button>
+
+        {% if query or category %}
+            <a class="text-link clear-link" href="/catalog">Clear filters</a>
+        {% endif %}
+    </div>
+</form>
+
+{% if error %}
+    {{ show_message("error", "Search could not be completed", error, "/catalog", "Try again") }}
+{% elif not courses %}
+    {{ show_message("empty", "No matching courses.", "Try a different search or clear the category filter.", "/catalog", "Clear filters") }}
 {% else %}
-<section class="page-card"><div class="section-heading"><h2>Course results</h2><span class="result-tag">{{ courses | length }} courses</span></div>
-    <div class="table-scroll" role="region" aria-label="Course results" tabindex="0"><table class="page-table"><thead><tr><th scope="col">Code</th><th scope="col">Course</th><th scope="col">Credits</th></tr></thead><tbody>{% for course in courses %}<tr><td>{{ course.course_code }}</td><td>{{ course.course_name }}</td><td>{{ course.credits }}</td></tr>{% endfor %}</tbody></table></div>
-</section>
+
+<div class="catalog-heading">
+    <h2>Recommended for your next chapter</h2>
+    <p>{{ courses | length }} courses · Sort: Recommended <span aria-hidden="true">⌄</span></p>
+</div>
+
+<div class="course-grid" role="region" aria-label="Course results">
+    {% for course in courses %}
+    <article class="course-card">
+        <header>
+            <h3>{{ course.course_code }}</h3>
+            <span>{{ course.credits }} credits</span>
+        </header>
+
+        <div class="course-body">
+            <p class="course-category">{{ course.category | upper }}</p>
+            <h4>{{ course.course_name }}</h4>
+
+            {# the catalog file only has code, name, credits and category.
+               the figma also shows a description, a time and open seats, so those spots say what we know #}
+            <p class="course-text">{{ course.category }} course worth {{ course.credits }} credit hours.</p>
+            <p class="course-time">Meeting times to be announced</p>
+
+            <footer>
+                <span>Seats not posted yet</span>
+                <a href="/planning"><span aria-hidden="true">+</span> Add to plan</a>
+            </footer>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+
 {% endif %}
 {% endblock %}

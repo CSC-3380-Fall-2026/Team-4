@@ -72,6 +72,7 @@ def dashboard_page(
         completed=completed,
         course_result=course_result,
         course_error=course_error,
+        profile=tiger_auth.nav_profile(session),
         status_code=400 if course_error else 200,
     )
 
@@ -97,7 +98,12 @@ def schedule_page(
         week_days.append(
             {"name": day.strftime("%A"), "date": day.strftime("%b %d")}
         )
-    return render_page(request, "tiger_schedule.html", week_days=week_days)
+    return render_page(
+        request,
+        "tiger_schedule.html",
+        week_days=week_days,
+        profile=tiger_auth.nav_profile(session),
+    )
 
 
 @router.get("/friends", response_class=HTMLResponse)
@@ -113,7 +119,9 @@ def friends_page(
     Returns:
         The Friends page and its existing schedule-sharing controls.
     """
-    return render_page(request, "tiger_friends.html")
+    return render_page(
+        request, "tiger_friends.html", profile=tiger_auth.nav_profile(session)
+    )
 
 
 @router.get("/profile", response_class=HTMLResponse)

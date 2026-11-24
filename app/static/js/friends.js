@@ -36,7 +36,15 @@
         ])),
         publicSchedules: new Set(),
         selectedScheduleId: schedules[0]?.id ?? "",
+
         selectedFriend: friendsData.friends[0]?.username ?? "",
+        // which day the overlap chart shows, 0 = Monday. Starts on today.
+        selectedDay: (new Date().getDay() + 6) % 7,
+        // turns true when you press the day arrows, after that we stop moving the day for you
+        dayPicked: false,
+        // the last answer from /api/shared-free-time so the chart can draw the gold parts
+        freeDays: [],
+
     };
 
     const requestList = document.querySelector("#pending-requests");
@@ -53,7 +61,8 @@
     const addScheduleViewerButton = document.querySelector("#add-schedule-viewer-button");
     const noScheduleViewers = document.querySelector("#no-schedule-viewers");
     const sharingStatus = document.querySelector("#sharing-status");
-    const compareFriendPicker = document.querySelector("#compare-friend-picker");
+    const friendCount = document.querySelector("#friend-count");
+    const freeTotal = document.querySelector("#free-total");
     const freeTimeStart = document.querySelector("#free-time-start");
     const freeTimeEnd = document.querySelector("#free-time-end");
     const minimumFreeDuration = document.querySelector("#minimum-free-duration");
@@ -74,26 +83,56 @@
         return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")} ${period}`;
     };
 
-    const formatDuration = (start, end) => {
-        const toMinutes = (time) => {
-            const [hours, minutes] = time.split(":").map(Number);
-            return hours * 60 + minutes;
-        };
-        const duration = toMinutes(end) - toMinutes(start);
-        const hours = Math.floor(duration / 60);
-        const minutes = duration % 60;
-        if (hours === 0) {
-            return `${minutes} min`;
-        }
-        return minutes === 0 ? `${hours} hr` : `${hours} hr ${minutes} min`;
+    const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+    const toMinutes = (time) => {
+        const [hours, minutes] = time.split(":").map(Number);
+        return hours * 60 + minutes;
     };
-    
+
+    // "14:00", "15:30" -> "2:00–3:30 PM"
+    const formatRange = (start, end) => {
+        const startText = formatTime(start).replace(" AM", "").replace(" PM", "");
+        return `${startText}–${formatTime(end)}`;
+    };
+
+    // "Tuesday" -> "TUE, OCT 21" using the date in the current week
+    const formatDay = (dayName) => {
+        const today = new Date();
+        const daysSinceMonday = (today.getDay() + 6) % 7;
+        const date = new Date(today);
+        date.setDate(today.getDate() - daysSinceMonday + dayNames.indexOf(dayName));
+        const month = date.toLocaleDateString("en-US", { month: "short" });
+        return `${dayName.slice(0, 3)}, ${month} ${date.getDate()}`.toUpperCase();
+    };
+
+    // 90 -> "90 minutes", 120 -> "2 hours"
+    const formatLength = (duration) => {
+        if (duration < 120) {
+            return `${duration} minutes`;
+        }
+        const hours = duration / 60;
+        return `${Number.isInteger(hours) ? hours : hours.toFixed(1)} hours`;
+    };
+
+    const showFreeMessage = (message, isError) => {
+        freePeriods.replaceChildren();
+        freePeriods.className = isError ? "plan-cards plan-message plan-error" : "plan-cards plan-message";
+        freePeriods.textContent = message;
+    };
+
     const renderFreePeriods = async () => {
         const requestSequence = ++freeTimeRequestSequence;
         if (!state.selectedFriend) {
-            freePeriods.replaceChildren();
-            freePeriods.className = "rounded-md border border-dashed border-neutrals-200 bg-neutrals-50 p-4 text-sm text-neutrals-400";
-            freePeriods.textContent = "Add a friend to compare shared free time.";
+            state.freeDays = [];
+            freeTotal.textContent = "Shared free time this week";
+            showFreeMessage(
+                state.friends.length > 0
+                    ? "Check a friend to compare shared free time."
+                    : "Add a friend to compare shared free time.",
+                false,
+            );
+            renderCalendar();
             return;
         }
 
@@ -110,41 +149,62 @@
             if (requestSequence !== freeTimeRequestSequence) {
                 return;
             }
+            state.freeDays = result.days;
+            // show the day of the first free period so the gold part is on screen right away
+            if (!state.dayPicked && result.days.length > 0) {
+                state.selectedDay = dayNames.indexOf(result.days[0].day);
+            }
+            renderCalendar();
+
             if (result.days.length === 0) {
-                freePeriods.replaceChildren();
-                freePeriods.className = "rounded-md border border-dashed border-neutrals-200 bg-neutrals-50 p-4 text-sm text-neutrals-400";
-                freePeriods.textContent = `No shared free periods of at least ${minimumFreeDuration.value} minutes within the selected hours.`;
+                freeTotal.textContent = "0 hours of shared free time this week";
+                showFreeMessage(
+                    `No shared free periods of at least ${minimumFreeDuration.value} minutes within the selected hours.`,
+                    false,
+                );
                 return;
             }
 
-            const list = makeElement("div", "grid gap-2");
+            // one card for each free period, and add up the total for the line under the heading
+            const cards = [];
+            let totalMinutes = 0;
             result.days.forEach(({ day, periods }) => {
-                const daySection = makeElement("section", "grid gap-1");
-                daySection.append(makeElement("h5", "text-xs font-bold text-neutrals-700", day));
-                const periodList = makeElement("ul", "flex flex-wrap gap-1.5");
                 periods.forEach(({ start, end }) => {
-                    const period = makeElement(
-                        "li",
-                        "inline-flex items-center gap-1.5 rounded-md border border-neutrals-100 bg-neutrals-0 px-2 py-1",
-                    );
-                    period.append(
-                        makeElement("span", "size-1.5 shrink-0 rounded-full bg-purple-500"),
-                        makeElement("span", "text-xs font-bold text-neutrals-900", `${formatTime(start)} - ${formatTime(end)}`),
-                        makeElement("span", "text-xs text-neutrals-400", formatDuration(start, end)),
-                    );
-                    periodList.append(period);
+                    const duration = toMinutes(end) - toMinutes(start);
+                    totalMinutes += duration;
+                    cards.push({ day, start, end, duration });
                 });
-                daySection.append(periodList);
-                list.append(daySection);
             });
-            freePeriods.className = "grid gap-2 rounded-md border border-neutrals-200 bg-neutrals-0 p-2.5";
-            freePeriods.replaceChildren(list);
+            const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
+            freeTotal.textContent = `${totalHours} hours of shared free time this week`;
+
+            freePeriods.className = "plan-cards";
+            freePeriods.replaceChildren();
+            // the figma has room for 3 cards, the first one is the gold "Best match"
+            cards.slice(0, 3).forEach((card, index) => {
+                const isBest = index === 0;
+                const item = makeElement("article", isBest ? "plan-card plan-best" : "plan-card");
+                const link = makeElement("a", "plan-button", "Make a plan ↗");
+                link.href = "/schedule";
+                item.append(
+                    makeElement("p", "plan-day", formatDay(card.day)),
+                    makeElement("p", "plan-time", formatRange(card.start, card.end)),
+                    makeElement(
+                        "p",
+                        "plan-length",
+                        isBest ? `${formatLength(card.duration)} · Best match` : `${formatLength(card.duration)} together`,
+                    ),
+                    link,
+                );
+                freePeriods.append(item);
+            });
         } catch (error) {
             if (requestSequence !== freeTimeRequestSequence) {
                 return;
             }
-            freePeriods.className = "rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-600";
-            freePeriods.textContent = error.message;
+            state.freeDays = [];
+            renderCalendar();
+            showFreeMessage(error.message, true);
         }
     };
 
@@ -160,25 +220,23 @@
 
     const renderRequests = () => {
         requestList.replaceChildren();
-        requestCount.textContent = `${state.requests.length} New`;
-        requestCount.classList.toggle("hidden", state.requests.length === 0);
+        // the number next to the Requests tab
+        requestCount.textContent = state.requests.length > 0 ? String(state.requests.length) : "";
         noRequests.classList.toggle("hidden", state.requests.length > 0);
 
         state.requests.forEach((request) => {
-            const item = makeElement("li", "flex flex-col gap-3 rounded-md border border-neutrals-100 bg-neutrals-0 p-3 sm:flex-row sm:items-center sm:justify-between");
-            const identity = makeElement("div", "flex min-w-0 items-center gap-3");
-            identity.append(makeElement("span", "size-9 shrink-0 rounded-full bg-neutrals-100"));
-            const details = makeElement("div", "min-w-0");
+            const item = makeElement("li", "friend-row");
+            const details = makeElement("div", "friend-details");
             const requestName = displayName(request.username);
             details.append(
-                makeElement("p", "truncate text-sm font-bold text-neutrals-800", requestName),
-                makeElement("p", "truncate text-xs text-neutrals-400", request.major),
+                makeElement("p", "friend-name", requestName),
+                makeElement("p", "friend-sub", request.major),
             );
-            identity.append(details);
 
-            const actions = makeElement("div", "flex shrink-0 gap-2");
+            const actions = makeElement("div", "request-actions");
             actions.append(
-                makeButton("Accept", "rounded-md bg-purple-400 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-purple-500", async () => {
+
+                makeButton("Accept","page-button request-button" , async () => {
                     try {
                         await apiRequest(`/api/friends/requests/${request.id}/accept`, {
                             method: "POST",
@@ -188,8 +246,11 @@
                         searchMessage.textContent = error.message;
                         searchMessage.className = "text-sm text-red-600";
                     }
+
+
                 }, `Accept ${requestName}'s request`),
-                makeButton("Decline", "rounded-md border border-neutrals-200 px-3 py-1.5 text-xs font-semibold text-neutrals-500 transition-colors hover:bg-yellow-50", async () => {
+
+                makeButton("Decline","secondary-button request-button" , async () => {
                     try {
                         await apiRequest(`/api/friends/requests/${request.id}`, {
                             method: "DELETE",
@@ -199,36 +260,29 @@
                         searchMessage.textContent = error.message;
                         searchMessage.className = "text-sm text-red-600";
                     }
+
+
+
                 }, `Decline ${requestName}'s request`),
             );
-            item.append(identity, actions);
+            item.append(details, actions);
             requestList.append(item);
         });
     };
 
     const renderFriends = () => {
         friendsList.replaceChildren();
+        friendCount.textContent = String(state.friends.length);
         noFriends.classList.toggle("hidden", state.friends.length > 0);
 
         state.friends.forEach((friend) => {
             const user = usersByUsername.get(friend.username);
             const count = user?.schedules.length ?? 0;
             const status = `${count} shared ${count === 1 ? "schedule" : "schedules"}`;
-            const item = makeElement("li", "flex items-center justify-between gap-3 rounded-md border border-neutrals-100 bg-neutrals-0 px-3 py-2");
-            const identity = makeElement("div", "flex min-w-0 items-center gap-3");
-            identity.append(makeElement("span", "size-9 shrink-0 rounded-full bg-neutrals-100"));
-            const details = makeElement("div", "min-w-0");
-            const nameLine = makeElement("p", "flex items-center gap-1 text-sm font-bold text-neutrals-800");
-            nameLine.append(document.createTextNode(displayName(friend.username)));
-            nameLine.append(makeElement("span", "size-1.5 rounded-full bg-emerald-500"));
-            details.append(nameLine);
-            const statusClass = status.startsWith("Free")
-                ? "text-xs font-medium text-emerald-600"
-                : "truncate text-xs font-medium text-neutrals-400";
-            details.append(makeElement("p", statusClass, status));
-            identity.append(details);
+            const friendName = displayName(friend.username);
 
-            const removeButton = makeButton("Remove", "shrink-0 rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50", async () => {
+
+            const removeButton = makeButton("Remove", "friend-remove", async () => {
                 try {
                     await apiRequest(`/api/friends/${friend.id}`, { method: "DELETE" });
                     window.location.reload();
@@ -237,7 +291,32 @@
                     searchMessage.className = "text-sm text-red-600";
                 }
             }, `Remove ${displayName(friend.username)} from friends`);
-            item.append(identity, removeButton);
+
+
+            const item = makeElement("li", "friend-row");
+            const details = makeElement("div", "friend-details");
+            details.append(
+                makeElement("p", "friend-name", friendName),
+                makeElement("p", "friend-sub", status),
+            );
+
+
+
+            // The check box picks who you compare with. The free time API only takes
+            // one friend at a time, so checking one friend unchecks the other ones.
+            const checkbox = makeElement("input", "friend-check");
+            checkbox.type = "checkbox";
+            checkbox.checked = state.selectedFriend === friend.username;
+            checkbox.setAttribute("aria-label", `Compare schedules with ${friendName}`);
+            checkbox.addEventListener("change", () => {
+                state.selectedFriend = checkbox.checked ? friend.username : "";
+                renderFriends();
+                renderCalendar();
+                renderFreePeriods();
+            });
+
+            item.append(details, removeButton, checkbox);
+
             friendsList.append(item);
         });
     };
@@ -269,8 +348,9 @@
         addScheduleViewerButton.disabled = addScheduleViewer.options.length <= 1;
 
         viewers.forEach((username) => {
-            const chip = makeElement("span", "inline-flex items-center gap-1 rounded-md bg-purple-500 px-2.5 py-1 text-xs font-medium text-white", displayName(username));
-            const removeButton = makeButton("×", "cursor-pointer text-sm leading-none text-white/80 hover:text-yellow-300", async () => {
+
+            const chip = makeElement("span", "viewer-chip", displayName(username));
+            const removeButton = makeButton("×", "viewer-remove", async () => {
                 const friend = state.friends.find((item) => item.username === username);
                 const friendId = friend?.requester_id === scheduleState.currentUserId
                     ? friend?.addressee_id : friend?.requester_id;
@@ -287,6 +367,7 @@
                     searchMessage.textContent = error.message;
                     searchMessage.className = "text-sm text-red-600";
                 }
+
             }, `Stop sharing with ${displayName(username)}`);
             chip.append(removeButton);
             scheduleViewers.append(chip);
@@ -312,36 +393,15 @@
         sharedSchedulePicker.value = state.selectedScheduleId;
     };
 
-    const renderComparePicker = () => {
-        const previousFriend = state.selectedFriend;
-        compareFriendPicker.replaceChildren();
-        state.friends.forEach((friend) => {
-            const option = document.createElement("option");
-            option.value = friend.username;
-            option.textContent = displayName(friend.username);
-            compareFriendPicker.append(option);
-        });
-        if (state.friends.length === 0) {
-            const option = document.createElement("option");
-            option.value = "";
-            option.textContent = "No friends yet";
-            compareFriendPicker.append(option);
-            compareFriendPicker.disabled = true;
-            state.selectedFriend = "";
-        } else {
-            compareFriendPicker.disabled = false;
-            state.selectedFriend = state.friends.some((friend) => friend.username === previousFriend)
-                ? previousFriend
-                : state.friends[0].username;
-            compareFriendPicker.value = state.selectedFriend;
+    const checkSelectedFriend = () => {
+        // if the friend we were comparing with got removed, fall back to the first friend
+        const stillFriend = state.friends.some((friend) => friend.username === state.selectedFriend);
+        if (state.selectedFriend && !stillFriend) {
+            state.selectedFriend = state.friends[0]?.username ?? "";
         }
-        const selectedFriend = state.friends.find((friend) => friend.username === state.selectedFriend);
-        document.querySelector("#friend-legend-name").textContent = selectedFriend
-            ? displayName(selectedFriend.username)
-            : "Friend";
     };
 
-    const { renderCalendar, scrollCalendarToFirstEvent } = window.FriendsCalendar.createRenderer({
+    const { renderCalendar } = window.FriendsCalendar.createRenderer({
         state,
         schedules,
         usersByUsername,
@@ -354,7 +414,7 @@
         renderFriends();
         renderSharedSchedulePicker();
         renderViewers();
-        renderComparePicker();
+        checkSelectedFriend();
         renderCalendar();
         renderFreePeriods();
     };
@@ -431,10 +491,29 @@
         renderViewers();
     });
 
-    compareFriendPicker.addEventListener("change", () => {
-        state.selectedFriend = compareFriendPicker.value;
+    // the arrows next to the date move the overlap chart one day back or forward
+    document.querySelector("#day-previous").addEventListener("click", () => {
+        state.selectedDay = (state.selectedDay + 6) % 7;
+        state.dayPicked = true;
         renderCalendar();
-        renderFreePeriods();
+    });
+    document.querySelector("#day-next").addEventListener("click", () => {
+        state.selectedDay = (state.selectedDay + 1) % 7;
+        state.dayPicked = true;
+        renderCalendar();
+    });
+
+    // Friends / Requests / Sharing settings tabs. Anything with data-tab switches the panel.
+    const showTab = (name) => {
+        document.querySelectorAll(".friends-panel").forEach((panel) => {
+            panel.classList.toggle("hidden", panel.id !== `tab-${name}`);
+        });
+        document.querySelectorAll(".friends-tab").forEach((tab) => {
+            tab.classList.toggle("active", tab.dataset.tab === name);
+        });
+    };
+    document.querySelectorAll("[data-tab]").forEach((button) => {
+        button.addEventListener("click", () => showTab(button.dataset.tab));
     });
     [freeTimeStart, freeTimeEnd].forEach((input) => {
         input.addEventListener("input", renderFreePeriods);
@@ -442,6 +521,5 @@
     });
     minimumFreeDuration.addEventListener("change", renderFreePeriods);
     renderAll();
-    scrollCalendarToFirstEvent();
     }
 })();

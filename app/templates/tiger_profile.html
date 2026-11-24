@@ -2,39 +2,183 @@
 {% from "components/page_message.html" import show_message %}
 {% set page_title = "Profile" %}
 {% block content %}
-<div class="page-intro"><p class="eyebrow">YOUR ACCOUNT</p><h2>Student profile</h2><p>Save your GPA and completed courses so they are here every time you log in.</p></div>
+
 {% if saved %}{{ show_message("success", "Profile saved", "Your username, GPA, credit hours, and courses were saved.") }}{% endif %}
 {% if error %}{{ show_message("error", "Profile problem", error) }}{% endif %}
+
 {% if not profile %}
-{{ show_message("empty", "Log in to see your profile", "Your own account information will appear after you log in.", "/login", "Log in") }}
+    {{ show_message("empty", "Log in to see your profile", "Your own account information will appear after you log in.", "/login", "Log in") }}
 {% else %}
-{% if profile.data_error %}{{ show_message("error", "Academic information unavailable", "Your account is signed in, but saved academic information could not be loaded. Saving now could overwrite it, so please try again later.", "/profile", "Try again") }}{% endif %}
-<section class="page-card">
-    <h2>Account information</h2>
-    <dl class="profile-details">
-        <dt>Email</dt><dd>{{ profile.email }}</dd>
-        <dt>Username</dt><dd>{{ profile.username or "Not set" }}</dd>
-        <dt>Current GPA</dt><dd>{% if profile.gpa is not none %}{{ "%.2f" | format(profile.gpa) }}{% else %}Not set{% endif %}</dd>
-        <dt>Completed GPA credit hours</dt><dd>{{ profile.completed_credit_hours }}</dd>
-    </dl>
-</section>
-{% if not profile.data_error %}
-<section class="page-card">
-    <h2>Edit profile</h2>
-    <form method="post" action="/profile" novalidate>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div class="form-field"><label for="username">Username</label><input id="username" name="username" value="{{ profile.username or '' }}" maxlength="40" placeholder="Friends find you by this name"></div>
-        <div class="form-field"><label for="gpa">Current cumulative GPA</label><input id="gpa" name="gpa" value="{{ profile.gpa if profile.gpa is not none else '' }}" type="text" inputmode="decimal" maxlength="5" placeholder="For example, 3.25"></div>
-        <div class="form-field"><label for="hours">Completed GPA credit hours</label><input id="hours" name="hours" value="{{ profile.completed_credit_hours }}" type="text" inputmode="numeric" maxlength="3" placeholder="For example, 60"></div>
-        <div class="form-field">
-            <label for="courses">Completed courses</label>
-            <textarea id="courses" name="courses" rows="6" maxlength="5000" aria-describedby="courses-help">{% for course in profile.courses %}{{ course.course_code }}, {{ course.credits }}, {{ course.course_name }}
-{% endfor %}</textarea>
-            <p id="courses-help" class="field-help">One course per line: code, credits, name. For example, CSC 1350, 4, Computer Science I.</p>
-        </div>
-        <button class="page-button" type="submit">Save profile</button>
-    </form>
-</section>
+
+{% if profile.data_error %}
+    {{ show_message("error", "Academic information unavailable", "Your account is signed in, but saved academic information could not be loaded. Saving now could overwrite it, so please try again later.", "/profile", "Try again") }}
 {% endif %}
+
+{# The top 2 cards and the right side are the figma. The profiles table has no columns for
+   those fields yet (TODO), so they don't have a name="" and don't get sent.
+   The fields that really save (username, gpa, hours, courses) are in the 3rd card. #}
+{% set name_parts = (profile.username or '').split(' ') %}
+<form method="post" action="/profile" id="profile-form" class="profile-layout" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="profile-left">
+        <section class="page-card">
+            <h2>The basics</h2>
+
+            <div class="field-grid">
+                <div class="form-field">
+                    <label for="first-name">First name</label>
+                    <input id="first-name" type="text" value="{{ name_parts[0] }}" placeholder="Alex" autocomplete="given-name">
+                </div>
+                <div class="form-field">
+                    <label for="last-name">Last name</label>
+                    <input id="last-name" type="text" value="{{ name_parts[1:] | join(' ') }}" placeholder="Morgan" autocomplete="family-name">
+                </div>
+
+                <div class="form-field">
+                    <label for="email">University email</label>
+                    <input id="email" type="email" value="{{ profile.email }}" readonly>
+                </div>
+                <div class="form-field">
+                    <label for="timezone">Timezone</label>
+                    <select id="timezone">
+                        <option>Eastern Time (US &amp; Canada)</option>
+                        <option>Central Time (US &amp; Canada)</option>
+                        <option>Mountain Time (US &amp; Canada)</option>
+                        <option>Pacific Time (US &amp; Canada)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-card academic-card">
+            <h2>Your academic home</h2>
+
+            <div class="field-grid">
+                <div class="form-field">
+                    <label for="university">University</label>
+                    <input id="university" type="text" placeholder="Northwood University">
+                </div>
+                <div class="form-field">
+                    <label for="degree">Degree program</label>
+                    <select id="degree">
+                        <option>B.S. Computer Science</option>
+                        <option>B.S. Computer Engineering</option>
+                        <option>B.S. Mathematics</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="graduation">Expected graduation</label>
+                    <select id="graduation">
+                        <option>May 2027</option>
+                        <option>December 2027</option>
+                        <option>May 2028</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="scale">Grading scale</label>
+                    <select id="scale">
+                        <option>4.0 scale</option>
+                        <option>4.3 scale</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        {# ---------- not in the figma: the fields the backend really saves ---------- #}
+        {% if not profile.data_error %}
+        <section class="page-card record-card">
+            <h2>Your TigerDrive record</h2>
+
+            <div class="field-grid">
+                <div class="form-field field-wide">
+                    <label for="username">Username</label>
+                    <input id="username" name="username" value="{{ profile.username or '' }}" maxlength="40"
+                           placeholder="Friends find you by this name">
+                </div>
+
+                <div class="form-field">
+                    <label for="gpa">Current cumulative GPA</label>
+                    <input id="gpa" name="gpa"
+                           value="{% if profile.gpa is not none %}{{ '%.2f' | format(profile.gpa) }}{% endif %}"
+                           type="text" inputmode="decimal" maxlength="5" placeholder="For example, 3.25">
+                </div>
+                <div class="form-field">
+                    <label for="hours">Completed GPA credit hours</label>
+                    <input id="hours" name="hours" value="{{ profile.completed_credit_hours }}" type="text"
+                           inputmode="numeric" maxlength="3" placeholder="For example, 60">
+                </div>
+
+                <div class="form-field field-wide">
+                    <label for="courses">Completed courses</label>
+                    <textarea id="courses" name="courses" rows="5" maxlength="5000" aria-describedby="courses-help">{% for course in profile.courses %}{{ course.course_code }}, {{ course.credits }}, {{ course.course_name }}
+{% endfor %}</textarea>
+                    <p id="courses-help" class="field-help">One course per line: code, credits, name. For example, CSC 1350, 4, Computer Science I.</p>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+
+    <div class="profile-right">
+        {# TODO: these 3 switches are not saved yet, sharing is set on the Friends page for now #}
+        <section class="page-card privacy-card">
+            <h2>Your privacy comes first.</h2>
+
+            <label class="switch-row">
+                <span>
+                    <strong>Share availability</strong>
+                    <small>Friends can find free time with you.</small>
+                </span>
+                <input type="checkbox" checked>
+                <i aria-hidden="true"></i>
+            </label>
+            <label class="switch-row">
+                <span>
+                    <strong>Share event details</strong>
+                    <small>Show event titles and locations.</small>
+                </span>
+                <input type="checkbox">
+                <i aria-hidden="true"></i>
+            </label>
+            <label class="switch-row">
+                <span>
+                    <strong>Show academic progress</strong>
+                    <small>Make grades and GPA visible.</small>
+                </span>
+                <input type="checkbox">
+                <i aria-hidden="true"></i>
+            </label>
+        </section>
+
+        {# TODO: transcript upload has no backend yet, so the file is not sent anywhere.
+           the Submit button saves the form the same way Save changes does #}
+        <section class="page-card transcript-card">
+            <h2>Upload your Transcript</h2>
+
+            <label class="upload-button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 15V3"/>
+                    <path d="M7 8l5-5 5 5"/>
+                    <path d="M3 14v6h18v-6"/>
+                </svg>
+                <span>Upload</span>
+                <input class="visually-hidden" type="file" accept=".pdf">
+            </label>
+
+            {% if not profile.data_error %}
+                <button class="page-button" type="submit">Submit</button>
+            {% endif %}
+        </section>
+
+        <div class="profile-actions">
+            <a class="secondary-button" href="/profile">Cancel</a>
+            {% if not profile.data_error %}
+                <button class="page-button" type="submit">Save changes</button>
+            {% endif %}
+        </div>
+    </div>
+</form>
 {% endif %}
 {% endblock %}

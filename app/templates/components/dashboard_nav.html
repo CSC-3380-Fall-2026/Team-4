@@ -1,34 +1,103 @@
 <nav class="dashboard-nav" aria-label="Main navigation">
     <div id="nav-buttons">
         <a id="title" class="brand" href="/dashboard">
-            <span id="logo" aria-hidden="true">T</span>
-            <span>Tiger Class Drive</span>
+            <span class="brand-slashes" aria-hidden="true">///</span>
+            <span class="brand-name">TIGERDRIVE</span>
         </a>
+
         <div id="nav-tabs">
-            {% for label, path, icon in nav_links if account_active or path == '/catalog' %}
-                <a href="{{ path }}" class="nav-link {{ 'active' if request.url.path == path else '' }}"
+            {% for label, path, icon in nav_links %}
+                {# profile is not in the sidebar in the figma, you get to it from your name at the bottom #}
+                {% if path != '/profile' and (account_active or path == '/catalog') %}
+
+                <a href="{{ path }}"
+                   class="nav-link{% if request.url.path == path %} active{% endif %}"
                    {% if request.url.path == path %}aria-current="page"{% endif %}>
-                    <span aria-hidden="true">{{ icons[icon] }}</span>
-                    <span>{{ label }}</span>
+
+                    <span class="nav-icon" aria-hidden="true">
+                        {% if path == '/dashboard' %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2.5" y="3.5" width="19" height="13" rx="2"/>
+                                <path d="M8 21h8"/>
+                                <path d="M12 16.5V21"/>
+                            </svg>
+                        {% elif path == '/schedule' %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4.5" width="18" height="17" rx="2.5"/>
+                                <path d="M8 2.5v4"/>
+                                <path d="M16 2.5v4"/>
+                                <path d="M3 10h18"/>
+                                <path d="M8 14.5h3v3H8z"/>
+                            </svg>
+                        {% elif path == '/planning' %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4.5L5 21V4.5a1 1 0 0 1 1-1z"/>
+                            </svg>
+                        {% elif path == '/catalog' %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 6.5v14"/>
+                                <path d="M2.5 4.5h6a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1 3.5-3.5h6v13h-6.5a3 3 0 0 0-3 3 3 3 0 0 0-3-3H2.5z"/>
+                            </svg>
+                        {% elif path == '/friends' %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9.5"/>
+                                <path d="M8 14s1.5 2.5 4 2.5 4-2.5 4-2.5"/>
+                                <path d="M9 9.5h.01"/>
+                                <path d="M15 9.5h.01"/>
+                            </svg>
+                        {% else %}
+                            {{ icons[icon] }}
+                        {% endif %}
+                    </span>
+
+                    <span>{{ 'Courses' if path == '/catalog' else label }}</span>
                 </a>
+
+                {% endif %}
             {% endfor %}
         </div>
     </div>
+
     <div id="profile-footer">
-        <div id="profile-info">
-            <p id="profile-name">{{ (profile.username or profile.email) if profile else 'Your account' }}</p>
-            {% if profile %}<p id="profile-email">{{ profile.email }}</p>{% endif %}
+        {# TODO: reminders are not saved anywhere yet, this is the placeholder text from the figma #}
+        <div class="reminder-card">
+            <p class="reminder-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/>
+                    <path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>
+                </svg>
+                Reminder
+            </p>
+            <p class="reminder-text">lorem ipsum dolor sit amet consectetur adipiscing elit at in optio quo magna</p>
         </div>
+
+        {% set account_name = (profile.username or profile.email) if profile else 'Your account' %}
+
+        <div id="profile-info">
+            <div class="profile-row">
+                <span class="avatar" aria-hidden="true">{{ account_name[0] | upper }}</span>
+
+                {% if account_active %}
+                    <a id="profile-name" href="/profile">{{ account_name }}</a>
+                {% else %}
+                    <span id="profile-name">{{ account_name }}</span>
+                {% endif %}
+            </div>
+
+            {% if profile and profile.email %}
+                <p id="profile-email">{{ profile.email }}</p>
+            {% endif %}
+        </div>
+
         <div class="account-links">
             {% if account_active %}
-                <a href="/profile">View profile</a>
                 <form method="post" action="/account/logout">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button class="link-button" type="submit">Log out</button>
                 </form>
             {% else %}
-                <a href="/login" {% if request.url.path == '/login' %}aria-current="page"{% endif %}>Log in</a>
-                <a href="/signup" {% if request.url.path == '/signup' %}aria-current="page"{% endif %}>Sign up</a>
+                <a href="/login">Log in</a>
+                <a href="/signup">Sign up</a>
             {% endif %}
         </div>
     </div>
