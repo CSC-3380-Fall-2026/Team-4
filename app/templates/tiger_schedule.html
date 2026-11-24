@@ -6,52 +6,23 @@
    schedule-calendar.js looks inside it for the grid and for #schedule-categories #}
 <div id="schedule-calendar" class="schedule-layout">
     <div class="schedule-main">
-        <div class="schedule-toolbar">
-            {# TODO: only the week view exists right now, Month and Day and the arrows are just the figma buttons #}
-            <div class="view-switch" role="group" aria-label="Calendar view">
-                <button type="button" class="active" aria-pressed="true">Week</button>
-                <button type="button" aria-pressed="false" title="Month view is not built yet">Month</button>
-                <button type="button" aria-pressed="false" title="Day view is not built yet">Day</button>
-            </div>
-
-            <button type="button" class="week-arrow" aria-label="Previous week" title="Not built yet">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-            </button>
-            <button type="button" class="week-arrow" aria-label="Next week" title="Not built yet">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-            </button>
-        </div>
-
         {% include "components/schedule_calendar.html" %}
     </div>
 
     <aside class="schedule-side">
-        {# SAMPLE TEXT from the figma. This page does not load friends' free time yet, the button goes to Friends. #}
         <section class="window-card">
-            <p class="window-kicker">A WINDOW FOR CONNECTION</p>
-            <h2>Tuesday looks good.</h2>
+            <p class="window-kicker">SHARED AVAILABILITY</p>
+            <h2>Shared Free Time</h2>
             <p class="window-time">2:00–3:30 PM</p>
-            <p class="window-text">You, Maya Chen, and Jordan Lee are all free for 90 minutes.</p>
-            <a class="window-button" href="/friends">Make a plan</a>
+            <p class="window-text">Compare schedules with friends to find open times during the week.</p>
+            <a class="window-button" href="/friends">Compare schedules</a>
         </section>
 
         {# the list is filled in by schedule-calendar.js with one line for each of your schedules #}
         <section class="legend-card">
+            <h3 class="legend-title">Your Schedules</h3>
             <ul id="schedule-categories" aria-label="Schedule categories"></ul>
         </section>
-
-        <div class="float-buttons">
-            <a href="/friends" aria-label="Share with friends">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <circle cx="10" cy="8" r="4"/>
-                    <path d="M2.5 20c0-3.6 3.3-6 7.5-6s7.5 2.4 7.5 6z"/>
-                    <path d="M18.5 3.5v6M15.5 6.5h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-                </svg>
-            </a>
-            <button id="add-event-button" type="button" aria-label="Add event">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13"/></svg>
-            </button>
-        </div>
     </aside>
 </div>
 
@@ -60,9 +31,15 @@
     <p id="schedule-page-error" class="hidden text-sm text-red-700" role="alert"></p>
 
     <div class="events-top">
-        <div>
-            <h2>Schedule Events</h2>
-            <p class="card-sub">Manage events in the selected schedule.</p>
+        <div class="events-title-group">
+            <div>
+                <h2>Schedule Events</h2>
+                <p class="card-sub">Manage events in the selected schedule.</p>
+            </div>
+            <button id="add-event-button" type="button" class="page-button add-event-btn" aria-label="Add event">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13"/></svg>
+                <span>Add Event</span>
+            </button>
         </div>
 
         <div id="schedule-form" class="events-controls">

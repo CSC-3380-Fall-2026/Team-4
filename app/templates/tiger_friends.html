@@ -19,7 +19,7 @@
     <div class="friends-layout">
         <div class="friends-left">
             <section class="page-card joining-card" aria-labelledby="your-friends-title">
-                <h2 id="your-friends-title">Who’s joining?</h2>
+                <h2 id="your-friends-title">Your Friends</h2>
                 <p class="card-sub">Choose friends to compare schedules.</p>
 
                 {# type a friend's exact username here and press Invite a friend (or Enter) #}
@@ -33,24 +33,17 @@
                 <ul id="friends-list" aria-label="Your friends"></ul>
                 <p id="no-friends" class="hidden friends-empty">Add a friend to start comparing schedules.</p>
             </section>
-
-            <section class="share-card">
-                <h2>Share your time,<br>not your whole life.</h2>
-                <button type="button" class="share-link" data-tab="sharing">
-                    Review who can<br>see what <span aria-hidden="true">↗</span>
-                </button>
-            </section>
         </div>
 
         <div class="friends-right">
             <section id="schedule-comparison" class="page-card overlap-card" aria-labelledby="compare-schedules-title">
                 <div class="overlap-top">
                     <div>
-                        <h2 id="compare-schedules-title">A little overlap goes a long way.</h2>
+                        <h2 id="compare-schedules-title">Schedule Comparison</h2>
                         <p class="card-sub" id="overlap-names">You</p>
                     </div>
 
-                    <div class="day-picker">
+                    <div class="day-picker" style="display: none;" aria-hidden="true">
                         <button type="button" id="day-previous" aria-label="Previous day">‹</button>
                         <span id="day-label"></span>
                         <button type="button" id="day-next" aria-label="Next day">›</button>
@@ -61,7 +54,7 @@
             </section>
 
             <section class="plans-section" aria-labelledby="shared-free-time-title">
-                <h2 id="shared-free-time-title">Make it happen</h2>
+                <h2 id="shared-free-time-title">Shared Free Time</h2>
                 <p class="card-sub" id="free-total">Shared free time this week</p>
 
                 <div id="free-periods" class="plan-cards" role="status">
@@ -141,4 +134,143 @@
     <script src="{{ url_for('static', path='/js/schedule-data.js') }}?v=6" defer></script>
     <script src="{{ url_for('static', path='/js/friends-calendar.js') }}?v=2" defer></script>
     <script src="{{ url_for('static', path='/js/friends.js') }}?v=16" defer></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const todayIndex = (new Date().getDay() + 6) % 7;
+            const todayHeading = document.querySelector('[data-friends-heading-day="' + todayIndex + '"]');
+            if (todayHeading) {
+                todayHeading.classList.add("today");
+            }
+
+            const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            const freePeriodsEl = document.querySelector("#free-periods");
+            if (freePeriodsEl) {
+                const stripDates = () => {
+                    freePeriodsEl.querySelectorAll(".plan-day").forEach((el) => {
+                        const onlyDay = el.textContent.split(",")[0].trim();
+                        if (el.textContent !== onlyDay) {
+                            el.textContent = onlyDay;
+                        }
+                    });
+                };
+                new MutationObserver(stripDates).observe(freePeriodsEl, { childList: true, subtree: true });
+            }
+
+            window.FriendsCalendar = {
+                createRenderer: ({ state, schedules, usersByUsername, displayName, makeElement }) => {
+                    const chart = document.querySelector("#friends-calendar");
+                    const scrollContainer = document.querySelector("#friends-calendar-scroll");
+                    const namesLabel = document.querySelector("#overlap-names");
+
+                    const minutes = (time) => {
+                        const [hours, mins] = time.split(":").map(Number);
+                        return hours * 60 + mins;
+                    };
+
+                    const timeLabel = (time) => {
+                        const [hours, mins] = time.split(":").map(Number);
+                        const period = hours < 12 ? "AM" : "PM";
+                        return `${hours % 12 || 12}:${String(mins).padStart(2, "0")} ${period}`;
+                    };
+
+                    const placeOnGrid = (card, startMins, endMins) => {
+                        const clampedStart = Math.max(0, startMins);
+                        const clampedEnd = Math.min(24 * 60, endMins);
+                        if (clampedEnd <= clampedStart) {
+                            return false;
+                        }
+                        const firstRow = Math.floor(clampedStart / 30);
+                        const lastRow = Math.ceil(clampedEnd / 30);
+                        card.style.gridColumn = "1";
+                        card.style.gridRow = `${firstRow + 1} / ${lastRow + 1}`;
+                        return true;
+                    };
+
+                    const renderCalendar = () => {
+                        const friendUser = usersByUsername.get(state.selectedFriend);
+                        namesLabel.textContent = friendUser
+                            ? `You + ${displayName(state.selectedFriend)}`
+                            : "You";
+
+                        chart.querySelectorAll(".friends-calendar-day").forEach((col) => col.replaceChildren());
+
+                        if (friendUser && Array.isArray(state.freeDays)) {
+                            state.freeDays.forEach(({ day, periods }) => {
+                                const dayCol = chart.querySelector(`.friends-calendar-day[data-day-name="${day}"]`);
+                                if (!dayCol) {
+                                    return;
+                                }
+                                periods.forEach((period) => {
+                                    const startMins = minutes(period.start);
+                                    const endMins = minutes(period.end);
+                                    const freeCard = makeElement("div", "calendar-event friends-grid-free");
+                                    if (placeOnGrid(freeCard, startMins, endMins)) {
+                                        freeCard.title = `Free together: ${timeLabel(period.start)} - ${timeLabel(period.end)}`;
+                                        freeCard.append(
+                                            makeElement("strong", "", "Free together"),
+                                            makeElement("span", "event-time", `${timeLabel(period.start)} - ${timeLabel(period.end)}`)
+                                        );
+                                        dayCol.append(freeCard);
+                                    }
+                                });
+                            });
+                        }
+
+                        const allEvents = [
+                            ...schedules.flatMap((schedule) =>
+                                schedule.events.map((event) => ({ ...event, owner: "you" }))
+                            ),
+                            ...(friendUser
+                                ? friendUser.schedules.flatMap((schedule) =>
+                                      schedule.events.map((event) => ({ ...event, owner: "friend" }))
+                                  )
+                                : []),
+                        ];
+
+                        allEvents.forEach((event) => {
+                            const startMins = minutes(event.start);
+                            const endMins = minutes(event.end);
+                            const isCompact = endMins - startMins <= 60;
+                            const ownerName = event.owner === "you" ? "You" : displayName(state.selectedFriend);
+                            const ownerClass = event.owner === "you" ? "friends-grid-you" : "friends-grid-friend";
+
+                            event.days.forEach((dayName) => {
+                                const dayCol = chart.querySelector(`.friends-calendar-day[data-day-name="${dayName}"]`);
+                                if (!dayCol) {
+                                    return;
+                                }
+                                const card = makeElement("article", `calendar-event ${ownerClass}`);
+                                card.dataset.start = event.start;
+                                card.dataset.end = event.end;
+                                if (!placeOnGrid(card, startMins, endMins)) {
+                                    return;
+                                }
+                                card.title = `${ownerName}: ${event.title} (${timeLabel(event.start)} - ${timeLabel(event.end)})`;
+                                if (isCompact) {
+                                    card.append(
+                                        makeElement("strong", "block truncate", `${event.title} · ${timeLabel(event.start)}`)
+                                    );
+                                } else {
+                                    const details = makeElement("div", "flex flex-col");
+                                    details.append(
+                                        makeElement("strong", "", `${event.title} (${ownerName})`),
+                                        makeElement("span", "event-time", `${timeLabel(event.start)} - ${timeLabel(event.end)}`)
+                                    );
+                                    card.append(details);
+                                }
+                                dayCol.append(card);
+                            });
+                        });
+
+                        if (scrollContainer && !scrollContainer.dataset.initializedScroll) {
+                            scrollContainer.dataset.initializedScroll = "1";
+                            scrollContainer.scrollTop = 7 * 54;
+                        }
+                    };
+
+                    return { renderCalendar };
+                },
+            };
+        });
+    </script>
 {% endblock %}

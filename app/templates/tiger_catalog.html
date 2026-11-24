@@ -56,29 +56,42 @@
 {% else %}
 
 <div class="catalog-heading">
-    <h2>Recommended for your next chapter</h2>
-    <p>{{ courses | length }} courses · Sort: Recommended <span aria-hidden="true">⌄</span></p>
+    <h2>Classes</h2>
+    <p>{{ courses | length }} classes</p>
 </div>
+
+{% set prefix_themes = {
+    "CSC": "course-theme-purple",
+    "MATH": "course-theme-red",
+    "IE": "course-theme-teal",
+    "ENGL": "course-theme-blue",
+    "BIOL": "course-theme-green",
+    "CHEM": "course-theme-green",
+    "PHYS": "course-theme-gold"
+} %}
 
 <div class="course-grid" role="region" aria-label="Course results">
     {% for course in courses %}
-    <article class="course-card">
+    {% set prefix = course.course_code.split(' ')[0] | upper %}
+    {% set theme_class = prefix_themes.get(prefix, "course-theme-gold") %}
+    <article class="course-card {{ theme_class }}" data-prefix="{{ prefix }}">
         <header>
             <h3>{{ course.course_code }}</h3>
-            <span>{{ course.credits }} credits</span>
+            <span class="course-credit-pill">{{ course.credits }} credits</span>
         </header>
 
         <div class="course-body">
             <p class="course-category">{{ course.category | upper }}</p>
             <h4>{{ course.course_name }}</h4>
 
-            {# the catalog file only has code, name, credits and category.
-               the figma also shows a description, a time and open seats, so those spots say what we know #}
-            <p class="course-text">{{ course.category }} course worth {{ course.credits }} credit hours.</p>
-            <p class="course-time">Meeting times to be announced</p>
+            <p class="course-text">{{ course.category }} · {{ course.credits }} credit hours</p>
+            <div class="course-schedule-meta">
+                <p class="course-time">Days &amp; times TBA</p>
+                <span class="course-room">Location TBA</span>
+            </div>
 
             <footer>
-                <span>Seats not posted yet</span>
+                <span>Seats TBA</span>
                 <a href="/planning"><span aria-hidden="true">+</span> Add to plan</a>
             </footer>
         </div>
@@ -87,4 +100,39 @@
 </div>
 
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        var nameEl = document.getElementById("profile-name");
+        var emailEl = document.getElementById("profile-email");
+        var avatarEl = document.querySelector("#profile-info .avatar");
+        if (!nameEl || !emailEl) {
+            return;
+        }
+        function applyEmail(email) {
+            if (!email) {
+                return;
+            }
+            nameEl.textContent = email;
+            emailEl.textContent = email;
+            if (avatarEl) {
+                avatarEl.textContent = email.charAt(0).toUpperCase();
+            }
+        }
+        fetch("/api/schedule-data", { credentials: "same-origin" })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+                if (!data || !Array.isArray(data.users)) {
+                    return;
+                }
+                var me = data.users.find(function (u) { return u.id === data.currentUserId; });
+                if (me && me.email) {
+                    applyEmail(me.email);
+                }
+            })
+            .catch(function () {});
+    })();
+</script>
 {% endblock %}

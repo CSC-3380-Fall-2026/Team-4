@@ -23,7 +23,7 @@
 
     <div class="profile-left">
         <section class="page-card">
-            <h2>The basics</h2>
+            <h2>Personal Information</h2>
 
             <div class="field-grid">
                 <div class="form-field">
@@ -52,7 +52,7 @@
         </section>
 
         <section class="page-card academic-card">
-            <h2>Your academic home</h2>
+            <h2>Academic Information</h2>
 
             <div class="field-grid">
                 <div class="form-field">
@@ -89,7 +89,7 @@
         {# ---------- not in the figma: the fields the backend really saves ---------- #}
         {% if not profile.data_error %}
         <section class="page-card record-card">
-            <h2>Your TigerDrive record</h2>
+            <h2>Academic Record</h2>
 
             <div class="field-grid">
                 <div class="form-field field-wide">
@@ -124,7 +124,7 @@
     <div class="profile-right">
         {# TODO: these 3 switches are not saved yet, sharing is set on the Friends page for now #}
         <section class="page-card privacy-card">
-            <h2>Your privacy comes first.</h2>
+            <h2>Privacy Settings</h2>
 
             <label class="switch-row">
                 <span>
@@ -155,7 +155,7 @@
         {# TODO: transcript upload has no backend yet, so the file is not sent anywhere.
            the Submit button saves the form the same way Save changes does #}
         <section class="page-card transcript-card">
-            <h2>Upload your Transcript</h2>
+            <h2>Upload Transcript</h2>
 
             <label class="upload-button">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -171,13 +171,13 @@
                 <button class="page-button" type="submit">Submit</button>
             {% endif %}
         </section>
+    </div>
 
-        <div class="profile-actions">
-            <a class="secondary-button" href="/profile">Cancel</a>
-            {% if not profile.data_error %}
-                <button class="page-button" type="submit">Save changes</button>
-            {% endif %}
-        </div>
+    <div class="profile-actions">
+        <a class="secondary-button" href="/profile">Cancel</a>
+        {% if not profile.data_error %}
+            <button class="page-button" type="submit">Save changes</button>
+        {% endif %}
     </div>
 </form>
 {% endif %}
