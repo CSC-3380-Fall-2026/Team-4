@@ -357,8 +357,11 @@ async def submit_plan(
         )
     elif not errors:
         result, errors, status_code = run_action(form, action)
-    unsaved: bool = result is not None and not await run_in_threadpool(
-        save_forecast, session, result
+    # A plan with an error (such as an unreachable target) is shown, not saved.
+    unsaved: bool = (
+        result is not None
+        and not errors
+        and not await run_in_threadpool(save_forecast, session, result)
     )
     # The picker is refilled on every post, but a failed lookup only matters
     # when the student was loading a schedule; it must not cover other results.

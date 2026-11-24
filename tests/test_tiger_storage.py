@@ -452,3 +452,12 @@ def test_planner_duplicate_course_keeps_rows(fake_db: FakeDatabase) -> None:
     soup = BeautifulSoup(response.text, "html.parser")
     names = [f["value"] for f in soup.select("[name=course_name]")]
     assert names == sample_plan()["course_name"]
+
+
+def test_failed_target_not_saved(fake_db: FakeDatabase) -> None:
+    """A plan whose target cannot be calculated is shown but not saved."""
+    tab = browser("token-alice")
+    values = {**sample_plan(), "target_gpa": "4.3"}
+    assert submit_plan(tab, values).status_code == 400
+    assert fake_db.rows("forecasts") == []
+    assert "No GPA forecast yet" in tab.get("/dashboard").text
