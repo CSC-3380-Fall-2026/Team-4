@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse
 
-import tiger_auth
 from models.tiger_schedules import (
     Classes,
     CoursePreset,
@@ -17,7 +16,7 @@ from models.tiger_schedules import (
     SchedulePageData,
 )
 from models.tiger_session import Session
-from routers import tiger_catalog
+from routers import tiger_catalog, tiger_profiles
 from routers.tiger_dashboard import ZONE
 from routers.tiger_free_time import page_data
 from routers.tiger_schedules_store import (
@@ -222,7 +221,7 @@ def schedule_page(
         request,
         "tiger_schedule.html",
         week_days=week_days,
-        profile=tiger_auth.nav_profile(session),
+        profile=tiger_profiles.nav_profile(session),
     )
 
 

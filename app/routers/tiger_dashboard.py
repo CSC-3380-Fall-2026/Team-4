@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-import tiger_auth
 from grade_scale import GRADE_POINTS
 from models.tiger_catalog import CourseResult
 from models.tiger_dashboard import (
@@ -19,6 +18,7 @@ from models.tiger_session import Session
 from routers.tiger_catalog import check_prerequisites
 from routers.tiger_planning import read_forecast
 from routers.tiger_schedules_store import current_semester, list_schedules
+from routers import tiger_profiles
 from routers.tiger_profiles import session_profile
 from tiger_auth import require_login
 from tiger_views import redirect_to, render_page
@@ -228,6 +228,6 @@ def dashboard_page(
         completed=completed,
         course_result=course_result,
         course_error=course_error,
-        profile=tiger_auth.nav_profile(session),
+        profile=tiger_profiles.nav_profile(session),
         status_code=400 if course_error else 200,
     )

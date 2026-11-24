@@ -328,7 +328,7 @@ def planning_page(
         schedule_error=schedule_error,
         profile_error=profile_error,
         loaded=False,
-        profile=tiger_auth.nav_profile(session),
+        profile=tiger_profiles.nav_profile(session),
     )
 
 
@@ -381,5 +381,5 @@ async def submit_plan(
         schedule_error=schedule_error if action == "load_schedule" else "",
         profile_error="",
         loaded=action == "load_schedule" and not errors,
-        profile=tiger_auth.nav_profile(session),
+        profile=tiger_profiles.nav_profile(session),
     )

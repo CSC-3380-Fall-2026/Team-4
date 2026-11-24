@@ -5,7 +5,6 @@ from typing import Any, cast
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-import tiger_auth
 from models.tiger_friends import FriendRequestIn, ScheduleShareIn, Student
 from models.tiger_session import Session
 from routers.tiger_friends_store import (
@@ -17,6 +16,7 @@ from routers.tiger_friends_store import (
     pair_filter,
     shared_rows,
 )
+from routers import tiger_profiles
 from routers.tiger_profiles import profile_row
 from tiger_auth import current_session, require_login
 from tiger_views import render_page
@@ -96,7 +96,7 @@ def friends_page(
         The Friends page and its existing schedule-sharing controls.
     """
     return render_page(
-        request, "tiger_friends.html", profile=tiger_auth.nav_profile(session)
+        request, "tiger_friends.html", profile=tiger_profiles.nav_profile(session)
     )
 
 

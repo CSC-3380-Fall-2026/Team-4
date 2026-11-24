@@ -51,6 +51,26 @@ def profile_row(session: Session, columns: str = "*") -> dict[str, Any]:
     return rows[0] if rows else {}
 
 
+def nav_profile(session: Session) -> dict[str, str]:
+    """Build the name and email shown at the bottom of the sidebar.
+
+    Args:
+        session: The verified student from require_login.
+
+    Returns:
+        The saved profile username and the email. The username falls back to
+        the account's own when the profile can't be read or has none.
+    """
+    try:
+        saved = profile_row(session, "username").get("username")
+    except Exception:
+        saved = None
+    return {
+        "username": str(saved or session.meta.get("username") or ""),
+        "email": session.email,
+    }
+
+
 def session_profile(session: Session) -> UserBase:
     """Read the session owner's saved profile row.
 

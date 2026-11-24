@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 import tiger_auth
+from routers import tiger_profiles
 from models.tiger_catalog import (
     CourseResult,
     PrerequisiteRequest,
@@ -336,7 +337,7 @@ def catalog_page(
         query=query,
         category=category,
         error=error,
-        profile=tiger_auth.nav_profile(session) if session else None,
+        profile=tiger_profiles.nav_profile(session) if session else None,
         status_code=status_code,
     )
 
