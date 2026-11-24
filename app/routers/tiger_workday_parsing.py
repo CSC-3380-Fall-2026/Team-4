@@ -17,7 +17,15 @@ from models.tiger_workday import (
 
 UNKNOWN_TERM: str = "Unknown term"
 TRANSFER_TERM: str = "Transfer Credit"
-DAY_NAMES: dict[str, Weekday] = {day.lower(): day for day in WEEKDAYS}
+DAY_NAMES: dict[str, Weekday] = {
+    **{day.lower(): day for day in WEEKDAYS},
+    **{day[:3].lower(): day for day in WEEKDAYS},
+    "m": "Monday", "t": "Tuesday", "tu": "Tuesday", "tues": "Tuesday",
+    "w": "Wednesday", "th": "Thursday", "r": "Thursday", "thur": "Thursday",
+    "thurs": "Thursday", "f": "Friday", "sa": "Saturday", "su": "Sunday",
+}
+# Compact day lists such as "MWF" or "TTh"; "Th" is tried before "T".
+COMPACT_DAYS: str = r"(?:th|tu|sa|su|m|t|w|r|f)"
 CLOCK_PATTERN: re.Pattern[str] = re.compile(r"(\d{1,2}):(\d\d)\s*(?:([AP])M)?", re.I)
 DATES_PATTERN: re.Pattern[str] = re.compile(
     r"\((\d\d/\d\d/\d{4})\s*-\s*(\d\d/\d\d/\d{4})\)"
@@ -276,6 +284,24 @@ def clock_times(text: str) -> tuple[str | None, str | None]:
     return (start, end) if start < end else (None, None)
 
 
+def meeting_days(text: str) -> list[Weekday]:
+    """Read meeting days written out, abbreviated or run together.
+
+    Args:
+        text: Days such as "Monday Wednesday", "Mon/Wed", "M, W" or "MWF".
+
+    Returns:
+        The weekdays in order given, each once; unknown words are ignored.
+    """
+    days: list[Weekday] = []
+    for word in re.split(r"[\s,/]+", text.lower()):
+        if word in DAY_NAMES:
+            days.append(DAY_NAMES[word])
+        elif re.fullmatch(f"{COMPACT_DAYS}+", word):
+            days += [DAY_NAMES[part] for part in re.findall(COMPACT_DAYS, word)]
+    return list(dict.fromkeys(days))
+
+
 def read_section(row: dict[str, str]) -> WorkdaySection:
     """Read one registered section from a "View My Courses" row.
 
@@ -298,7 +324,7 @@ def read_section(row: dict[str, str]) -> WorkdaySection:
         format=row.get("Instructional Format", ""),
         status=status,
         dropped=bool(re.search(r"drop|withdr", status, re.I)),
-        days=[DAY_NAMES[day] for day in days.lower().split() if day in DAY_NAMES],
+        days=meeting_days(days),
         start=start,
         end=end,
         location=room,
