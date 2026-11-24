@@ -1,13 +1,14 @@
 {
+  "name": "tigerdrive-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "build": "npx @tailwindcss/cli -i ./styles/app.css -o ../static/css/app.css",
-    "dev": "npx @tailwindcss/cli -i ./styles/app.css -o ../static/css/app.css --watch"
+    "check": "tsc --noEmit",
+    "build": "tsc",
+    "watch": "tsc --watch"
   },
-  "allowScripts": {
-    "@parcel/watcher@2.5.1": true
-  },
-  "dependencies": {
-    "@tailwindcss/cli": "^4.3.3",
-    "tailwindcss": "^4.3.3"
+  "devDependencies": {
+    "typescript": "7.0.2"
   }
 }
