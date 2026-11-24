@@ -299,7 +299,7 @@ def run_sync(session: Session, reset: bool) -> WorkdaySync:
     if not SYNC_LOCK.acquire(blocking=False):
         raise HTTPException(409, BUSY)
     try:
-        raw = tiger_workday_browser.read_workday()
+        raw = tiger_workday_browser.read_workday(session.user_id)
         data = tiger_workday_parsing.parse_workday(raw, date.today())
         check_scrape(raw, data)
         return save_sync(session, data, reset)

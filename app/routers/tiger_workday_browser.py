@@ -152,15 +152,38 @@ def read_pages(page: "Page", workday: str) -> dict[str, Any]:
     return {"courses": courses, "record": record, "progress": scrape(page)}
 
 
-def read_workday() -> dict[str, Any]:
+def user_folder(user_id: str) -> Path:
+    """Make the app account's private folder under ~/.tiger_workday.
+
+    Each app account gets its own Workday browser profile, so two students
+    using one laptop never share a Workday login or data.
+
+    Args:
+        user_id: The signed-in student's id.
+
+    Returns:
+        ~/.tiger_workday/<user_id>, readable by this OS user only.
+    """
+    folder = PROFILE_DIR / user_id
+    folder.mkdir(parents=True, exist_ok=True)
+    PROFILE_DIR.chmod(0o700)
+    folder.chmod(0o700)
+    return folder
+
+
+def read_workday(user_id: str) -> dict[str, Any]:
     """Open a Chromium window on Workday and read the student's pages.
 
     The student signs in and does Duo in the window; it closes when done.
-    Login cookies stay in ~/.tiger_workday, so later syncs may skip sign-in.
+    Login cookies stay in the student's own folder, so later syncs may skip
+    sign-in.
+
+    Args:
+        user_id: The signed-in student's id.
 
     Returns:
-        The raw grids of the three pages, also saved to
-        ~/.tiger_workday/last_sync.json.
+        The raw grids of the three pages, also saved (owner-only) to
+        ~/.tiger_workday/<user_id>/last_sync.json for checking a sync.
 
     Raises:
         WorkdayError: When the window is closed, sign-in times out, or
@@ -171,12 +194,12 @@ def read_workday() -> dict[str, Any]:
     from playwright.sync_api import sync_playwright
 
     workday = os.getenv("WORKDAY_URL", LSU_WORKDAY).rstrip("/")
-    PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    folder = user_folder(user_id)
     try:
         with sync_playwright() as driver:
             # Only the end-to-end test hides the window.
             context = driver.chromium.launch_persistent_context(
-                str(PROFILE_DIR / "browser"),
+                str(folder / "browser"),
                 headless=os.getenv("WORKDAY_HEADLESS") == "1",
             )
             try:
@@ -193,5 +216,7 @@ def read_workday() -> dict[str, Any]:
             ) from error
         reason = str(error).splitlines()[0]
         raise WorkdayError(f"Chromium could not open Workday: {reason}") from error
-    (PROFILE_DIR / "last_sync.json").write_text(json.dumps(raw), encoding="utf-8")
+    saved = folder / "last_sync.json"
+    saved.write_text(json.dumps(raw), encoding="utf-8")
+    saved.chmod(0o600)
     return raw
