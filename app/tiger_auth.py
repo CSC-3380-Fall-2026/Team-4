@@ -9,11 +9,11 @@ import requests
 from dotenv import load_dotenv
 
 from fastapi import Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from supabase import Client, ClientOptions, create_client
 
-from tiger_views import redirect_to
+from tiger_views import redirect_to, set_cookie
 
 from models.tiger_accounts import UserAuthSchema
 from models.tiger_session import Session
@@ -25,6 +25,8 @@ optional_security: HTTPBearer = HTTPBearer(auto_error=False)
 AUTH_COOKIE: str = "tiger_access"
 REFRESH_COOKIE: str = "tiger_refresh"
 REFRESH_AGE: int = 30 * 24 * 3600
+# Set only for "Keep me logged in", so a renewal keeps the student's choice.
+REMEMBER_COOKIE: str = "tiger_remember"
 LOG: logging.Logger = logging.getLogger(__name__)
 
 
@@ -259,6 +261,28 @@ def verify_token(token: str) -> Session | None:
     return Session(user.id, user.email or "", token, user_client(token), meta)
 
 
+def store_tokens(
+    response: Response, request: Request, access: str, refresh: str, remember: bool
+) -> None:
+    """Put the tokens in the login cookies.
+
+    Args:
+        response: Response that carries the cookies.
+        request: Current request, used to detect HTTPS.
+        access: Access token, kept for an hour.
+        refresh: Refresh token, kept 30 days when remembered, else until
+            the browser closes.
+        remember: Whether the student ticked "Keep me logged in".
+    """
+    age: int | None = REFRESH_AGE if remember else None
+    set_cookie(response, request, AUTH_COOKIE, access, 3600)
+    set_cookie(response, request, REFRESH_COOKIE, refresh, age)
+    if remember:
+        set_cookie(response, request, REMEMBER_COOKIE, "1", age)
+    else:
+        response.delete_cookie(REMEMBER_COOKIE)
+
+
 def refreshed(request: Request) -> Session | None:
     """Renew an expired browser session with the refresh-token cookie.
 
@@ -411,9 +435,10 @@ def signed_out() -> RedirectResponse:
     """Send the browser to /login with its login cookies removed.
 
     Returns:
-        An uncached 303 redirect to /login that deletes both login cookies.
+        An uncached 303 redirect to /login that deletes the login cookies.
     """
     response: RedirectResponse = redirect_to("/login")
     response.delete_cookie(AUTH_COOKIE)
     response.delete_cookie(REFRESH_COOKIE)
+    response.delete_cookie(REMEMBER_COOKIE)
     return response

@@ -528,7 +528,63 @@ def test_logout_clears_both_cookies(fake_db: FakeDatabase, monkeypatch: pytest.M
 
 
 def test_login_form_has_no_dead_options(fake_db: FakeDatabase) -> None:
-    """No "Keep me logged in" box or "Forgot password?" link that do nothing."""
-    page = browser().get("/login").text
-    assert "Keep me logged in" not in page
-    assert "Forgot password" not in page
+    """An unticked "Keep me logged in" box, and no "Forgot password?" link."""
+    page = BeautifulSoup(browser().get("/login").text, "html.parser")
+    box = page.find("input", attrs={"name": "remember"})
+    assert box is not None and box.get("type") == "checkbox"
+    assert not box.has_attr("checked")
+    assert "Keep me logged in" in page.text
+    assert "Forgot password" not in page.text
+
+
+def log_in(fake_db: FakeDatabase, remember: bool) -> tuple[TestClient, str]:
+    """Sign alice in through the form, with or without "Keep me logged in".
+
+    Args:
+        fake_db: Fake Supabase holding alice's account.
+        remember: Whether the box is ticked.
+
+    Returns:
+        The browser and the refresh cookie header it was sent.
+    """
+    fake_db.users["alice@lsu.edu"] = {
+        "id": "alice", "email": "alice@lsu.edu", "password": "12345678", "meta": {}
+    }
+    tab = browser()
+    tab.get("/login")
+    form = {"csrf_token": tab.cookies["tiger_csrf"], "email": "alice@lsu.edu",
+            "password": "12345678"}
+    if remember:
+        form["remember"] = "on"
+    response = tab.post("/account/login", data=form, follow_redirects=False)
+    cookies = response.headers.get_list("set-cookie")
+    return tab, next(c for c in cookies if c.startswith("tiger_refresh="))
+
+
+def renewed_refresh(tab: TestClient) -> str:
+    """Let the access token expire and return the renewed refresh cookie header.
+
+    Args:
+        tab: A signed-in browser.
+
+    Returns:
+        The refresh cookie header set while renewing.
+    """
+    tab.cookies.set("tiger_access", "expired-token")
+    cookies = tab.get("/api/schedule-data").headers.get_list("set-cookie")
+    return next(c for c in cookies if c.startswith("tiger_refresh="))
+
+
+def test_unticked_login_ends_with_browser(fake_db: FakeDatabase) -> None:
+    """Without "Keep me logged in" the refresh cookie lasts one browser session."""
+    tab, cookie = log_in(fake_db, remember=False)
+    assert "Max-Age" not in cookie and "expires" not in cookie.lower()
+    renewed = renewed_refresh(tab)
+    assert "Max-Age" not in renewed and "expires" not in renewed.lower()
+
+
+def test_ticked_login_lasts_30_days(fake_db: FakeDatabase) -> None:
+    """With "Keep me logged in" the refresh cookie lasts 30 days, also once renewed."""
+    tab, cookie = log_in(fake_db, remember=True)
+    assert "Max-Age=2592000" in cookie
+    assert "Max-Age=2592000" in renewed_refresh(tab)

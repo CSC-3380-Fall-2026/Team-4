@@ -19,7 +19,7 @@ from routers import (
     tiger_schedules,
     tiger_workday,
 )
-from tiger_views import APP_DIR, set_cookie
+from tiger_views import APP_DIR
 
 app: FastAPI = FastAPI(title="Tiger Class Drive")
 app.add_exception_handler(
@@ -55,11 +55,8 @@ async def renew_cookies(
     response: Response = await call_next(request)
     tokens: tuple[str, str] | None = getattr(request.state, "tokens", None)
     if tokens:
-        access, refresh = tokens
-        set_cookie(response, request, tiger_auth.AUTH_COOKIE, access, 3600)
-        set_cookie(
-            response, request, tiger_auth.REFRESH_COOKIE, refresh, tiger_auth.REFRESH_AGE
-        )
+        remember = bool(request.cookies.get(tiger_auth.REMEMBER_COOKIE))
+        tiger_auth.store_tokens(response, request, *tokens, remember)
     return response
 
 

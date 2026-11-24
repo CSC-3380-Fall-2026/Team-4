@@ -15,7 +15,7 @@ from models.tiger_accounts import (
     TokenResponse,
     UserAuthSchema,
 )
-from tiger_views import redirect_to, render_page, set_cookie, valid_token
+from tiger_views import redirect_to, render_page, valid_token
 
 MIN_PASSWORD: int = 8
 # Friends search for this exact name, so keep it plain.
@@ -289,8 +289,6 @@ async def submit_account(request: Request, mode: str) -> Response:
             request, mode, email, error=message, status_code=400
         )
     response: RedirectResponse = redirect_to("/dashboard")
-    set_cookie(response, request, tiger_auth.AUTH_COOKIE, message, 3600)
-    set_cookie(
-        response, request, tiger_auth.REFRESH_COOKIE, refresh, tiger_auth.REFRESH_AGE
-    )
+    remember = bool(data.get("remember"))
+    tiger_auth.store_tokens(response, request, message, refresh, remember)
     return response
