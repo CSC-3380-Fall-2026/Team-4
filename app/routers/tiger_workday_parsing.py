@@ -148,7 +148,7 @@ def graded_courses(
     Returns:
         The grid's courses, each with its term and grade.
     """
-    rows = [row for row in table.rows if row.get("Course") and row.get("Grade")]
+    rows = [row for row in table.rows if row.get("Course") and row.get("Grade", "").strip()]
     listings = [split_listing(row["Course"]) for row in rows]
     term = term_name(table_period([code for code, _ in listings], periods))
     return [
@@ -157,7 +157,7 @@ def graded_courses(
             course_name=title,
             credits=whole_credits(row.get("Credit Hours")) or 0,
             term=term,
-            grade=row["Grade"],
+            grade=row["Grade"].strip(),
         )
         for (code, title), row in zip(listings, rows)
     ]
@@ -183,7 +183,7 @@ def transfer_courses(record: list[WorkdayTable]) -> list[WorkdayCourse]:
                 course_name=title,
                 credits=whole_credits(row.get("Credit Hours")) or 0,
                 term=TRANSFER_TERM,
-                grade=row.get("Grade", ""),
+                grade=row.get("Grade", "").strip(),
             )
     return list(courses.values())
 
@@ -240,8 +240,9 @@ def term_gpas(courses: list[WorkdayCourse]) -> dict[str, float]:
     points: dict[str, float] = {}
     hours: dict[str, int] = {}
     for course in courses:
-        if course.grade in GRADE_POINTS and course.credits:
-            earned = GRADE_POINTS[course.grade] * course.credits
+        grade = course.grade.strip()
+        if grade in GRADE_POINTS and course.credits:
+            earned = GRADE_POINTS[grade] * course.credits
             points[course.term] = points.get(course.term, 0) + earned
             hours[course.term] = hours.get(course.term, 0) + course.credits
     return {term: round(points[term] / hours[term], 3) for term in hours}
