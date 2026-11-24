@@ -19,7 +19,7 @@ from models.tiger_profiles import (
 )
 from models.tiger_schedules import UserBase
 from models.tiger_session import Session
-from routers import tiger_profiles_parsing
+from routers import tiger_profiles_parsing, tiger_workday_browser, tiger_workday_parsing
 from routers.tiger_profiles_parsing import friendly, read_form
 from tiger_auth import current_session, require_login
 from tiger_views import redirect_to, render_page, valid_token
@@ -325,6 +325,8 @@ def profile_page(
         "tiger_profile.html",
         profile=profile,
         saved=request.query_params.get("saved") == "1",
+        workday=tiger_workday_browser.sync_status(session),
+        term_gpas=tiger_workday_parsing.term_gpas(profile.courses),
     )
 
 

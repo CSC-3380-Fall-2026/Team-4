@@ -122,6 +122,21 @@
                 </div>
             </div>
         </section>
+
+        {% if term_gpas %}
+        <section class="page-card term-gpa-card" aria-labelledby="term-gpa-title">
+            <h2 id="term-gpa-title">GPA by term</h2>
+            <table class="term-gpa-table">
+                <thead><tr><th scope="col">Term</th><th scope="col">GPA</th></tr></thead>
+                <tbody>
+                {% for term, gpa in term_gpas.items() %}
+                    <tr><td>{{ term }}</td><td>{{ '%.2f' | format(gpa) }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <p class="field-help">From the grades saved with your courses, on the LSU grade scale.</p>
+        </section>
+        {% endif %}
         {% endif %}
     </div>
 
@@ -155,6 +170,21 @@
                 <i aria-hidden="true"></i>
             </label>
         </section>
+
+        {% if workday and workday.available and not profile.data_error %}
+        <section class="page-card workday-card" id="workday-card" aria-labelledby="workday-card-title">
+            <h2 id="workday-card-title">LSU Workday</h2>
+            <p class="field-help">Import your GPA, completed courses and this term's classes. A Chromium window opens for you to sign in to Workday.</p>
+            <p id="workday-last">
+                {% if workday.last_sync %}Last synced <time datetime="{{ workday.last_sync }}">{{ workday.last_sync[:16] | replace('T', ' ') }} UTC</time>{% else %}Not connected yet.{% endif %}
+            </p>
+            <div class="workday-card-actions">
+                <button type="button" class="page-button" id="workday-sync">{{ 'Sync again' if workday.connected else 'Connect to Workday' }}</button>
+                {% if workday.connected %}<button type="button" class="secondary-button" id="workday-reset">Reset from Workday</button>{% endif %}
+            </div>
+            <p id="workday-progress" class="field-help" role="status" aria-live="polite" tabindex="-1"></p>
+        </section>
+        {% endif %}
 
         {# the upload belongs to #transcript-form above; it fills the record card for review #}
         <section class="page-card transcript-card">
