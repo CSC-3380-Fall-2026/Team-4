@@ -139,7 +139,8 @@ def test_navigation(client: TestClient) -> None:
         response: httpx.Response = client.get(original, follow_redirects=False)
         assert response.status_code == 303
         assert response.headers["location"] == destination
-    assert not soup.select("script[src]")
+    scripts = [tag["src"].split("/static/")[-1] for tag in soup.select("script[src]")]
+    assert scripts == ["js/workday-sync.js?v=1", "js/account.js?v=ts1"]
 
 
 def test_acceptance(client: TestClient) -> None:
@@ -323,7 +324,13 @@ def test_escaping(client: TestClient) -> None:
     values["course_name"] = ['<script>alert("x")</script>'] * 5
     response: httpx.Response = submit_plan(client, values)
     soup: BeautifulSoup = BeautifulSoup(response.text, "html.parser")
-    assert not soup.find("script")
+    scripts = soup.find_all("script")
+    assert len(scripts) == 1
+    assert scripts[0].get("type") == "module"
+    assert scripts[0].get("src", "").endswith(
+        "/static/js/planning.js?v=ts1"
+    )
+    assert not scripts[0].get_text(strip=True)
     assert (
         soup.select_one("[name=course_name]")["value"]
         == values["course_name"][0]

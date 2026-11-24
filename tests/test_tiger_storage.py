@@ -309,11 +309,13 @@ def test_events_from_schedules(fake_db: FakeDatabase) -> None:
     )
     items = page.select("#upcoming-events li")
     stamps = [item.select_one("time")["datetime"] for item in items]
-    assert len(items) == 6 and stamps == sorted(stamps)
+    assert len(items) == 3 and stamps == sorted(stamps)
     assert "Bob event" not in page.get_text()
-    selected: str = page.select_one("#selected-schedule").get_text(" ", strip=True)
-    assert "Fall plan" in selected and "Fall 2026" in selected
-    assert "Courses 1" in selected and "Credit hours 3" in selected
+
+    selected = page.select_one("#selected-schedule")
+    assert selected.select_one(".stat-number").get_text(strip=True) == "3"
+    assert "credits across 1 classes" in selected.get_text(" ", strip=True)
+    assert "Fall 2026" in page.select_one(".top-semester").get_text()
 
 
 def test_dashboard_empty(fake_db: FakeDatabase) -> None:
@@ -334,10 +336,25 @@ def test_dashboard_profile(fake_db: FakeDatabase) -> None:
         fake_db: Fake Supabase.
     """
     fake_db.rows("profiles").append(
-        {"id": "alice", "gpa": 3.4, "completed_credit_hours": 45}
+        {
+            "id": "alice",
+            "gpa": 3.4,
+            "completed_credit_hours": 45,
+        }
     )
-    page: str = browser("token-alice").get("/dashboard").text
-    assert "Current GPA 3.40" in page and "45 completed credit hours" in page
+
+    page: BeautifulSoup = BeautifulSoup(
+        browser("token-alice").get("/dashboard").text,
+        "html.parser",
+    )
+
+    assert page.select_one(
+        "#gpa-summary .stat-number"
+    ).get_text(strip=True) == "3.40"
+
+    assert page.select_one(
+        ".stat-gold .stat-number"
+    ).get_text(strip=True) == "45 / 120"
 
 
 def test_dashboard_storage_down(fake_db: FakeDatabase) -> None:

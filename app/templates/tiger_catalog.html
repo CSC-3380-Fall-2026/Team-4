@@ -27,7 +27,7 @@
     <div class="catalog-chips">
         {# this one is real, it is the category filter we already had #}
         <label class="visually-hidden" for="category">Department</label>
-        <select id="category" name="category" class="chip chip-select" onchange="this.form.submit()">
+        <select id="category" name="category" class="chip chip-select">
             <option value="">All departments</option>
             {% if category and category not in categories %}
                 <option value="{{ category }}" selected>Invalid category: {{ category }}</option>
@@ -87,4 +87,10 @@
 </div>
 
 {% endif %}
+{% endblock %}
+{% block scripts %}
+    <script
+        type="module"
+        src="{{ url_for('static', path='/js/catalog.js') }}?v=ts1"
+    ></script>
 {% endblock %}

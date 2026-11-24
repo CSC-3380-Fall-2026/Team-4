@@ -1,38 +1,24 @@
-(() => {
-// Render the current user's schedules as color-coded events on the weekly grid.
-const {
-    scheduleColors,
-    scheduleState,
-    toMinutes,
-    formatTime,
-    createElement,
-} = window.SchedulePrototype;
-
+import { requiredElement } from "./dom.js";
+import { formatTime, scheduleColors, scheduleState, toMinutes, } from "./schedule-data.js";
+import { createElement } from "./schedule-ui.js";
 const calendarStartMinutes = 0;
 const minutesPerRow = 30;
 const rowsPerDay = 48;
-const calendar = document.querySelector("#schedule-calendar");
-const calendarToggle = document.querySelector("#schedule-calendar-toggle");
-
-const renderCategories = () => {
-    const categories = calendar.querySelector("#schedule-categories");
+export const renderCategories = () => {
+    const calendar = requiredElement("#schedule-calendar");
+    const categories = requiredElement("#schedule-categories", calendar);
     categories.replaceChildren();
     scheduleState.schedules.forEach((schedule) => {
         const item = createElement("li", "flex items-center justify-center gap-1");
-        item.append(
-            createElement("span", `size-2 rounded-full ${scheduleColors[schedule.color].dot}`),
-            document.createTextNode(schedule.name),
-        );
+        item.append(createElement("span", `size-2 rounded-full ${scheduleColors[schedule.color].dot}`), document.createTextNode(schedule.name));
         categories.append(item);
     });
 };
-
 const createCalendarEvent = (schedule, event) => {
     const color = scheduleColors[schedule.color];
     const isSelected = schedule.id === scheduleState.selectedScheduleId;
     const emphasisClasses = isSelected ? "z-20" : "z-10 opacity-60";
     const eventDuration = toMinutes(event.end) - toMinutes(event.start);
-    // Compact cards keep short events readable without overflowing their time slot.
     const isCompact = eventDuration <= minutesPerRow * 2;
     const layoutClasses = isCompact
         ? "m-0.5 flex min-h-0 min-w-0 items-center overflow-hidden rounded-lg border px-1 text-[9px] leading-none"
@@ -42,12 +28,13 @@ const createCalendarEvent = (schedule, event) => {
     card.dataset.scheduleId = schedule.id;
     card.dataset.start = event.start;
     card.dataset.end = event.end;
-
-    card.title = `${event.title}, ${formatTime(event.start)} - ${formatTime(event.end)}${event.favorite ? ", favorite" : ""}`;
+    card.title =
+        `${event.title}, ${formatTime(event.start)} - ${formatTime(event.end)}${event.favorite ? ", favorite" : ""}`;
     if (isCompact) {
         card.setAttribute("aria-label", card.title);
         card.append(createElement("strong", `block truncate font-bold ${color.title}`, `${event.title} · ${formatTime(event.start)}`));
-    } else {
+    }
+    else {
         const details = createElement("div", "flex flex-col");
         details.append(createElement("strong", `font-bold ${color.title}`, event.title));
         details.append(createElement("span", "event-time", `${formatTime(event.start)} - ${formatTime(event.end)}`));
@@ -58,20 +45,20 @@ const createCalendarEvent = (schedule, event) => {
         star.setAttribute("aria-label", "Favorite event");
         card.append(star);
     }
-
-    const startOffset = toMinutes(event.start) - calendarStartMinutes;
-    const endOffset = toMinutes(event.end) - calendarStartMinutes;
-    const firstRow = Math.floor(startOffset / minutesPerRow);
-    const lastRow = Math.ceil(endOffset / minutesPerRow);
+    const firstRow = Math.floor((toMinutes(event.start) - calendarStartMinutes) / minutesPerRow);
+    const lastRow = Math.ceil((toMinutes(event.end) - calendarStartMinutes) / minutesPerRow);
     if (firstRow < 0 || lastRow > rowsPerDay || lastRow <= firstRow) {
         throw new RangeError("Event time must be within the calendar and have a positive duration.");
     }
     card.style.setProperty("--event-grid-row", `${firstRow + 1} / ${lastRow + 1}`);
     return card;
 };
-
-const renderCalendarEvents = () => {
-    calendar.querySelectorAll(".calendar-day").forEach((day) => day.replaceChildren());
+export const renderCalendarEvents = () => {
+    const calendar = requiredElement("#schedule-calendar");
+    const calendarToggle = requiredElement("#schedule-calendar-toggle");
+    calendar.querySelectorAll(".calendar-day").forEach((day) => {
+        day.replaceChildren();
+    });
     scheduleState.schedules.forEach((schedule) => {
         schedule.events.forEach((event) => {
             event.days.forEach((dayName) => {
@@ -80,7 +67,8 @@ const renderCalendarEvents = () => {
                     return;
                 }
                 const card = createCalendarEvent(schedule, event);
-                if (schedule.id === scheduleState.selectedScheduleId && !calendarToggle.checked) {
+                if (schedule.id === scheduleState.selectedScheduleId
+                    && !calendarToggle.checked) {
                     card.classList.add("hidden");
                 }
                 dayColumn.append(card);
@@ -88,36 +76,23 @@ const renderCalendarEvents = () => {
         });
     });
 };
-
-const initializeCalendar = () => {
+export const initializeCalendar = () => {
+    const calendar = requiredElement("#schedule-calendar");
     const scrollContainer = calendar.querySelector(".calendar-scroll");
     const dayGrid = calendar.querySelector(".calendar-day");
     if (!scrollContainer || !dayGrid) {
         return;
     }
-
-    // Start at the earliest visible event while leaving the sticky weekday row in view.
-    const firstEvent = [...calendar.querySelectorAll(".calendar-event:not(.hidden)")]
-        .sort((left, right) => toMinutes(left.dataset.start) - toMinutes(right.dataset.start))[0];
+    const firstEvent = [
+        ...calendar.querySelectorAll(".calendar-event:not(.hidden)"),
+    ].sort((left, right) => toMinutes(left.dataset.start ?? "00:00")
+        - toMinutes(right.dataset.start ?? "00:00"))[0];
     if (!firstEvent) {
         return;
     }
-
     scrollContainer.scrollTop = 0;
     const eventOffset = firstEvent.getBoundingClientRect().top
         - scrollContainer.getBoundingClientRect().top;
     const stickyHeader = calendar.querySelector(".calendar-day-heading");
-    // 64 = one empty hour (54px) + 10px, so the hour before the first event and its
-    // time label still show at the top like the figma
-    scrollContainer.scrollTop = Math.max(
-        0,
-        eventOffset - (stickyHeader?.offsetHeight ?? 0) - 64,
-    );
+    scrollContainer.scrollTop = Math.max(0, eventOffset - (stickyHeader?.offsetHeight ?? 0) - 64);
 };
-
-Object.assign(window.SchedulePrototype, {
-    renderCategories,
-    renderCalendarEvents,
-    initializeCalendar,
-});
-})();

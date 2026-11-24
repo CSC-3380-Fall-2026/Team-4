@@ -196,9 +196,9 @@
 
     {% if account_page or (page_title == 'Dashboard' and account_active) %}
         <script
-            src="{{ url_for('static', path='/js/account-prompts.js') }}?v=2"
-            defer>
-        </script>
+            type="module"
+            src="{{ url_for('static', path='/js/account.js') }}?v=ts1"
+        ></script>
     {% endif %}
 
     {% block scripts %}{% endblock %}
