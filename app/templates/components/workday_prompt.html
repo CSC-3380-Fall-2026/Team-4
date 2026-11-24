@@ -1,0 +1,46 @@
+<dialog id="workday-dialog"
+        class="workday-dialog"
+        aria-labelledby="workday-title"
+        aria-describedby="workday-description">
+
+    <div class="workday-heading">
+        <h2 id="workday-title">Do you want to connect to Workday?</h2>
+
+        <button type="button"
+                class="workday-close"
+                data-workday-close
+                aria-label="Close Workday prompt">×</button>
+    </div>
+
+    <div class="workday-content">
+        <p id="workday-description">
+            Open LSU Workday to access your student account.
+            Automatic account linking and syncing are not available yet.
+        </p>
+
+        <div class="workday-actions">
+            <a id="workday-open"
+               class="workday-button"
+               href="https://workday.lsu.edu/"
+               target="_blank"
+               rel="noopener noreferrer">
+
+                <img
+                    src="https://workday.scene7.com/is/image/workday/logo-workday-primary-registered-1?fmt=webp-alpha"
+                    alt=""
+                    width="100"
+                    height="40"
+                    referrerpolicy="no-referrer">
+
+                <span>Continue to Workday</span>
+            </a>
+
+            <button type="button"
+                    class="workday-later"
+                    data-workday-close
+                    autofocus>
+                Not now
+            </button>
+        </div>
+    </div>
+</dialog>
