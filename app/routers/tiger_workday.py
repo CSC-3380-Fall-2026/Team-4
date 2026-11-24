@@ -14,6 +14,7 @@ What a sync saves, with no schema change:
 - the last sync time: in the student's own account metadata.
 """
 
+import logging
 import os
 import threading
 from datetime import date, datetime, timezone
@@ -53,6 +54,7 @@ IMPORTED: str = "workday_imported"
 TERM_KEY: str = "workday_term"
 SUFFIX: str = " (Workday)"
 SYNC_LOCK: threading.Lock = threading.Lock()
+LOG: logging.Logger = logging.getLogger(__name__)
 
 
 def same_course(saved: ProfileCourse, found: ProfileCourse) -> bool:
@@ -218,15 +220,19 @@ def mark_synced(session: Session) -> str:
         The sync time as an ISO UTC string.
     """
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    requests.put(
-        os.environ["SUPABASE_URL"].rstrip("/") + "/auth/v1/user",
-        headers={
-            "apikey": os.environ["SUPABASE_KEY"],
-            "Authorization": f"Bearer {session.token}",
-        },
-        json={"data": {tiger_workday_browser.SYNCED_KEY: stamp}},
-        timeout=10,
-    )
+    try:
+        requests.put(
+            os.environ["SUPABASE_URL"].rstrip("/") + "/auth/v1/user",
+            headers={
+                "apikey": os.environ["SUPABASE_KEY"],
+                "Authorization": f"Bearer {session.token}",
+            },
+            json={"data": {tiger_workday_browser.SYNCED_KEY: stamp}},
+            timeout=10,
+        ).raise_for_status()
+    except requests.RequestException:
+        # The data is already saved; only the "last synced" time is lost.
+        LOG.warning("Could not record the Workday sync time.", exc_info=True)
     return stamp
 
 
