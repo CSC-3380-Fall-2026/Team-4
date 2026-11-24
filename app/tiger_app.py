@@ -9,7 +9,7 @@ import tiger_prerequisites
 from routers import (
     tiger_accounts,
     tiger_courses,
-    tiger_friendships,
+    tiger_friends,
     tiger_pages,
     tiger_planning,
     tiger_profiles,
@@ -31,7 +31,7 @@ app.include_router(tiger_accounts.router)
 app.include_router(tiger_profiles.router)
 app.include_router(tiger_prerequisites.router)
 app.include_router(tiger_schedules.router)
-app.include_router(tiger_friendships.router)
+app.include_router(tiger_friends.router)
 
 
 @app.get("/health")

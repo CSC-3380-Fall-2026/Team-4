@@ -3,12 +3,9 @@
 import logging
 from typing import Any
 
-from fastapi import HTTPException
-
 from models.tiger_friends import Friend
 from models.tiger_schedule import UserBase
 from models.tiger_session import Session
-from tiger_auth import profile_row
 
 logger = logging.getLogger(__name__)
 
@@ -65,43 +62,6 @@ def other_id(row: dict[str, Any], user_id: str) -> str:
     return row["requester_id"]
 
 
-def find_student(session: Session, username: str) -> str | None:
-    """Look up a student's id by username without reading their profile.
-
-    Profiles are private, so this calls a database function that returns
-    only the id for an exact (case-insensitive) username.
-
-    Args:
-        session: Authenticated session.
-        username: Username to look up.
-
-    Returns:
-        The student's id, or None when no student has that username.
-    """
-    data = (
-        session.db.rpc("profile_id_for_username", {"name": username})
-        .execute()
-        .data
-    )
-    if isinstance(data, list):
-        data = data[0] if data else None
-    if isinstance(data, dict):
-        data = next(iter(data.values()), None)
-    return str(data) if data else None
-
-
-def own_username(session: Session) -> str | None:
-    """Read the signed-in student's own username.
-
-    Args:
-        session: Authenticated session.
-
-    Returns:
-        The username, or None when it has not been set.
-    """
-    return profile_row(session, "username").get("username") or None
-
-
 def friend_names(session: Session) -> dict[str, str]:
     """Map every student linked to the signed-in student to their username.
 
@@ -143,26 +103,6 @@ def friendship_rows(session: Session) -> list[dict[str, Any]]:
         .or_(mine_filter(session.user_id))
         .execute()
         .data
-    )
-
-
-def existing_error(row: dict[str, Any], user_id: str, name: str) -> HTTPException:
-    """Explain why a new friend request duplicates an existing row.
-
-    Args:
-        row: The existing friendship row.
-        user_id: The signed-in student's id.
-        name: The other student's username.
-
-    Returns:
-        A 409 error with a message for the student.
-    """
-    if row["status"] == "accepted":
-        return HTTPException(409, f"You are already friends with {name}.")
-    if row["requester_id"] == user_id:
-        return HTTPException(409, f"You already sent {name} a friend request.")
-    return HTTPException(
-        409, f"{name} already sent you a friend request. Accept it below."
     )
 
 
