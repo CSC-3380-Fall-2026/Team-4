@@ -1,5 +1,16 @@
 {% extends "tiger_base.html" %}
 {% set page_title = "Sign up" %}
+
 {% block nav %}{% endblock %}
 {% block top_link %}{% endblock %}
-{% block auth_content %}{% include "components/account_form.html" %}{% endblock %}
+
+{% block auth_content %}
+    {% include "components/account_form.html" %}
+{% endblock %}
+
+{% block scripts %}
+    <script
+        type="module"
+        src="{{ url_for('static', path='/js/account.js') }}?v=ts1"
+    ></script>
+{% endblock %}
