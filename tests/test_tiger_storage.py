@@ -758,3 +758,19 @@ def test_old_forecast_shows_credits(fake_db: FakeDatabase) -> None:
     assert tile.select_one("#gpa-summary .stat-note").get_text(" ", strip=True) == (
         "15 planned credit hours"
     )
+
+
+@pytest.mark.parametrize("remember", [False, True])
+def test_access_cookie_follows_remember(fake_db: FakeDatabase, remember: bool) -> None:
+    """The access cookie ends with the browser unless "Keep me logged in" is ticked.
+
+    Args:
+        fake_db: Fake Supabase holding alice's account.
+        remember: Whether the box is ticked.
+    """
+    tab, _ = log_in(fake_db, remember)
+    tab.cookies.set("tiger_access", "expired-token")
+    cookies = tab.get("/api/schedule-data").headers.get_list("set-cookie")
+    renewed = next(c for c in cookies if c.startswith("tiger_access="))
+    assert ("Max-Age=3600" in renewed) is remember
+    assert "expires" not in renewed.lower() or remember

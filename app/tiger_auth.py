@@ -286,13 +286,14 @@ def store_tokens(
     Args:
         response: Response that carries the cookies.
         request: Current request, used to detect HTTPS.
-        access: Access token, kept for an hour.
+        access: Access token, kept for an hour when remembered, else until
+            the browser closes.
         refresh: Refresh token, kept 30 days when remembered, else until
             the browser closes.
         remember: Whether the student ticked "Keep me logged in".
     """
     age: int | None = REFRESH_AGE if remember else None
-    set_cookie(response, request, AUTH_COOKIE, access, 3600)
+    set_cookie(response, request, AUTH_COOKIE, access, 3600 if remember else None)
     set_cookie(response, request, REFRESH_COOKIE, refresh, age)
     if remember:
         set_cookie(response, request, REMEMBER_COOKIE, "1", age)
