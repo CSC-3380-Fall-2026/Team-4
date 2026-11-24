@@ -89,3 +89,15 @@ def test_prerequisite_api_unsupported_course():
     )
 
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize("grade", ["F", "W"])
+def test_no_minimum_still_needs_a_pass(grade):
+    """A prerequisite without a minimum grade is not met by F or W."""
+    result = check_prerequisites("CSC 1350", {"MATH 1550": grade})
+    assert result["eligible"] is False
+    assert result["satisfied"] == []
+
+
+def test_no_minimum_accepts_d_minus():
+    assert check_prerequisites("CSC 1350", {"MATH 1550": "D-"})["eligible"] is True

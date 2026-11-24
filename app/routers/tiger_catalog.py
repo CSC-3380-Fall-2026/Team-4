@@ -26,6 +26,8 @@ PREREQUISITE_FILE = (
     / "course_prerequisites.json"
 )
 
+PASSING: str = "D-"
+
 
 def fail(detail: str) -> HTTPException:
     """Build a 500 error for bad course data.
@@ -183,13 +185,12 @@ def grade_meets(grade: str, minimum: str | None) -> bool | None:
 
     Args:
         grade: The student's letter grade.
-        minimum: Required letter grade, or None for any grade.
+        minimum: Required letter grade, or None for any passing grade.
 
     Returns:
         True or False for a known grade, None when the grade is unknown.
     """
-    if minimum is None:
-        return True
+    minimum = minimum or PASSING
     if grade not in GRADE_POINTS:
         return None
     return GRADE_POINTS[grade] >= GRADE_POINTS[minimum]
