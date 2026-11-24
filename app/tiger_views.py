@@ -83,17 +83,20 @@ def set_cookie(
 
     Args:
         response: Response that carries the cookie.
-        request: Current request, used to detect HTTPS.
+        request: Current request, used to detect HTTPS, directly or
+            through a proxy's X-Forwarded-Proto header.
         name: Cookie name.
         value: Cookie value.
         max_age: Lifetime in seconds, or None for a browser-session cookie.
     """
+    # Vercel ends HTTPS at its proxy, so the app may only see http.
+    forwarded: str | None = request.headers.get("x-forwarded-proto")
     response.set_cookie(
         name,
         value,
         max_age=max_age,
         httponly=True,
-        secure=request.url.scheme == "https",
+        secure="https" in (request.url.scheme, forwarded),
         samesite="lax",
     )
 

@@ -649,3 +649,27 @@ def test_logout_clears_when_supabase_fails(
     cleared = log_out(tab)
     for name in ("tiger_access", "tiger_refresh"):
         assert any(c.startswith(f'{name}=""') and "Max-Age=0" in c for c in cleared)
+
+
+@pytest.mark.parametrize("proto,secure", [("https", True), (None, False)])
+def test_cookies_secure_behind_https_proxy(
+    fake_db: FakeDatabase, proto: str | None, secure: bool
+) -> None:
+    """Both login cookies are Secure when a proxy says HTTPS, not on plain http."""
+    fake_db.users["alice@lsu.edu"] = {
+        "id": "alice", "email": "alice@lsu.edu", "password": "12345678", "meta": {}
+    }
+    tab = browser()
+    headers = {"X-Forwarded-Proto": proto} if proto else {}
+    tab.get("/login")
+    response = tab.post(
+        "/account/login",
+        data={"csrf_token": tab.cookies["tiger_csrf"], "email": "alice@lsu.edu",
+              "password": "12345678"},
+        headers=headers,
+        follow_redirects=False,
+    )
+    cookies = response.headers.get_list("set-cookie")
+    for name in ("tiger_access", "tiger_refresh"):
+        cookie = next(c for c in cookies if c.startswith(f"{name}="))
+        assert ("; secure" in cookie.lower()) is secure
