@@ -1,5 +1,6 @@
 """Turn grids read from LSU Workday pages into grades, courses and a schedule."""
 
+import math
 import re
 from collections import Counter
 from datetime import date, datetime
@@ -39,12 +40,14 @@ def to_number(text: str | None) -> float | None:
         text: Cell text.
 
     Returns:
-        The number, or None when the cell is not numeric.
+        The number, or None when the cell is not a finite number of zero
+        or more, such as "nan" or "-3".
     """
     try:
-        return float(text or "")
+        value = float(text or "")
     except ValueError:
         return None
+    return value if math.isfinite(value) and value >= 0 else None
 
 
 def whole_credits(text: str | None) -> int | None:
@@ -139,7 +142,9 @@ def table_period(codes: list[str], periods: dict[str, str]) -> str:
 def graded_courses(
     table: WorkdayTable, periods: dict[str, str]
 ) -> list[WorkdayCourse]:
-    """Read the graded courses of one record grid; in-progress ones are skipped.
+    """Read the graded courses of one record grid.
+
+    In-progress rows (no grade) and rows without readable credits are skipped.
 
     Args:
         table: One grid from "My Academic Record".
@@ -148,7 +153,13 @@ def graded_courses(
     Returns:
         The grid's courses, each with its term and grade.
     """
-    rows = [row for row in table.rows if row.get("Course") and row.get("Grade", "").strip()]
+    rows = [
+        row
+        for row in table.rows
+        if row.get("Course")
+        and row.get("Grade", "").strip()
+        and whole_credits(row.get("Credit Hours")) is not None
+    ]
     listings = [split_listing(row["Course"]) for row in rows]
     term = term_name(table_period([code for code, _ in listings], periods))
     return [
