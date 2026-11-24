@@ -305,3 +305,9 @@
     </section>
 </div>
 {% endblock %}
+{% block scripts %}
+    <script
+        type="module"
+        src="{{ url_for('static', path='/js/planning.js') }}?v=ts1"
+    ></script>
+{% endblock %}
