@@ -10,7 +10,7 @@ from models.tiger_dashboard import (
 )
 from models.tiger_session import Session
 from tiger_auth import session_profile
-from tiger_forecast import read_forecast
+from routers.tiger_planning import read_forecast
 from models.tiger_schedules import WEEKDAYS, Classes, Schedule, ScheduleEvent
 from routers.tiger_schedules_store import current_semester, list_schedules
 

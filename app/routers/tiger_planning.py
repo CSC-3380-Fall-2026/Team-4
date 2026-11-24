@@ -1,31 +1,69 @@
-"""Serve the Planning form using Python and ordinary HTML submissions."""
+"""Serve the Planning form and GPA calculators, and store each student's forecast."""
+
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
 
+import tiger_auth
 from grade_scale import GRADE_POINTS
 from models.tiger_planning import CourseRow, PlanningForm, PlanningResult
-import tiger_auth
-import tiger_gpa
 from models.tiger_schedules import Classes, Schedule
 from models.tiger_session import Session
-from routers import tiger_schedules_store
+from routers import tiger_planning_gpa, tiger_schedules_store
+from routers.tiger_planning_gpa import MAX_ROWS, calculate_plan, read_form
 from tiger_auth import require_login
-from tiger_forecast import save_forecast
-from tiger_planning import MAX_ROWS, calculate_plan, read_form
 from tiger_views import render_page, valid_token
 
-router: APIRouter = APIRouter()
-# The GPA calculators are plain functions that also serve as JSON endpoints.
-router.add_api_route("/calculateTotalCredits", tiger_gpa.total_credits, methods=["POST"])
-router.add_api_route("/calculateGPA", tiger_gpa.semester_gpa, methods=["POST"])
-router.add_api_route(
-    "/calculateCumulativeGPA", tiger_gpa.cumulative_gpa, methods=["POST"]
-)
-router.add_api_route("/calculateRequiredGPA", tiger_gpa.required_gpa, methods=["POST"])
-router.add_api_route("/getClasses", tiger_gpa.saved_classes, methods=["POST"])
+TABLE: str = "forecasts"
+
+
+def read_forecast(session: Session) -> PlanningResult | None:
+    """Read the signed-in student's saved forecast.
+
+    Args:
+        session: Verified student and their database client.
+
+    Returns:
+        The saved forecast, or None when missing, invalid or unavailable.
+    """
+    try:
+        rows = (
+            session.db.table(TABLE)
+            .select("result")
+            .eq("user_id", session.user_id)
+            .limit(1)
+            .execute()
+            .data
+        )
+        return PlanningResult.model_validate(rows[0]["result"]) if rows else None
+    except Exception:
+        # Invalid or unavailable storage must never break a page.
+        return None
+
+
+def save_forecast(session: Session, result: PlanningResult) -> bool:
+    """Store only the computed forecast for the signed-in student.
+
+    Args:
+        session: Verified student and their database client.
+        result: Computed forecast; course names and raw inputs are not stored.
+
+    Returns:
+        True when saved, False when the database could not store it.
+    """
+    row: dict[str, object] = {
+        "user_id": session.user_id,
+        "result": result.model_dump(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        session.db.table(TABLE).upsert(row, on_conflict="user_id").execute()
+    except Exception:
+        return False
+    return True
 
 
 def saved_start(session: Session) -> tuple[PlanningForm, str]:
@@ -156,58 +194,6 @@ def load_schedule(
     return [], 200
 
 
-@router.get("/planning", response_class=HTMLResponse)
-def planning_page(
-    request: Request,
-    example: bool = False,
-    session: Session = Depends(require_login),
-) -> HTMLResponse:
-    """Open a blank plan or the explicitly requested acceptance-test example.
-
-    Args:
-        request: Browser request for the Planning page.
-        example: Whether to load the labeled 60-credit / 15-credit example.
-        session: The verified student; signed-out visitors go to login.
-
-    Returns:
-        A Planning form with no fabricated calculation results.
-    """
-    form, profile_error = saved_start(session)
-    schedules, schedule_error = schedule_options(session)
-    if example:
-        form = PlanningForm(
-            current_gpa="3.0",
-            completed_credits="60",
-            target_gpa="3.20",
-            rows=[
-                CourseRow(name, "3", "A")
-                for name in (
-                    "CSC 2259",
-                    "CSC 2262",
-                    "CSC 3102",
-                    "CSC 3380",
-                    "CSC 3501",
-                )
-            ],
-        )
-    return render_page(
-        request,
-        "tiger_planner.html",
-        form=form,
-        result=None,
-        errors=[],
-        grades=GRADE_POINTS,
-        max_rows=MAX_ROWS,
-        example=example,
-        schedules=schedules,
-        schedule_id="",
-        schedule_error=schedule_error,
-        profile_error=profile_error,
-        loaded=False,
-        profile=tiger_auth.nav_profile(session),
-    )
-
-
 def edit_rows(form: PlanningForm, action: str) -> tuple[list[str], int]:
     """Apply an add-row or remove-row action to the form.
 
@@ -273,6 +259,77 @@ def check_form(request: Request, data: FormData) -> tuple[list[str], int]:
     ):
         return [f"Use no more than {MAX_ROWS} courses in one plan."], 400
     return [], 200
+
+
+router: APIRouter = APIRouter()
+# The GPA calculators are plain functions that also serve as JSON endpoints.
+router.add_api_route(
+    "/calculateTotalCredits", tiger_planning_gpa.total_credits, methods=["POST"]
+)
+router.add_api_route(
+    "/calculateGPA", tiger_planning_gpa.semester_gpa, methods=["POST"]
+)
+router.add_api_route(
+    "/calculateCumulativeGPA", tiger_planning_gpa.cumulative_gpa, methods=["POST"]
+)
+router.add_api_route(
+    "/calculateRequiredGPA", tiger_planning_gpa.required_gpa, methods=["POST"]
+)
+router.add_api_route(
+    "/getClasses", tiger_planning_gpa.saved_classes, methods=["POST"]
+)
+
+
+@router.get("/planning", response_class=HTMLResponse)
+def planning_page(
+    request: Request,
+    example: bool = False,
+    session: Session = Depends(require_login),
+) -> HTMLResponse:
+    """Open a blank plan or the explicitly requested acceptance-test example.
+
+    Args:
+        request: Browser request for the Planning page.
+        example: Whether to load the labeled 60-credit / 15-credit example.
+        session: The verified student; signed-out visitors go to login.
+
+    Returns:
+        A Planning form with no fabricated calculation results.
+    """
+    form, profile_error = saved_start(session)
+    schedules, schedule_error = schedule_options(session)
+    if example:
+        form = PlanningForm(
+            current_gpa="3.0",
+            completed_credits="60",
+            target_gpa="3.20",
+            rows=[
+                CourseRow(name, "3", "A")
+                for name in (
+                    "CSC 2259",
+                    "CSC 2262",
+                    "CSC 3102",
+                    "CSC 3380",
+                    "CSC 3501",
+                )
+            ],
+        )
+    return render_page(
+        request,
+        "tiger_planner.html",
+        form=form,
+        result=None,
+        errors=[],
+        grades=GRADE_POINTS,
+        max_rows=MAX_ROWS,
+        example=example,
+        schedules=schedules,
+        schedule_id="",
+        schedule_error=schedule_error,
+        profile_error=profile_error,
+        loaded=False,
+        profile=tiger_auth.nav_profile(session),
+    )
 
 
 @router.post("/planning", response_class=HTMLResponse)

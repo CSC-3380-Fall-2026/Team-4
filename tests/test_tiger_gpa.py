@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from tiger_gpa import calculateGPA
+from routers.tiger_planning_gpa import calculateGPA
 
 
 def test_gpa_rejects_empty_course_list():
@@ -21,7 +21,7 @@ def test_gpa_rejects_empty_course_list():
 
 def test_cumulative_gpa_320_example():
     """A 3.00 GPA over 12 credits plus 3 credits at 4.0 gives 3.20."""
-    from tiger_gpa import CumulativeGPARequest, calculateCumlativeGPA
+    from routers.tiger_planning_gpa import CumulativeGPARequest, calculateCumlativeGPA
     from models.tiger_schedules import Classes
 
     course = Classes(
@@ -49,7 +49,7 @@ def test_cumulative_gpa_320_example():
 
 def test_required_gpa_rejects_unreachable_target():
     """A 4.0 cumulative target is impossible from 2.0 over 60 credits with 3 planned credits."""
-    from tiger_gpa import RequiredGPARequest, calculateRequiredGPA
+    from routers.tiger_planning_gpa import RequiredGPARequest, calculateRequiredGPA
 
     request = RequiredGPARequest(
         currentGPA=2.0,
@@ -67,7 +67,7 @@ def test_required_gpa_rejects_unreachable_target():
 
 def test_required_gpa_rejects_invalid_current_gpa():
     """A current GPA above 4.3 must be rejected."""
-    from tiger_gpa import RequiredGPARequest, calculateRequiredGPA
+    from routers.tiger_planning_gpa import RequiredGPARequest, calculateRequiredGPA
 
     request = RequiredGPARequest(
         currentGPA=5.0,
@@ -106,7 +106,7 @@ def test_course_credits_do_not_change_with_meeting_duration():
     assert short_class.credit == 3
     assert long_class.credit == 3
 def test_required_gpa_rejects_zero_planned_credits():
-    from tiger_gpa import RequiredGPARequest, calculateRequiredGPA
+    from routers.tiger_planning_gpa import RequiredGPARequest, calculateRequiredGPA
 
     request = RequiredGPARequest(
         currentGPA=3.0,
@@ -123,7 +123,7 @@ def test_required_gpa_rejects_zero_planned_credits():
 
 
 def test_required_gpa_with_valid_target():
-    from tiger_gpa import RequiredGPARequest, calculateRequiredGPA
+    from routers.tiger_planning_gpa import RequiredGPARequest, calculateRequiredGPA
 
     request = RequiredGPARequest(
         currentGPA=3.0,
@@ -135,7 +135,7 @@ def test_required_gpa_with_valid_target():
     assert calculateRequiredGPA(request) == pytest.approx(4.0)
 def test_semester_gpa_weighted_by_credits():
     from types import SimpleNamespace
-    from tiger_gpa import calculateGPA
+    from routers.tiger_planning_gpa import calculateGPA
 
     courses = [
         SimpleNamespace(grade=4.0, credit=3),
@@ -147,7 +147,7 @@ def test_semester_gpa_weighted_by_credits():
 
 def test_semester_gpa_rejects_zero_credits():
     from types import SimpleNamespace
-    from tiger_gpa import calculateGPA
+    from routers.tiger_planning_gpa import calculateGPA
 
     courses = [SimpleNamespace(grade=4.0, credit=0)]
 
