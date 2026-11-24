@@ -372,7 +372,6 @@ def test_apis(bare: TestClient) -> None:
         "/calculateGPA",
         json=[{"credit": 3, "grade": 4}, {"credit": 1, "grade": 2}],
     ).json() == pytest.approx(3.5)
-    assert bare.post("/getClasses").status_code == 501
 
 
 def test_required(bare: TestClient) -> None:

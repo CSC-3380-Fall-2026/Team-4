@@ -142,26 +142,6 @@ def required_gpa(data: RequiredGPARequest) -> float:
     return min(MAX_GPA, max(0.0, needed_gpa))
 
 
-def saved_classes() -> list[GpaCourse]:
-    """Report that saved-course retrieval still requires its database connection.
-
-    Returns:
-        No records until saved-course retrieval is implemented.
-
-    Raises:
-        HTTPException: Always reports the unfinished API with status 501.
-    """
-    raise HTTPException(501, "Saved course retrieval is not available yet.")
-
-
-# Preserve the team's existing imports while new functions use snake_case.
-calculateGPA = semester_gpa
-calculateTotalCredits = total_credits
-calculateCumlativeGPA = cumulative_gpa
-calculateRequiredGPA = required_gpa
-getClasses = saved_classes
-
-
 def read_form(data: FormData) -> PlanningForm:
     """Keep submitted form values as text for redisplay.
 

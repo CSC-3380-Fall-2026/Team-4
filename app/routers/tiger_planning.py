@@ -7,7 +7,6 @@ from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData
 
-import tiger_auth
 from grade_scale import GRADE_POINTS
 from models.tiger_planning import CourseRow, PlanningForm, PlanningResult
 from models.tiger_schedules import Classes, Schedule
@@ -274,9 +273,6 @@ router.add_api_route(
 )
 router.add_api_route(
     "/calculateRequiredGPA", tiger_planning_gpa.required_gpa, methods=["POST"]
-)
-router.add_api_route(
-    "/getClasses", tiger_planning_gpa.saved_classes, methods=["POST"]
 )
 
 
