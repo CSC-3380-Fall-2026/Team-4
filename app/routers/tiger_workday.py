@@ -7,8 +7,8 @@ What a sync saves, with no schema change:
   the same when its code and term match, and a saved course without a term
   matches any term. Saved courses are never changed, except by a reset,
   which replaces them all (unless Workday lists none).
-- the term's schedule, first named "<Term> (Workday)": sections not yet
-  imported are added. Its commitments JSON keeps {"workday_term": term,
+- a schedule for this term and each later registered one, first named
+  "<Term> (Workday)": sections not yet imported are added. Its commitments JSON keeps {"workday_term": term,
   "workday_imported": [section keys]}; that marker finds the schedule even
   after a rename, and an edited or deleted class is left alone. A deleted
   schedule is created again with every class.
@@ -38,6 +38,7 @@ from models.tiger_workday import (
     WorkdaySection,
     WorkdayStatus,
     WorkdaySync,
+    WorkdayTerm,
 )
 from routers import (
     tiger_profiles,
@@ -184,32 +185,30 @@ def term_schedule(session: Session, term: str) -> tuple[Schedule, dict[str, Any]
     return schedule, marker, True
 
 
-def import_schedule(session: Session, data: WorkdayData) -> tuple[str, int, bool]:
-    """Add the current term's new, not dropped sections to its schedule.
+def import_schedule(session: Session, term: WorkdayTerm) -> tuple[str, int, bool]:
+    """Add one term's new, not dropped sections to its schedule.
 
     Args:
         session: The verified student.
-        data: The parsed Workday pages.
+        term: A registered term and its sections.
 
     Returns:
-        The schedule name (empty without a current term), classes added,
-        and whether the schedule was created by this sync.
+        The schedule name, classes added, and whether the schedule was
+        created by this sync.
     """
-    if not data.term:
-        return "", 0, False
-    schedule, marker, created = term_schedule(session, data.term)
+    schedule, marker, created = term_schedule(session, term.name)
     done: list[str] = marker[IMPORTED]
     added = 0
-    for section in data.sections:
+    for section in term.sections:
         key = f"{section.course_code} {section.section or section.format}"
         # Earlier syncs stored the section alone, or "code format".
         old = section.section or f"{section.course_code} {section.format}"
         if section.dropped or key in done or old in done:
             continue
         credits = max(
-            part.credits for part in data.sections if part.course_code == section.course_code
+            part.credits for part in term.sections if part.course_code == section.course_code
         )
-        event = section_event(schedule, section, data.term, credits)
+        event = section_event(schedule, section, term.name, credits)
         if event is None:
             continue
         schedule.events.append(event)
@@ -274,14 +273,14 @@ def save_sync(session: Session, data: WorkdayData, reset: bool) -> WorkdaySync:
             courses=courses,
         ),
     )
-    name, classes, created = import_schedule(session, data)
+    imports = [import_schedule(session, term) for term in data.terms]
     return WorkdaySync(
         gpa=stored.gpa,
         completed_credit_hours=stored.completed_credit_hours,
         courses_added=len(courses) - (0 if replace else len(saved)),
-        classes_added=classes,
-        schedule=name,
-        schedule_created=created,
+        classes_added=sum(added for _, added, _ in imports),
+        schedule=", ".join(name for name, _, _ in imports),
+        schedule_created=any(created for _, _, created in imports),
         last_sync=mark_synced(session),
     )
 

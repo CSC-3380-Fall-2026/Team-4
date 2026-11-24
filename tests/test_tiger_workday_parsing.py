@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from models.tiger_workday import ProfileCourse as WorkdayCourse
-from routers.tiger_workday_parsing import parse_workday, term_gpas
+from routers.tiger_workday_parsing import earned_hours, parse_workday, term_gpas
 
 FIXTURES = Path(__file__).parent / "fixtures" / "workday"
 FALL_DAY = date(2025, 10, 1)
@@ -22,8 +22,7 @@ def test_empty_pages_give_empty_data() -> None:
     assert data.gpa is None
     assert data.completed_credit_hours == 0
     assert data.courses == []
-    assert data.term == ""
-    assert data.sections == []
+    assert data.terms == []
 
 
 def load_pages() -> dict:
@@ -93,25 +92,69 @@ def test_term_gpas_skip_zero_credit_courses() -> None:
     assert term_gpas([seminar]) == {}
 
 
-def test_current_term_is_the_first_one_not_yet_over() -> None:
-    """The current term is the first one that has not ended."""
+def term_names(pages: dict, today: date) -> list[str]:
+    """Name the terms a sync on the given day would import."""
+    return [term.name for term in parse_workday(pages, today).terms]
+
+
+def test_terms_not_over_are_imported_in_date_order() -> None:
+    """The term under way and every later one are kept; a finished one is not."""
     pages = load_pages()
-    assert parse_workday(pages, date(2025, 10, 1)).term == "2025 Fall Semester"
-    assert parse_workday(pages, date(2025, 12, 13)).term == "2025 Fall Semester"
-    assert parse_workday(pages, date(2025, 12, 20)).term == "2026 Spring Semester"
-    assert parse_workday(pages, date(2026, 8, 1)).term == "2026 Spring Semester"
+    both = ["2025 Fall Semester", "2026 Spring Semester"]
+    assert term_names(pages, date(2025, 10, 1)) == both
+    assert term_names(pages, date(2025, 12, 13)) == both
+    assert term_names(pages, date(2025, 12, 20)) == ["2026 Spring Semester"]
+    assert term_names(pages, date(2026, 8, 1)) == ["2026 Spring Semester"]
 
 
-def test_current_term_does_not_depend_on_page_order() -> None:
-    """The current term is found whatever order the grids are in."""
+def test_terms_do_not_depend_on_page_order() -> None:
+    """Terms come out in date order whatever order the grids are in."""
     pages = load_pages()
     pages["courses"].reverse()
-    assert parse_workday(pages, date(2025, 10, 1)).term == "2025 Fall Semester"
+    assert term_names(pages, date(2025, 10, 1))[0] == "2025 Fall Semester"
+
+
+def test_terms_without_dates_are_placed_by_season_and_year() -> None:
+    """A heading such as "Fall Semester 2026" is dated from its name."""
+    row = {"Course Listing": "CSC 3380 - Design", "Section": "CSC 3380-001",
+           "Meeting Patterns": "Monday | 9:00 AM - 9:50 AM | X", "Credit Hours": "3"}
+    grids = [
+        {"semester": name, "title": "My Enrolled Courses", "rows": [row]}
+        for name in ("Spring Semester 2027", "Spring Semester 2026", "Fall Semester 2026")
+    ]
+    assert term_names({"courses": grids}, date(2026, 11, 24)) == [
+        "Fall Semester 2026", "Spring Semester 2027",
+    ]
+
+
+def test_honors_grades_count_as_their_letter() -> None:
+    """A grade such as "A (HNR)" counts in the GPA totals and the term GPA."""
+    rows = [
+        {"Course": "HNRS 2000 - Seminar", "Grade": "A (HNR)", "Credit Hours": "3",
+         "Earned Grade Points": "12"},
+        {"Course": "CSC 1350 - CS I", "Grade": "B- (HNR)", "Credit Hours": "3",
+         "Earned Grade Points": "8.1"},
+    ]
+    data = parse_workday({"record": [{"rows": rows}]}, FALL_DAY)
+    assert (data.gpa, data.completed_credit_hours) == (3.35, 6)
+    honors = WorkdayCourse(course_code="CSC 1350", course_name="CS I", credits=3,
+                           term="Fall Semester 2025", grade="B- (HNR)")
+    assert term_gpas([honors]) == {"Fall Semester 2025": 2.7}
+
+
+def test_earned_hours_count_transfer_and_pass_but_not_f_or_w() -> None:
+    """Earned hours include transfer and Pass credit, and skip F and W."""
+    def course(credits: int, grade: str) -> WorkdayCourse:
+        return WorkdayCourse(course_code="X 1", course_name="X", credits=credits, grade=grade)
+
+    courses = [course(12, "Pass"), course(12, "A"), course(12, "B (HNR)"),
+               course(3, "F"), course(3, "W")]
+    assert earned_hours(courses) == 36
 
 
 def section_named(data, section: str):
     """Find a parsed section by its Workday name."""
-    return next(part for part in data.sections if part.section == section)
+    return next(part for part in data.terms[0].sections if part.section == section)
 
 
 def test_lecture_section_ready_for_a_schedule_event() -> None:
@@ -154,16 +197,16 @@ def test_online_section_has_no_meeting_time() -> None:
 def test_dropped_and_withdrawn_sections_are_flagged() -> None:
     """Dropped and withdrawn sections are marked dropped."""
     data = parse_workday(load_pages(), FALL_DAY)
-    flags = {part.course_code: part.dropped for part in data.sections}
+    flags = {part.course_code: part.dropped for part in data.terms[0].sections}
     assert flags["ENGL 2000"] is True
     assert flags["HIST 2057"] is True
     assert flags["CSC 3102"] is False
 
 
-def test_only_the_current_terms_enrolled_sections_in_page_order() -> None:
-    """Only the current term's enrolled sections are kept, in page order."""
+def test_a_terms_enrolled_sections_in_page_order() -> None:
+    """Each term keeps its own enrolled sections, in page order."""
     data = parse_workday(load_pages(), FALL_DAY)
-    assert [part.section for part in data.sections] == [
+    assert [part.section for part in data.terms[0].sections] == [
         "CSC 3102-001 - Advanced Data Structures",
         "CSC 3102-L01 - Advanced Data Structures",
         "MATH 2090-940 - Differential Equations and Linear Algebra",
@@ -171,7 +214,7 @@ def test_only_the_current_terms_enrolled_sections_in_page_order() -> None:
         "HIST 2057-002 - Modern World History",
     ]
     spring = parse_workday(load_pages(), date(2026, 1, 20))
-    assert [part.course_code for part in spring.sections] == ["CSC 3380"]
+    assert [part.course_code for part in spring.terms[0].sections] == ["CSC 3380"]
 
 
 EXTRACT_JS = Path(__file__).resolve().parents[1] / "app" / "static" / "js" / "workday-extract.js"
@@ -224,7 +267,7 @@ FALL = "2025 Fall Semester (08/23/2025-12/13/2025)"
 def fall_sections(*rows: dict) -> list:
     """Parse enrolled-course rows of the fall term into sections."""
     raw = {"courses": [{"semester": FALL, "title": "My Enrolled Courses", "rows": list(rows)}]}
-    return parse_workday(raw, FALL_DAY).sections
+    return parse_workday(raw, FALL_DAY).terms[0].sections
 
 
 def meeting(pattern: str, **cells: str) -> dict:
@@ -338,7 +381,7 @@ def test_malformed_numbers_skip_the_value_not_the_sync() -> None:
     data = parse_workday(raw, FALL_DAY)
     assert [(c.course_code, c.credits) for c in data.courses] == [("CSC 1350", 4), ("BIOL 1001", 3)]
     assert (data.gpa, data.completed_credit_hours) == (4.0, 4)
-    assert data.sections[0].credits == 0
+    assert data.terms[0].sections[0].credits == 0
 
 
 def test_term_gpas_leave_out_unknown_terms() -> None:

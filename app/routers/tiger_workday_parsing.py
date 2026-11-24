@@ -14,6 +14,7 @@ from models.tiger_workday import (
     WorkdayPages,
     WorkdaySection,
     WorkdayTable,
+    WorkdayTerm,
 )
 
 UNKNOWN_TERM: str = "Unknown term"
@@ -30,6 +31,15 @@ COMPACT_DAYS: str = r"(?:th|tu|sa|su|m|t|w|r|f)"
 CLOCK_PATTERN: re.Pattern[str] = re.compile(r"(\d{1,2}):(\d\d)\s*(?:([AP])M)?", re.I)
 DATES_PATTERN: re.Pattern[str] = re.compile(
     r"\((\d\d/\d\d/\d{4})\s*-\s*(\d\d/\d\d/\d{4})\)"
+)
+# Rough first and last day (month, day) of a term named only by its season.
+SEASON_DAYS: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {
+    "spring": ((1, 1), (5, 31)),
+    "summer": ((6, 1), (8, 15)),
+    "fall": ((8, 16), (12, 31)),
+}
+SEASON_PATTERN: re.Pattern[str] = re.compile(
+    r"\b(spring|summer|fall)\b.*?\b(\d{4})\b|\b(\d{4})\b.*?\b(spring|summer|fall)\b", re.I
 )
 
 
@@ -83,17 +93,25 @@ def term_dates(period: str) -> tuple[date, date]:
     """Read the first and last day of an academic period.
 
     Args:
-        period: Text such as "2024 Fall Semester (08/24/2024-12/14/2024)".
+        period: Text such as "2024 Fall Semester (08/24/2024-12/14/2024)",
+            or only a name such as "Fall Semester 2026".
 
     Returns:
-        Start and end dates; both are the latest possible date when the
-        period gives none, so undated terms sort last.
+        Start and end dates, taken from the date range or else estimated
+        from the season and year; both are the latest possible date when
+        the period gives neither, so undated terms sort last.
     """
     found = DATES_PATTERN.search(period)
-    if not found:
+    if found:
+        start, end = (datetime.strptime(day, "%m/%d/%Y").date() for day in found.groups())
+        return start, end
+    named = SEASON_PATTERN.search(period)
+    if not named:
         return date.max, date.max
-    start, end = (datetime.strptime(day, "%m/%d/%Y").date() for day in found.groups())
-    return start, end
+    season = (named.group(1) or named.group(4)).lower()
+    year = int(named.group(2) or named.group(3))
+    first, last = SEASON_DAYS[season]
+    return date(year, *first), date(year, *last)
 
 
 def term_name(period: str) -> str:
@@ -232,6 +250,18 @@ def past_courses(pages: WorkdayPages) -> list[ProfileCourse]:
     return transfer_courses(pages.record) + ordered
 
 
+def letter_grade(grade: str | None) -> str:
+    """Drop a note such as "(HNR)" from a grade.
+
+    Args:
+        grade: Grade text as Workday shows it, such as "A (HNR)".
+
+    Returns:
+        The bare grade, such as "A"; empty for no grade.
+    """
+    return re.sub(r"\s*\(.*\)\s*$", "", (grade or "").strip())
+
+
 def gpa_totals(record: list[WorkdayTable]) -> tuple[float | None, int]:
     """Total the institutional GPA hours and earned grade points.
 
@@ -249,11 +279,28 @@ def gpa_totals(record: list[WorkdayTable]) -> tuple[float | None, int]:
     for row in (row for table in record for row in table.rows):
         credits = to_number(row.get("Credit Hours"))
         earned = to_number(row.get("Earned Grade Points"))
-        graded = row.get("Grade", "").strip() in GRADE_POINTS
+        graded = letter_grade(row.get("Grade")) in GRADE_POINTS
         if row.get("Course") and graded and credits and earned is not None:
             hours += credits
             points += earned
     return (round(points / hours, 3) if hours else None), int(hours + 0.5)
+
+
+def earned_hours(courses: list[ProfileCourse]) -> int:
+    """Total the credit a student has earned toward a degree.
+
+    Unlike GPA hours, this counts transfer and Pass credit; only failed
+    and withdrawn courses are left out.
+
+    Args:
+        courses: Saved courses with their grades.
+
+    Returns:
+        The credits of every course not graded F or W.
+    """
+    return sum(
+        course.credits for course in courses if letter_grade(course.grade) not in ("F", "W")
+    )
 
 
 def term_gpas(courses: list[ProfileCourse]) -> dict[str, float]:
@@ -271,7 +318,7 @@ def term_gpas(courses: list[ProfileCourse]) -> dict[str, float]:
     points: dict[str, float] = {}
     hours: dict[str, int] = {}
     for course in courses:
-        grade = (course.grade or "").strip()
+        grade = letter_grade(course.grade)
         term = course.term or UNKNOWN_TERM
         if term != UNKNOWN_TERM and grade in GRADE_POINTS and course.credits:
             earned = GRADE_POINTS[grade] * course.credits
@@ -391,25 +438,23 @@ def term_sections(
     return sections
 
 
-def current_period(courses: list[WorkdayTable], today: date) -> str:
-    """Pick the registered term that is under way or comes next.
+def open_periods(courses: list[WorkdayTable], today: date) -> list[str]:
+    """Pick the registered terms that are under way or still to come.
 
     Args:
         courses: Grids from "View My Courses", headed by their term.
         today: The date to compare term dates against.
 
     Returns:
-        The first term not over by today, else the last term to end, else
-        an empty string when nothing is registered.
+        Every term not over by today, earliest first; else the last term
+        to end; else nothing when no term is registered.
     """
     headings = (table.semester or UNKNOWN_TERM for table in courses)
     periods = list(dict.fromkeys(headings))
-    if not periods:
-        return ""
     running = [period for period in periods if term_dates(period)[1] >= today]
     if running:
-        return min(running, key=lambda period: term_dates(period)[0])
-    return max(periods, key=lambda period: term_dates(period)[1])
+        return sorted(running, key=lambda period: term_dates(period)[0])
+    return [max(periods, key=lambda period: term_dates(period)[1])] if periods else []
 
 
 def parse_workday(raw: dict[str, Any], today: date) -> WorkdayData:
@@ -418,18 +463,20 @@ def parse_workday(raw: dict[str, Any], today: date) -> WorkdayData:
     Args:
         raw: {"courses": [...], "record": [...], "progress": [...]}, each a
             list of grids as workday-extract.js returns them.
-        today: The date that decides which registered term is current.
+        today: The date that decides which registered terms are not over.
 
     Returns:
-        GPA, GPA hours, past courses, and the current term's sections.
+        GPA, GPA hours, past courses, and the sections of this term and
+        any later one.
     """
     pages = WorkdayPages.model_validate(raw)
     gpa, hours = gpa_totals(pages.record)
-    period = current_period(pages.courses, today)
     return WorkdayData(
         gpa=gpa,
         completed_credit_hours=hours,
         courses=past_courses(pages),
-        term=term_name(period),
-        sections=term_sections(pages.courses, period),
+        terms=[
+            WorkdayTerm(name=term_name(period), sections=term_sections(pages.courses, period))
+            for period in open_periods(pages.courses, today)
+        ],
     )

@@ -64,6 +64,18 @@ class WorkdaySection(BaseModel):
     location: str = ""
 
 
+class WorkdayTerm(BaseModel):
+    """One registered term that is not over yet.
+
+    Attributes:
+        name: Term name, such as "Fall Semester 2026".
+        sections: The term's sections, dropped ones flagged.
+    """
+
+    name: str
+    sections: list[WorkdaySection] = Field(default_factory=list)
+
+
 class WorkdayData(BaseModel):
     """Everything one Workday sync yields.
 
@@ -72,15 +84,13 @@ class WorkdayData(BaseModel):
         completed_credit_hours: Institutional GPA hours, including F grades.
         courses: Past courses with term and grade set, oldest term first;
             in-progress ones left out.
-        term: Current term name, empty when no term is registered.
-        sections: The current term's sections, dropped ones flagged.
+        terms: This term and any later registered one, earliest first.
     """
 
     gpa: float | None = Field(default=None, ge=0, le=4.3)
     completed_credit_hours: int = Field(default=0, ge=0)
     courses: list[ProfileCourse] = Field(default_factory=list)
-    term: str = ""
-    sections: list[WorkdaySection] = Field(default_factory=list)
+    terms: list[WorkdayTerm] = Field(default_factory=list)
 
 
 class WorkdayStatus(BaseModel):
@@ -105,8 +115,9 @@ class WorkdaySync(BaseModel):
         completed_credit_hours: GPA hours now saved on the profile.
         courses_added: Courses added to the profile.
         classes_added: Classes added to the term's schedule.
-        schedule: Name of the term's schedule, empty without a current term.
-        schedule_created: True when this sync created that schedule, also
+        schedule: Names of the terms' schedules, comma separated; empty
+            without a registered term.
+        schedule_created: True when this sync created one of them, also
             when the student had deleted it.
         last_sync: UTC time of this sync.
     """

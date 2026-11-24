@@ -141,13 +141,17 @@ def run(path: str = "sync") -> dict:
     return response.json()
 
 
-def term_events() -> list[tuple]:
-    """List the events on Jordan's one Workday schedule.
+def term_events(term: str = "2025 Fall Semester") -> list[tuple]:
+    """List the events on one of Jordan's Workday schedules.
+
+    Args:
+        term: The term the schedule was made for.
 
     Returns:
         (title, days, start, end, location, credit) per event.
     """
-    (schedule,) = tiger_schedules_store.list_schedules(tiger_auth.verify_token("token-jordan"))
+    schedules = tiger_schedules_store.list_schedules(tiger_auth.verify_token("token-jordan"))
+    (schedule,) = [item for item in schedules if item.name == f"{term} (Workday)"]
     return [
         (e.title, e.days, e.start, e.end, e.location, getattr(e, "credit", None))
         for e in schedule.events
@@ -157,8 +161,12 @@ def term_events() -> list[tuple]:
 def test_first_sync_imports(workday: dict) -> None:
     """The first sync saves grades, courses and this term's classes."""
     body = run()
-    assert (body["courses_added"], body["classes_added"], body["schedule_created"]) == (8, 2, True)
+    assert (body["courses_added"], body["classes_added"], body["schedule_created"]) == (8, 3, True)
+    assert body["schedule"] == "2025 Fall Semester (Workday), 2026 Spring Semester (Workday)"
     assert term_events() == WORKDAY_EVENTS
+    assert term_events("2026 Spring Semester") == [
+        ("CSC 3380", ["Tuesday", "Thursday"], "10:30", "11:50", "Lockett Hall 0010", 3)
+    ]
 
 
 def test_sync_again_adds_nothing(workday: dict) -> None:
@@ -173,7 +181,7 @@ def test_deleted_class_stays_deleted(workday: dict) -> None:
     """A class the student deleted is not added back by the next sync."""
     run()
     session = tiger_auth.verify_token("token-jordan")
-    (schedule,) = tiger_schedules_store.list_schedules(session)
+    schedule = tiger_schedules_store.list_schedules(session)[0]
     schedule.events = [e for e in schedule.events if e.title != "CSC 3102 Lab"]
     tiger_schedules_store.save_schedule(session, schedule)
     assert run()["classes_added"] == 0
@@ -205,7 +213,8 @@ def test_same_section_name_two_courses(workday: dict) -> None:
         "Meeting Patterns": "Tuesday Thursday | 9:00 AM - 10:20 AM | Lockett Hall 0015",
         "Registration Status": "Registered",
     })
-    assert run()["classes_added"] == 3
+    run()
+    assert sorted(event[0] for event in term_events()) == ["CSC 3102", "CSC 3102 Lab", "MATH 2057"]
 
 
 def test_old_marker_keys_still_count(workday: dict, fake_db: FakeDatabase) -> None:
