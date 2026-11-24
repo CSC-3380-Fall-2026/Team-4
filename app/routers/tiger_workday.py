@@ -1,11 +1,12 @@
 """Sync grades, courses and this term's classes from LSU Workday (local runs only).
 
 What a sync saves, with no schema change:
-- profile gpa and completed_credit_hours: replaced by Workday's every sync.
+- profile gpa and completed_credit_hours: replaced by Workday's every sync,
+  except that a student with no grades yet keeps what is saved.
 - profile courses: Workday courses the student lacks are added; a course is
   the same when its code and term match, and a saved course without a term
   matches any term. Saved courses are never changed, except by a reset,
-  which replaces them all.
+  which replaces them all (unless Workday lists none).
 - the term's schedule, first named "<Term> (Workday)": sections not yet
   imported are added. Its commitments JSON keeps {"workday_term": term,
   "workday_imported": [section keys]}; that marker finds the schedule even
@@ -53,6 +54,7 @@ NOTHING_CHANGED: str = "Workday pages could not be read; nothing was changed."
 IMPORTED: str = "workday_imported"
 TERM_KEY: str = "workday_term"
 SUFFIX: str = " (Workday)"
+RECORD_COLUMNS: set[str] = {"Course", "Grade", "Credit Hours"}
 SYNC_LOCK: threading.Lock = threading.Lock()
 LOG: logging.Logger = logging.getLogger(__name__)
 
@@ -256,13 +258,17 @@ def save_sync(session: Session, data: WorkdayData, reset: bool) -> WorkdaySync:
     row = tiger_profiles.profile_row(session)
     saved = tiger_profiles.readable_courses(row.get("courses"))
     found: list[ProfileCourse] = list(data.courses)
-    courses = found if reset else merge_courses(saved, found)
+    # Nothing graded yet (a first term) never blanks what is saved.
+    replace = reset and bool(found)
+    courses = found if replace else merge_courses(saved, found)
     stored = tiger_profiles.write_profile(
         session,
         ProfileRecord(
             username=row.get("username"),
-            gpa=data.gpa,
-            completed_credit_hours=data.completed_credit_hours,
+            gpa=data.gpa if data.gpa is not None else row.get("gpa"),
+            completed_credit_hours=(
+                data.completed_credit_hours or row.get("completed_credit_hours") or 0
+            ),
             courses=courses,
         ),
     )
@@ -270,7 +276,7 @@ def save_sync(session: Session, data: WorkdayData, reset: bool) -> WorkdaySync:
     return WorkdaySync(
         gpa=stored.gpa,
         completed_credit_hours=stored.completed_credit_hours,
-        courses_added=len(courses) - (0 if reset else len(saved)),
+        courses_added=len(courses) - (0 if replace else len(saved)),
         classes_added=classes,
         schedule=name,
         schedule_created=created,
@@ -278,23 +284,29 @@ def save_sync(session: Session, data: WorkdayData, reset: bool) -> WorkdaySync:
     )
 
 
-def check_scrape(raw: dict[str, Any], data: WorkdayData) -> None:
-    """Refuse a scrape that looks unreadable rather than empty.
+def check_scrape(raw: dict[str, Any]) -> None:
+    """Refuse a scrape whose pages could not be read, rather than empty ones.
 
-    A changed Workday page reads as no rows, which must not wipe the
-    student's saved GPA, hours, courses or classes.
+    A first-term student has no graded courses yet, which is fine. A
+    changed Workday page reads as a missing grid or column instead, and
+    must not be saved over the student's GPA, hours, courses or classes.
 
     Args:
-        raw: The grids as read from the pages.
-        data: What the parser made of them.
+        raw: The grids as read from the pages, already parsed once.
 
     Raises:
-        ValueError: Without graded courses, GPA or GPA hours, or when the
-            courses page has rows but no "Course Listing" column.
+        ValueError: When the record page has no course grid with Course,
+            Grade and Credit Hours columns, or the courses page has rows
+            but no "Course Listing" column.
     """
-    graded = [c for c in data.courses if c.term != tiger_workday_parsing.TRANSFER_TERM]
-    if not graded or data.gpa is None or not data.completed_credit_hours:
-        raise ValueError("No grades were read.")
+    record = [
+        row
+        for table in raw.get("record") or []
+        for row in table.get("rows") or []
+        if "Transfer Credit" not in row
+    ]
+    if not record or not all(RECORD_COLUMNS <= row.keys() for row in record):
+        raise ValueError("The academic record was not read.")
     rows = [row for table in raw.get("courses") or [] for row in table.get("rows") or []]
     if rows and not any("Course Listing" in row for row in rows):
         raise ValueError("No classes were read.")
@@ -321,7 +333,7 @@ def run_sync(session: Session, reset: bool) -> WorkdaySync:
     try:
         raw = tiger_workday_browser.read_workday(session.user_id)
         data = tiger_workday_parsing.parse_workday(raw, date.today())
-        check_scrape(raw, data)
+        check_scrape(raw)
         return save_sync(session, data, reset)
     except tiger_workday_browser.WorkdayError as error:
         raise HTTPException(502, str(error)) from error
