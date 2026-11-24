@@ -70,6 +70,8 @@
             connect.hidden = true;
             later.textContent = "Done";
             later.focus();
+            // Show the imported numbers once the student closes the dialog.
+            workday_dialog.addEventListener("close", () => window.location.reload(), { once: true });
         } catch (error) {
             progress.textContent = error.message;
             connect.disabled = false;
