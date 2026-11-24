@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @source "../../templates/";
-@source "../../static/js/";
-
+@source "../../frontend/";
 @theme {
     --grid-template-columns-calendar: 3rem repeat(7, minmax(0, 1fr));
     --grid-template-rows-calendar: repeat(48, 0.9375rem);
