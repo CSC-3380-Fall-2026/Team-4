@@ -490,6 +490,7 @@
         });
         document.querySelectorAll(".friends-tab").forEach((tab) => {
             tab.classList.toggle("active", tab.dataset.tab === name);
+            tab.setAttribute("aria-pressed", tab.dataset.tab === name);
         });
     };
     document.querySelectorAll("[data-tab]").forEach((button) => {
