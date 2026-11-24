@@ -294,6 +294,7 @@ def calculate_plan(
                 )
             ),
             planned_credits=total_credits(courses),
+            current_gpa=current_gpa,
         )
     except ValueError as error:
         return None, [str(error)]

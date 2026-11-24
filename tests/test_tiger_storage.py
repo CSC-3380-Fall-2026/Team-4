@@ -726,3 +726,35 @@ def test_server_error_is_outage(monkeypatch: pytest.MonkeyPatch) -> None:
     backend.auth.get_user.side_effect = AuthApiError("busy", 429, None)
     monkeypatch.setattr(tiger_auth, "auth_client", Mock(return_value=backend))
     assert browser("token-alice").get("/api/schedule-data").status_code == 503
+
+
+def test_forecast_change_from_plan_start(fake_db: FakeDatabase) -> None:
+    """The GPA tile compares the forecast with the GPA the plan started from.
+
+    Args:
+        fake_db: Fake Supabase.
+    """
+    fake_db.rows("profiles").append({"id": "alice", "gpa": 3.5, "courses": []})
+    alice = browser("token-alice")
+    submit_plan(alice, sample_plan())
+    assert fake_db.rows("forecasts")[0]["result"]["current_gpa"] == pytest.approx(3.0)
+    tile = BeautifulSoup(alice.get("/dashboard").text, "html.parser")
+    assert tile.select_one("#gpa-summary .stat-note").get_text(" ", strip=True) == (
+        "↑ 0.20 projected this semester"
+    )
+
+
+def test_old_forecast_shows_credits(fake_db: FakeDatabase) -> None:
+    """A forecast saved before the starting GPA was kept shows planned credits.
+
+    Args:
+        fake_db: Fake Supabase.
+    """
+    fake_db.rows("profiles").append({"id": "alice", "gpa": 3.5, "courses": []})
+    fake_db.rows("forecasts").append({"user_id": "alice", "result": {
+        "semester_gpa": 4.0, "cumulative_gpa": 3.2, "planned_credits": 15,
+    }})
+    tile = BeautifulSoup(browser("token-alice").get("/dashboard").text, "html.parser")
+    assert tile.select_one("#gpa-summary .stat-note").get_text(" ", strip=True) == (
+        "15 planned credit hours"
+    )
