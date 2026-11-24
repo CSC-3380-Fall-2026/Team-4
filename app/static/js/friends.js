@@ -1,33 +1,33 @@
 (() => {
-    // Friend requests, friends, and schedule sharing are all stored on the server.
+    // Keep friend requests, sharing controls, and schedule comparison local to this page.
     const { apiRequest, scheduleState, getUserById, loadScheduleData } = window.SchedulePrototype;
     const searchMessage = document.querySelector("#friend-search-message");
+    loadScheduleData().then(initializeFriends).catch((error) => {
+        searchMessage.textContent = error.message;
+        searchMessage.className = "text-sm text-red-600";
+    });
 
-    const showMessage = (element, text, isError = false) => {
-        element.textContent = text;
-        element.className = `text-sm ${isError ? "text-red-600" : "text-purple-700"}`;
-    };
+    function initializeFriends() {
+    const sampleUsers = scheduleState.sampleUsers;
+    const currentUser = getUserById(scheduleState.currentUserId);
+    const schedules = currentUser.schedules;
+    // Friends are the students who shared schedules with the signed-in student.
+    const friendUsers = sampleUsers.filter((user) => user.id !== currentUser.id);
+    const usersByUsername = new Map(sampleUsers.map((user) => [user.username, user]));
 
-    const fetchLists = () => Promise.all([
-        apiRequest("/api/friends/list"),
-        apiRequest("/api/friends/shares"),
-    ]);
-
-    Promise.all([loadScheduleData(), fetchLists()])
-        .then(([, [lists, shares]]) => initializeFriends(lists, shares))
-        .catch((error) => showMessage(searchMessage, error.message, true));
-
-    function initializeFriends(initialLists, initialShares) {
-    // Shared with the calendar renderer, so they are refilled in place on refresh.
-    const schedules = [];
-    const usersById = new Map();
     const state = {
-        incoming: [],
-        outgoing: [],
-        friends: [],
-        shares: [],
-        selectedScheduleId: "",
-        selectedFriend: "",
+        requests: [],
+        friends: friendUsers.map((user) => ({ username: user.username })),
+        viewers: Object.fromEntries(schedules.map((schedule) => [schedule.id, []])),
+        publicSchedules: new Set(),
+        selectedScheduleId: schedules[0]?.id ?? "",
+        selectedFriend: friendUsers[0]?.username ?? "",
+        // which day the overlap chart shows, 0 = Monday. Starts on today.
+        selectedDay: (new Date().getDay() + 6) % 7,
+        // turns true when you press the day arrows, after that we stop moving the day for you
+        dayPicked: false,
+        // the last answer from /api/shared-free-time so the chart can draw the gold parts
+        freeDays: [],
     };
 
     const requestList = document.querySelector("#pending-requests");
@@ -38,18 +38,19 @@
     const friendForm = document.querySelector("#find-friend-form");
     const usernameInput = document.querySelector("#friend-username");
     const sharedSchedulePicker = document.querySelector("#shared-schedule-picker");
+    const publicSharingToggle = document.querySelector("#public-sharing-toggle");
     const scheduleViewers = document.querySelector("#schedule-viewers");
     const addScheduleViewer = document.querySelector("#add-schedule-viewer");
     const addScheduleViewerButton = document.querySelector("#add-schedule-viewer-button");
     const noScheduleViewers = document.querySelector("#no-schedule-viewers");
     const sharingStatus = document.querySelector("#sharing-status");
-    const compareFriendPicker = document.querySelector("#compare-friend-picker");
+    const friendCount = document.querySelector("#friend-count");
+    const freeTotal = document.querySelector("#free-total");
     const freeTimeStart = document.querySelector("#free-time-start");
     const freeTimeEnd = document.querySelector("#free-time-end");
     const minimumFreeDuration = document.querySelector("#minimum-free-duration");
     const freePeriods = document.querySelector("#free-periods");
     let freeTimeRequestSequence = 0;
-
     const makeElement = (tag, classes, text) => {
         const element = document.createElement(tag);
         element.className = classes;
@@ -65,158 +66,276 @@
         return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")} ${period}`;
     };
 
-    const formatDuration = (start, end) => {
-        const toMinutes = (time) => {
-            const [hours, minutes] = time.split(":").map(Number);
-            return hours * 60 + minutes;
-        };
-        const duration = toMinutes(end) - toMinutes(start);
-        const hours = Math.floor(duration / 60);
-        const minutes = duration % 60;
-        if (hours === 0) {
-            return `${minutes} min`;
-        }
-        return minutes === 0 ? `${hours} hr` : `${hours} hr ${minutes} min`;
+    const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+    const toMinutes = (time) => {
+        const [hours, minutes] = time.split(":").map(Number);
+        return hours * 60 + minutes;
     };
 
-    const friendById = (userId) => state.friends.find((friend) => friend.user_id === userId);
-    const displayName = (userId) => friendById(userId)?.username ?? "Friend";
-    const sharedCount = (userId) => usersById.get(userId)?.schedules.length ?? 0;
+    // "14:00", "15:30" -> "2:00–3:30 PM"
+    const formatRange = (start, end) => {
+        const startText = formatTime(start).replace(" AM", "").replace(" PM", "");
+        return `${startText}–${formatTime(end)}`;
+    };
+
+    // "Tuesday" -> "TUE, OCT 21" using the date in the current week
+    const formatDay = (dayName) => {
+        const today = new Date();
+        const daysSinceMonday = (today.getDay() + 6) % 7;
+        const date = new Date(today);
+        date.setDate(today.getDate() - daysSinceMonday + dayNames.indexOf(dayName));
+        const month = date.toLocaleDateString("en-US", { month: "short" });
+        return `${dayName.slice(0, 3)}, ${month} ${date.getDate()}`.toUpperCase();
+    };
+
+    // 90 -> "90 minutes", 120 -> "2 hours"
+    const formatLength = (duration) => {
+        if (duration < 120) {
+            return `${duration} minutes`;
+        }
+        const hours = duration / 60;
+        return `${Number.isInteger(hours) ? hours : hours.toFixed(1)} hours`;
+    };
+
+    const showFreeMessage = (message, isError) => {
+        freePeriods.replaceChildren();
+        freePeriods.className = isError ? "plan-cards plan-message plan-error" : "plan-cards plan-message";
+        freePeriods.textContent = message;
+    };
+
+    const renderFreePeriods = async () => {
+        const requestSequence = ++freeTimeRequestSequence;
+        if (!state.selectedFriend) {
+            state.freeDays = [];
+            freeTotal.textContent = "Shared free time this week";
+            showFreeMessage(
+                state.friends.length > 0
+                    ? "Check a friend to compare shared free time."
+                    : "Add a friend to compare shared free time.",
+                false,
+            );
+            renderCalendar();
+            return;
+        }
+
+        try {
+            const result = await apiRequest("/api/shared-free-time", {
+                method: "POST",
+                body: JSON.stringify({
+                    friendUsername: state.selectedFriend,
+                    startTime: freeTimeStart.value,
+                    endTime: freeTimeEnd.value,
+                    minimumDuration: Number(minimumFreeDuration.value),
+                }),
+            });
+            if (requestSequence !== freeTimeRequestSequence) {
+                return;
+            }
+            state.freeDays = result.days;
+            // show the day of the first free period so the gold part is on screen right away
+            if (!state.dayPicked && result.days.length > 0) {
+                state.selectedDay = dayNames.indexOf(result.days[0].day);
+            }
+            renderCalendar();
+
+            if (result.days.length === 0) {
+                freeTotal.textContent = "0 hours of shared free time this week";
+                showFreeMessage(
+                    `No shared free periods of at least ${minimumFreeDuration.value} minutes within the selected hours.`,
+                    false,
+                );
+                return;
+            }
+
+            // one card for each free period, and add up the total for the line under the heading
+            const cards = [];
+            let totalMinutes = 0;
+            result.days.forEach(({ day, periods }) => {
+                periods.forEach(({ start, end }) => {
+                    const duration = toMinutes(end) - toMinutes(start);
+                    totalMinutes += duration;
+                    cards.push({ day, start, end, duration });
+                });
+            });
+            const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
+            freeTotal.textContent = `${totalHours} hours of shared free time this week`;
+
+            freePeriods.className = "plan-cards";
+            freePeriods.replaceChildren();
+            // the figma has room for 3 cards, the first one is the gold "Best match"
+            cards.slice(0, 3).forEach((card, index) => {
+                const isBest = index === 0;
+                const item = makeElement("article", isBest ? "plan-card plan-best" : "plan-card");
+                const link = makeElement("a", "plan-button", "Make a plan ↗");
+                link.href = "/schedule";
+                item.append(
+                    makeElement("p", "plan-day", formatDay(card.day)),
+                    makeElement("p", "plan-time", formatRange(card.start, card.end)),
+                    makeElement(
+                        "p",
+                        "plan-length",
+                        isBest ? `${formatLength(card.duration)} · Best match` : `${formatLength(card.duration)} together`,
+                    ),
+                    link,
+                );
+                freePeriods.append(item);
+            });
+        } catch (error) {
+            if (requestSequence !== freeTimeRequestSequence) {
+                return;
+            }
+            state.freeDays = [];
+            renderCalendar();
+            showFreeMessage(error.message, true);
+        }
+    };
+
+    const displayName = (username) => username;
 
     const makeButton = (text, classes, action, label) => {
         const button = makeElement("button", classes, text);
         button.type = "button";
         button.setAttribute("aria-label", label);
-        button.addEventListener("click", async () => {
-            button.disabled = true;
-            try {
-                await action();
-            } finally {
-                button.disabled = false;
-            }
-        });
+        button.addEventListener("click", action);
         return button;
-    };
-
-    // Run a server change, show its outcome, then reload everything from the server.
-    const perform = async (request, element, success) => {
-        try {
-            const result = await request();
-            showMessage(element, success ?? result?.message ?? "Done.");
-        } catch (error) {
-            showMessage(element, error.message, true);
-        }
-        await refresh();
-    };
-
-    const applyData = (lists, shares) => {
-        const currentUser = getUserById(scheduleState.currentUserId);
-        schedules.splice(0, schedules.length, ...(currentUser?.schedules ?? []));
-        usersById.clear();
-        scheduleState.sampleUsers
-            .filter((user) => user.id !== scheduleState.currentUserId)
-            .forEach((user) => usersById.set(user.id, user));
-        state.incoming = lists.incoming_requests;
-        state.outgoing = lists.outgoing_requests;
-        state.friends = lists.friends;
-        state.shares = shares;
-        if (!schedules.some((schedule) => schedule.id === state.selectedScheduleId)) {
-            state.selectedScheduleId = schedules[0]?.id ?? "";
-        }
-        if (!state.friends.some((friend) => friend.user_id === state.selectedFriend)) {
-            state.selectedFriend = state.friends[0]?.user_id ?? "";
-        }
-    };
-
-    const refresh = async () => {
-        try {
-            const [lists, shares] = await fetchLists();
-            await loadScheduleData();
-            applyData(lists, shares);
-        } catch (error) {
-            showMessage(searchMessage, error.message, true);
-        }
-        renderAll();
-    };
-
-    const avatar = (name) => makeElement(
-        "span",
-        "grid size-9 shrink-0 place-items-center rounded-full bg-purple-100 text-sm font-bold text-purple-700",
-        name.charAt(0).toUpperCase(),
-    );
-
-    const requestItem = (request, subtitle, buttons) => {
-        const item = makeElement("li", "flex flex-col gap-3 rounded-md border border-neutrals-100 bg-neutrals-0 p-3 sm:flex-row sm:items-center sm:justify-between");
-        const identity = makeElement("div", "flex min-w-0 items-center gap-3");
-        const details = makeElement("div", "min-w-0");
-        details.append(
-            makeElement("p", "truncate text-sm font-bold text-neutrals-800", request.username),
-            makeElement("p", "text-xs text-neutrals-400", subtitle),
-        );
-        identity.append(avatar(request.username), details);
-        const actions = makeElement("div", "flex shrink-0 gap-2");
-        actions.append(...buttons);
-        item.append(identity, actions);
-        return item;
     };
 
     const renderRequests = () => {
         requestList.replaceChildren();
-        requestCount.textContent = state.incoming.length ? `${state.incoming.length} new` : "";
-        requestCount.classList.toggle("hidden", state.incoming.length === 0);
-        noRequests.classList.toggle("hidden", state.incoming.length + state.outgoing.length > 0);
-        state.incoming.forEach((request) => {
-            requestList.append(requestItem(request, "Wants to be your friend", [
-                makeButton("Accept", "rounded-md bg-purple-400 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-purple-500", () => perform(
-                    () => apiRequest(`/api/friends/requests/${request.id}/accept`, { method: "POST" }),
-                    searchMessage,
-                    `You and ${request.username} are now friends.`,
-                ), `Accept friend request from ${request.username}`),
-                makeButton("Decline", "rounded-md border border-neutrals-200 px-3 py-1.5 text-xs font-semibold text-neutrals-500 transition-colors hover:bg-yellow-50", () => perform(
-                    () => apiRequest(`/api/friends/requests/${request.id}`, { method: "DELETE" }),
-                    searchMessage,
-                ), `Decline friend request from ${request.username}`),
-            ]));
-        });
-        state.outgoing.forEach((request) => {
-            requestList.append(requestItem(request, "Request sent, waiting for a reply", [
-                makeButton("Cancel", "rounded-md border border-neutrals-200 px-3 py-1.5 text-xs font-semibold text-neutrals-500 transition-colors hover:bg-yellow-50", () => perform(
-                    () => apiRequest(`/api/friends/requests/${request.id}`, { method: "DELETE" }),
-                    searchMessage,
-                ), `Cancel friend request to ${request.username}`),
-            ]));
+        // the number next to the Requests tab
+        requestCount.textContent = state.requests.length > 0 ? String(state.requests.length) : "";
+        noRequests.classList.toggle("hidden", state.requests.length > 0);
+
+        state.requests.forEach((request) => {
+            const item = makeElement("li", "friend-row");
+            const details = makeElement("div", "friend-details");
+            const requestName = displayName(request.username);
+            details.append(
+                makeElement("p", "friend-name", requestName),
+                makeElement("p", "friend-sub", request.major),
+            );
+
+            const actions = makeElement("div", "request-actions");
+            actions.append(
+                makeButton("Accept", "page-button request-button", () => {
+                    const directoryEntry = usersByUsername.get(request.username);
+                    if (!directoryEntry) {
+                        const newUser = {
+                            username: request.username,
+                            major: request.major,
+                            status: "Free now",
+                            schedules: [],
+                        };
+                        sampleUsers.push(newUser);
+                        usersByUsername.set(request.username, newUser);
+                    }
+                    state.friends.push({
+                        username: request.username,
+                    });
+                    state.requests = state.requests.filter((item) => item.id !== request.id);
+                    renderAll();
+                }, `Accept ${requestName}'s request`),
+                makeButton("Decline", "secondary-button request-button", () => {
+                    state.requests = state.requests.filter((item) => item.id !== request.id);
+                    renderRequests();
+                }, `Decline ${requestName}'s request`),
+            );
+            item.append(details, actions);
+            requestList.append(item);
         });
     };
 
     const renderFriends = () => {
         friendsList.replaceChildren();
+        friendCount.textContent = String(state.friends.length);
         noFriends.classList.toggle("hidden", state.friends.length > 0);
+
         state.friends.forEach((friend) => {
-            const count = sharedCount(friend.user_id);
-            const status = count
-                ? `Shared ${count} ${count === 1 ? "schedule" : "schedules"} with you`
-                : "Hasn't shared a schedule with you yet";
-            const item = makeElement("li", "flex items-center justify-between gap-3 rounded-md border border-neutrals-100 bg-neutrals-0 px-3 py-2");
-            const identity = makeElement("div", "flex min-w-0 items-center gap-3");
-            const details = makeElement("div", "min-w-0");
+            const user = usersByUsername.get(friend.username);
+            const count = user?.schedules.length ?? 0;
+            const status = `${count} shared ${count === 1 ? "schedule" : "schedules"}`;
+            const friendName = displayName(friend.username);
+
+            const item = makeElement("li", "friend-row");
+            const details = makeElement("div", "friend-details");
             details.append(
-                makeElement("p", "truncate text-sm font-bold text-neutrals-800", friend.username),
-                makeElement("p", "text-xs text-neutrals-400", status),
+                makeElement("p", "friend-name", friendName),
+                makeElement("p", "friend-sub", status),
             );
-            identity.append(avatar(friend.username), details);
-            const removeButton = makeButton("Remove", "shrink-0 rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50", async () => {
-                if (!window.confirm(`Remove ${friend.username} as a friend? They will no longer see schedules you shared with them.`)) {
-                    return;
+
+            const removeButton = makeButton("Remove", "friend-remove", () => {
+                state.friends = state.friends.filter((item) => item.username !== friend.username);
+                Object.values(state.viewers).forEach((viewers) => {
+                    const viewerIndex = viewers.indexOf(friend.username);
+                    if (viewerIndex >= 0) {
+                        viewers.splice(viewerIndex, 1);
+                    }
+                });
+                if (state.selectedFriend === friend.username) {
+                    state.selectedFriend = state.friends[0]?.username ?? "";
                 }
-                await perform(
-                    () => apiRequest(`/api/friends/${friend.id}`, { method: "DELETE" }),
-                    searchMessage,
-                    `${friend.username} was removed from your friends.`,
-                );
-            }, `Remove ${friend.username} as a friend`);
-            item.append(identity, removeButton);
+                renderAll();
+            }, `Remove ${friendName} from friends`);
+
+            // The check box picks who you compare with. The free time API only takes
+            // one friend at a time, so checking one friend unchecks the other ones.
+            const checkbox = makeElement("input", "friend-check");
+            checkbox.type = "checkbox";
+            checkbox.checked = state.selectedFriend === friend.username;
+            checkbox.setAttribute("aria-label", `Compare schedules with ${friendName}`);
+            checkbox.addEventListener("change", () => {
+                state.selectedFriend = checkbox.checked ? friend.username : "";
+                renderFriends();
+                renderCalendar();
+                renderFreePeriods();
+            });
+
+            item.append(details, removeButton, checkbox);
             friendsList.append(item);
         });
+    };
+
+    const renderViewers = () => {
+        // This picker controls sharing only; it does not filter the comparison calendar
+        const schedule = schedules.find((item) => item.id === state.selectedScheduleId);
+        scheduleViewers.replaceChildren();
+        if (!schedule) {
+            addScheduleViewer.replaceChildren();
+            addScheduleViewerButton.disabled = true;
+            noScheduleViewers.classList.remove("hidden");
+            sharingStatus.textContent = "Create a schedule to share it with friends.";
+            return;
+        }
+        const viewers = state.viewers[schedule.id] ?? [];
+        noScheduleViewers.classList.toggle("hidden", viewers.length > 0);
+        addScheduleViewer.replaceChildren();
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Share with friend...";
+        addScheduleViewer.append(defaultOption);
+        state.friends.filter((friend) => !viewers.includes(friend.username)).forEach((friend) => {
+            const option = document.createElement("option");
+            option.value = friend.username;
+            option.textContent = displayName(friend.username);
+            addScheduleViewer.append(option);
+        });
+        addScheduleViewerButton.disabled = addScheduleViewer.options.length <= 1;
+
+        viewers.forEach((username) => {
+            const chip = makeElement("span", "viewer-chip", displayName(username));
+            const removeButton = makeButton("×", "viewer-remove", () => {
+                state.viewers[schedule.id] = viewers.filter((viewer) => viewer !== username);
+                renderViewers();
+            }, `Stop sharing with ${displayName(username)}`);
+            chip.append(removeButton);
+            scheduleViewers.append(chip);
+        });
+
+        publicSharingToggle.checked = state.publicSchedules.has(schedule.id);
+        sharingStatus.textContent = publicSharingToggle.checked
+            ? `${schedule.name} is public and visible to anyone with its link.`
+            : `${schedule.name} is shared with ${viewers.length} ${viewers.length === 1 ? "friend" : "friends"}.`;
     };
 
     const renderSharedSchedulePicker = () => {
@@ -227,145 +346,24 @@
             option.textContent = schedule.name;
             sharedSchedulePicker.append(option);
         });
-        if (schedules.length === 0) {
-            const option = document.createElement("option");
-            option.value = "";
-            option.textContent = "No schedules yet";
-            sharedSchedulePicker.append(option);
+        if (!schedules.some((schedule) => schedule.id === state.selectedScheduleId)) {
+            state.selectedScheduleId = schedules[0]?.id ?? "";
         }
-        sharedSchedulePicker.disabled = schedules.length === 0;
         sharedSchedulePicker.value = state.selectedScheduleId;
     };
 
-    const renderViewers = () => {
-        scheduleViewers.replaceChildren();
-        addScheduleViewer.replaceChildren();
-        const schedule = schedules.find((item) => item.id === state.selectedScheduleId);
-        const viewers = schedule
-            ? state.shares.filter((share) => share.schedule_id === schedule.id)
-            : [];
-        const viewerIds = new Set(viewers.map((share) => share.friend_id));
-        const available = state.friends.filter((friend) => !viewerIds.has(friend.user_id));
-        const defaultOption = document.createElement("option");
-        defaultOption.value = "";
-        defaultOption.textContent = state.friends.length ? "Share with friend..." : "Add a friend first";
-        addScheduleViewer.append(defaultOption);
-        available.forEach((friend) => {
-            const option = document.createElement("option");
-            option.value = friend.user_id;
-            option.textContent = friend.username;
-            addScheduleViewer.append(option);
-        });
-        const canShare = Boolean(schedule) && available.length > 0;
-        addScheduleViewer.disabled = !canShare;
-        addScheduleViewerButton.disabled = !canShare;
-        noScheduleViewers.classList.toggle("hidden", viewers.length > 0);
-        viewers.forEach((share) => {
-            const chip = makeElement("span", "inline-flex items-center gap-1 rounded-md bg-purple-500 px-2.5 py-1 text-xs font-medium text-white", share.username);
-            chip.append(makeButton("×", "cursor-pointer text-sm leading-none text-white/80 hover:text-yellow-300", () => perform(
-                () => apiRequest(`/api/friends/shares/${share.id}`, { method: "DELETE" }),
-                sharingStatus,
-                `Stopped sharing ${schedule.name} with ${share.username}.`,
-            ), `Stop sharing with ${share.username}`));
-            scheduleViewers.append(chip);
-        });
-        if (!schedule) {
-            showMessage(sharingStatus, "Create a schedule on the Schedule page to share it with friends.");
-        } else if (!sharingStatus.textContent) {
-            sharingStatus.textContent = viewers.length === 0
-                ? `${schedule.name} is private.`
-                : `${schedule.name} is shared with ${viewers.length} ${viewers.length === 1 ? "friend" : "friends"}.`;
+    const checkSelectedFriend = () => {
+        // if the friend we were comparing with got removed, fall back to the first friend
+        const stillFriend = state.friends.some((friend) => friend.username === state.selectedFriend);
+        if (state.selectedFriend && !stillFriend) {
+            state.selectedFriend = state.friends[0]?.username ?? "";
         }
     };
 
-    const renderComparePicker = () => {
-        compareFriendPicker.replaceChildren();
-        state.friends.forEach((friend) => {
-            const option = document.createElement("option");
-            option.value = friend.user_id;
-            option.textContent = friend.username;
-            compareFriendPicker.append(option);
-        });
-        if (state.friends.length === 0) {
-            const option = document.createElement("option");
-            option.value = "";
-            option.textContent = "No friends yet";
-            compareFriendPicker.append(option);
-        }
-        compareFriendPicker.disabled = state.friends.length === 0;
-        compareFriendPicker.value = state.selectedFriend;
-        document.querySelector("#friend-legend-name").textContent = state.selectedFriend
-            ? displayName(state.selectedFriend)
-            : "Friend";
-    };
-
-    const showFreeNote = (text, classes = "border-dashed border-neutrals-200 bg-neutrals-50 text-neutrals-400") => {
-        freePeriods.replaceChildren();
-        freePeriods.className = `rounded-md border p-4 text-sm ${classes}`;
-        freePeriods.textContent = text;
-    };
-
-    const renderFreePeriods = async () => {
-        const requestSequence = ++freeTimeRequestSequence;
-        if (!state.selectedFriend) {
-            showFreeNote("Add a friend to compare shared free time.");
-            return;
-        }
-        const friendUser = usersById.get(state.selectedFriend);
-        if (!friendUser) {
-            showFreeNote(`${displayName(state.selectedFriend)} hasn't shared a schedule with you yet, so there is nothing to compare.`);
-            return;
-        }
-        try {
-            const result = await apiRequest("/api/shared-free-time", {
-                method: "POST",
-                body: JSON.stringify({
-                    friendUsername: friendUser.username,
-                    startTime: freeTimeStart.value,
-                    endTime: freeTimeEnd.value,
-                    minimumDuration: Number(minimumFreeDuration.value),
-                }),
-            });
-            if (requestSequence !== freeTimeRequestSequence) {
-                return;
-            }
-            if (result.days.length === 0) {
-                showFreeNote(`No shared free periods of at least ${minimumFreeDuration.value} minutes within the selected hours.`);
-                return;
-            }
-            const list = makeElement("div", "grid gap-2");
-            result.days.forEach(({ day, periods }) => {
-                const daySection = makeElement("section", "grid gap-1");
-                daySection.append(makeElement("h5", "text-xs font-bold text-neutrals-700", day));
-                const periodList = makeElement("ul", "flex flex-wrap gap-1.5");
-                periods.forEach(({ start, end }) => {
-                    const period = makeElement(
-                        "li",
-                        "inline-flex items-center gap-1.5 rounded-md border border-neutrals-100 bg-neutrals-0 px-2 py-1",
-                    );
-                    period.append(
-                        makeElement("span", "size-1.5 shrink-0 rounded-full bg-purple-500"),
-                        makeElement("span", "text-xs font-bold text-neutrals-900", `${formatTime(start)} - ${formatTime(end)}`),
-                        makeElement("span", "text-xs text-neutrals-400", formatDuration(start, end)),
-                    );
-                    periodList.append(period);
-                });
-                daySection.append(periodList);
-                list.append(daySection);
-            });
-            freePeriods.className = "grid gap-2 rounded-md border border-neutrals-200 bg-neutrals-0 p-2.5";
-            freePeriods.replaceChildren(list);
-        } catch (error) {
-            if (requestSequence === freeTimeRequestSequence) {
-                showFreeNote(error.message, "border-red-200 bg-red-50 text-red-600");
-            }
-        }
-    };
-
-    const { renderCalendar, scrollCalendarToFirstEvent } = window.FriendsCalendar.createRenderer({
+    const { renderCalendar } = window.FriendsCalendar.createRenderer({
         state,
         schedules,
-        usersByUsername: usersById,
+        usersByUsername,
         displayName,
         makeElement,
     });
@@ -375,7 +373,7 @@
         renderFriends();
         renderSharedSchedulePicker();
         renderViewers();
-        renderComparePicker();
+        checkSelectedFriend();
         renderCalendar();
         renderFreePeriods();
     };
@@ -383,65 +381,82 @@
     friendForm.addEventListener("submit", async (submitEvent) => {
         submitEvent.preventDefault();
         const enteredName = usernameInput.value.trim().replace(/^@/, "");
+        searchMessage.className = "text-sm";
+
         if (!enteredName) {
-            showMessage(searchMessage, "Enter a username to send a friend request.", true);
+            searchMessage.textContent = "Enter a username to send a friend request.";
+            searchMessage.classList.add("text-red-600");
             return;
         }
-        const submitButton = friendForm.querySelector("button");
-        submitButton.disabled = true;
         try {
             const result = await apiRequest("/api/friends/requests", {
                 method: "POST",
                 body: JSON.stringify({ username: enteredName }),
             });
             usernameInput.value = "";
-            showMessage(searchMessage, result.message);
-            await refresh();
+            searchMessage.textContent = result.message;
+            searchMessage.classList.add("text-purple-700");
         } catch (error) {
-            showMessage(searchMessage, error.message, true);
-        } finally {
-            submitButton.disabled = false;
+            searchMessage.textContent = error.message;
+            searchMessage.classList.add("text-red-600");
         }
     });
 
     sharedSchedulePicker.addEventListener("change", () => {
         state.selectedScheduleId = sharedSchedulePicker.value;
-        sharingStatus.textContent = "";
         renderViewers();
     });
 
-    addScheduleViewerButton.addEventListener("click", async () => {
-        const friendId = addScheduleViewer.value;
-        const schedule = schedules.find((item) => item.id === state.selectedScheduleId);
-        if (!friendId || !schedule) {
-            showMessage(sharingStatus, "Choose a friend to share with.", true);
+    addScheduleViewerButton.addEventListener("click", () => {
+        const username = addScheduleViewer.value;
+        if (!username) {
             return;
         }
-        addScheduleViewerButton.disabled = true;
-        await perform(
-            () => apiRequest("/api/friends/shares", {
-                method: "POST",
-                body: JSON.stringify({ schedule_id: schedule.id, friend_id: friendId }),
-            }),
-            sharingStatus,
-            `${schedule.name} is now shared with ${displayName(friendId)}.`,
-        );
+        const viewers = state.viewers[state.selectedScheduleId];
+        if (viewers && !viewers.includes(username)) {
+            viewers.push(username);
+        }
+        renderViewers();
     });
 
-    compareFriendPicker.addEventListener("change", () => {
-        state.selectedFriend = compareFriendPicker.value;
-        renderComparePicker();
+    publicSharingToggle.addEventListener("change", () => {
+        if (publicSharingToggle.checked) {
+            state.publicSchedules.add(state.selectedScheduleId);
+        } else {
+            state.publicSchedules.delete(state.selectedScheduleId);
+        }
+        renderViewers();
+    });
+
+    // the arrows next to the date move the overlap chart one day back or forward
+    document.querySelector("#day-previous").addEventListener("click", () => {
+        state.selectedDay = (state.selectedDay + 6) % 7;
+        state.dayPicked = true;
         renderCalendar();
-        renderFreePeriods();
+    });
+    document.querySelector("#day-next").addEventListener("click", () => {
+        state.selectedDay = (state.selectedDay + 1) % 7;
+        state.dayPicked = true;
+        renderCalendar();
+    });
+
+    // Friends / Requests / Sharing settings tabs. Anything with data-tab switches the panel.
+    const showTab = (name) => {
+        document.querySelectorAll(".friends-panel").forEach((panel) => {
+            panel.classList.toggle("hidden", panel.id !== `tab-${name}`);
+        });
+        document.querySelectorAll(".friends-tab").forEach((tab) => {
+            tab.classList.toggle("active", tab.dataset.tab === name);
+        });
+    };
+    document.querySelectorAll("[data-tab]").forEach((button) => {
+        button.addEventListener("click", () => showTab(button.dataset.tab));
     });
     [freeTimeStart, freeTimeEnd].forEach((input) => {
         input.addEventListener("input", renderFreePeriods);
         input.addEventListener("change", renderFreePeriods);
     });
     minimumFreeDuration.addEventListener("change", renderFreePeriods);
-
-    applyData(initialLists, initialShares);
     renderAll();
-    scrollCalendarToFirstEvent();
     }
 })();
