@@ -19,7 +19,8 @@ from models.tiger_session import Session
 from routers.tiger_catalog import check_prerequisites
 from routers.tiger_planning import read_forecast
 from routers.tiger_schedules_store import current_semester, list_schedules
-from tiger_auth import require_login, session_profile
+from routers.tiger_profiles import session_profile
+from tiger_auth import require_login
 from tiger_views import redirect_to, render_page
 
 ZONE: ZoneInfo = ZoneInfo("America/Chicago")

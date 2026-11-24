@@ -17,7 +17,8 @@ from routers.tiger_friends_store import (
     pair_filter,
     shared_rows,
 )
-from tiger_auth import current_session, profile_row, require_login
+from routers.tiger_profiles import profile_row
+from tiger_auth import current_session, require_login
 from tiger_views import render_page
 
 

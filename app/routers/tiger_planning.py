@@ -12,7 +12,7 @@ from grade_scale import GRADE_POINTS
 from models.tiger_planning import CourseRow, PlanningForm, PlanningResult
 from models.tiger_schedules import Classes, Schedule
 from models.tiger_session import Session
-from routers import tiger_planning_gpa, tiger_schedules_store
+from routers import tiger_planning_gpa, tiger_profiles, tiger_schedules_store
 from routers.tiger_planning_gpa import MAX_ROWS, calculate_plan, read_form
 from tiger_auth import require_login
 from tiger_views import render_page, valid_token
@@ -78,7 +78,7 @@ def saved_start(session: Session) -> tuple[PlanningForm, str]:
     """
     form: PlanningForm = PlanningForm(rows=[CourseRow() for _ in range(3)])
     try:
-        profile = tiger_auth.session_profile(session)
+        profile = tiger_profiles.session_profile(session)
     except Exception:
         return form, (
             "Your saved academic record could not be loaded. "

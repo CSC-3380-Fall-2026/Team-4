@@ -1,13 +1,22 @@
-"""Save a student's profile from the HTML form or the JSON profile API."""
+"""Show, read and save a student's profile, from the HTML form or the JSON profile API."""
+
+from datetime import datetime, timezone
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, Response
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
+from pydantic import ValidationError
 from starlette.exceptions import HTTPException
 
 import tiger_auth
-from models.tiger_profiles import AccountCard, ProfileUpdate
+from models.tiger_profiles import (
+    AccountCard,
+    ProfileCourse,
+    ProfileRecord,
+    ProfileUpdate,
+)
 from models.tiger_schedules import UserBase
 from models.tiger_session import Session
 from routers import tiger_profiles_parsing
@@ -18,6 +27,150 @@ from tiger_views import redirect_to, render_page, valid_token
 TOO_LARGE: str = "That PDF is too large (5 MB limit)."
 FORM_SLACK: int = 64 * 1024
 UNIQUE_VIOLATION: str = "23505"
+
+
+def profile_row(session: Session, columns: str = "*") -> dict[str, Any]:
+    """Read columns of the session owner's profile row.
+
+    Args:
+        session: The verified student and their database client.
+        columns: PostgREST column list to select.
+
+    Returns:
+        The row, or an empty dict when the student has no profile yet.
+    """
+    # The client types rows as generic JSON; profile rows are JSON objects.
+    rows = cast(
+        list[dict[str, Any]],
+        session.db.table("profiles")
+        .select(columns)
+        .eq("id", session.user_id)
+        .execute()
+        .data,
+    )
+    return rows[0] if rows else {}
+
+
+def session_profile(session: Session) -> UserBase:
+    """Read the session owner's saved profile row.
+
+    Args:
+        session: The verified student and their database client.
+
+    Returns:
+        The saved profile, or defaults when no row exists.
+    """
+    row: dict[str, Any] = profile_row(session)
+    return UserBase(
+        id=session.user_id,
+        username=row.get("username"),
+        email=str(row.get("email") or session.email),
+        gpa=float(row["gpa"]) if row.get("gpa") is not None else None,
+        completed_credit_hours=row.get("completed_credit_hours") or 0,
+        courses=row.get("courses") or [],
+    )
+
+
+def readable_courses(raw: Any) -> list[ProfileCourse]:
+    """Keep the saved courses that have the expected shape.
+
+    One malformed entry must not hide the whole profile, or the student
+    could never reach the form to fix it.
+
+    Args:
+        raw: The profile's stored courses value.
+
+    Returns:
+        Valid courses; anything else is skipped.
+    """
+    courses: list[ProfileCourse] = []
+    for item in raw if isinstance(raw, list) else []:
+        try:
+            courses.append(ProfileCourse.model_validate(item))
+        except ValidationError:
+            continue
+    return courses
+
+
+def session_card(session: Session) -> AccountCard:
+    """Read account and profile data for an already verified session.
+
+    Args:
+        session: The verified student and their database client.
+
+    Returns:
+        Account information plus owned profile fields when available.
+    """
+    card: AccountCard = AccountCard(
+        id=session.user_id,
+        email=session.email,
+        username=str(session.meta.get("username") or ""),
+    )
+    try:
+        # The client types rows as generic JSON; profile rows are JSON objects.
+        rows = cast(
+            list[dict[str, Any]],
+            session.db.table("profiles")
+            .select("id,username,gpa,completed_credit_hours,courses")
+            .eq("id", session.user_id)
+            .limit(1)
+            .execute()
+            .data,
+        )
+        saved: dict[str, Any] = rows[0] if rows else {}
+        if saved.get("id") == session.user_id:
+            row: ProfileRecord = ProfileRecord.model_validate(
+                {**saved, "courses": []}
+            )
+            card = card.model_copy(
+                update={
+                    "username": row.username or card.username,
+                    "gpa": row.gpa,
+                    "completed_credit_hours": row.completed_credit_hours,
+                    "courses": readable_courses(saved.get("courses")),
+                }
+            )
+    except Exception:
+        card = card.model_copy(update={"data_error": True})
+    return card
+
+
+def token_profile(token: str) -> AccountCard:
+    """Read account and profile data using a verified token and its owner ID.
+
+    Args:
+        token: Browser or API access token to verify with Supabase.
+
+    Returns:
+        Account information plus owned profile fields when available.
+
+    Raises:
+        HTTPException: If the token is invalid or account services are unavailable.
+    """
+    session: Session | None = tiger_auth.verify_token(token)
+    if session is None:
+        raise HTTPException(401, "Please log in again.")
+    return session_card(session)
+
+
+def write_profile(session: Session, profile: ProfileRecord) -> UserBase:
+    """Store validated profile fields for the session's own student.
+
+    Args:
+        session: The verified student and their database client.
+        profile: Username, GPA, credit hours, and courses to save.
+
+    Returns:
+        The profile as saved.
+    """
+    row: dict[str, Any] = {
+        **profile.model_dump(include=set(ProfileRecord.model_fields)),
+        "id": session.user_id,
+        "email": session.email,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    session.db.table("profiles").upsert(row).execute()
+    return session_profile(session)
 
 
 def show_error(
@@ -43,7 +196,7 @@ def show_error(
     return render_page(
         request,
         "tiger_profile.html",
-        profile=tiger_auth.session_card(session),
+        profile=session_card(session),
         form=form,
         error=message,
         saved=False,
@@ -64,7 +217,7 @@ def draft_profile(
         An AccountCard with the parsed fields ready to show for review;
         nothing is saved to the database yet.
     """
-    return tiger_auth.session_card(session).model_copy(
+    return session_card(session).model_copy(
         update={
             "gpa": parsed.gpa,
             "completed_credit_hours": parsed.completed_credit_hours,
@@ -120,7 +273,7 @@ def profile_page(
     Returns:
         The student's profile page.
     """
-    profile: AccountCard = tiger_auth.session_card(session)
+    profile: AccountCard = session_card(session)
     return render_page(
         request,
         "tiger_profile.html",
@@ -200,7 +353,7 @@ async def save_profile(
     except ValueError as error:
         return show_error(request, session, friendly(error), 400, data)
     try:
-        await run_in_threadpool(tiger_auth.save_profile, session, profile)
+        await run_in_threadpool(write_profile, session, profile)
     except Exception as error:
         message, status = save_error(error)
         return show_error(request, session, message, status, data)
@@ -217,7 +370,7 @@ def get_profile(session: Session = Depends(current_session)) -> UserBase:
     Returns:
         The student's saved profile.
     """
-    return tiger_auth.session_profile(session)
+    return session_profile(session)
 
 
 @router.put("/api/profile")
@@ -234,6 +387,6 @@ def update_profile(
         The profile as saved.
     """
     username = (update.username or "").strip() or None
-    return tiger_auth.save_profile(
+    return write_profile(
         session, update.model_copy(update={"username": username})
     )

@@ -6,7 +6,7 @@ from typing import Any, get_args
 from fastapi import HTTPException
 
 from models.tiger_session import Session
-from tiger_auth import session_profile
+from routers.tiger_profiles import session_profile
 from routers.tiger_friends_store import friend_names, shared_rows
 from models.tiger_schedules import (
     Classes,
