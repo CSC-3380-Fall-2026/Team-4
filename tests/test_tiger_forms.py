@@ -107,3 +107,60 @@ def test_upload_limit_under_vercel_cap(fake_db: FakeDatabase) -> None:
     )
     assert response.status_code == 400
     assert "That PDF is too large (4 MB limit)." in response.text
+
+
+def sign_in_failing(monkeypatch, error: Exception) -> str:
+    """Submit the login form while the account service raises an error.
+
+    Args:
+        monkeypatch: Fixture replacing the account service client.
+        error: What the sign-in call raises.
+
+    Returns:
+        The page shown to the student.
+    """
+    import tiger_auth
+    from types import SimpleNamespace
+
+    def fail(_credentials):
+        raise error
+
+    service = SimpleNamespace(auth=SimpleNamespace(sign_in_with_password=fail))
+    monkeypatch.setattr(tiger_auth, "auth_client", lambda: service)
+    tab = browser()
+    return tab.post(
+        "/account/login",
+        data={
+            "csrf_token": form_token(tab, "/login"),
+            "email": "jordan@lsu.edu",
+            "password": "12345678",
+        },
+    ).text
+
+
+def test_login_rate_limit_message(monkeypatch) -> None:
+    """A Supabase 429 says to wait, not that the password is wrong."""
+    from supabase_auth.errors import AuthApiError
+
+    page = sign_in_failing(
+        monkeypatch, AuthApiError("Request rate limit reached", 429, "over_request_rate_limit")
+    )
+    assert "Too many sign-ins, try again in a minute" in page
+    assert "Check your email and password" not in page
+
+
+def test_login_outage_not_wrong_password(monkeypatch) -> None:
+    """An unexpected failure is not reported as a wrong password."""
+    page = sign_in_failing(monkeypatch, ConnectionError("network down"))
+    assert "Check your email and password" not in page
+    assert "try again" in page.lower()
+
+
+def test_login_wrong_password_message(monkeypatch) -> None:
+    """Supabase's invalid-credentials answer keeps the usual message."""
+    from supabase_auth.errors import AuthApiError
+
+    page = sign_in_failing(
+        monkeypatch, AuthApiError("Invalid login credentials", 400, "invalid_credentials")
+    )
+    assert "Check your email and password" in page

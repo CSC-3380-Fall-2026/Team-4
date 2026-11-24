@@ -57,7 +57,12 @@ def login(credentials: UserAuthSchema) -> tuple[str, bool]:
         credentials: Student email and password.
 
     Returns:
-        An access token and True on success, or a safe message and False.
+        An access token and True on success, or a safe message and False
+        when Supabase refused the email or password.
+
+    Raises:
+        HTTPException: 429 when Supabase rate-limits sign-ins, 503 for any
+            other failure, so neither is reported as a wrong password.
     """
     client: Client = auth_client()
     try:
@@ -67,10 +72,19 @@ def login(credentials: UserAuthSchema) -> tuple[str, bool]:
                 "password": credentials.password,
             }
         )
-        if result.session:
-            return result.session.access_token, True
-    except Exception:
-        pass
+    except Exception as error:
+        status = getattr(error, "status", None)
+        if status == 429:
+            raise HTTPException(
+                429, "Too many sign-ins, try again in a minute."
+            ) from error
+        if status != 400:
+            raise HTTPException(
+                503, "Sign-in is unavailable right now. Please try again."
+            ) from error
+        result = None
+    if result is not None and result.session:
+        return result.session.access_token, True
     return (
         "Check your email and password, and confirm your email if required.",
         False,
