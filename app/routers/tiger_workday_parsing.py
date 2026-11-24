@@ -125,22 +125,28 @@ def course_periods(progress: list[WorkdayTable]) -> dict[str, str]:
     }
 
 
-def table_period(codes: list[str], periods: dict[str, str]) -> str:
+def table_period(
+    codes: list[str], periods: dict[str, str], repeated: set[str]
+) -> str:
     """Name the period of one record grid, which does not say its own term.
 
     Args:
         codes: Course codes in the grid.
         periods: Academic period by course code, from academic progress.
+        repeated: Codes in more than one grid; progress lists only one of
+            their periods, so they do not vote.
 
     Returns:
-        The period most of the grid's courses were taken in.
+        The period most of the grid's other courses were taken in.
     """
-    votes = Counter(periods[code] for code in codes if code in periods)
+    votes = Counter(
+        periods[code] for code in codes if code in periods and code not in repeated
+    )
     return votes.most_common(1)[0][0] if votes else UNKNOWN_TERM
 
 
 def graded_courses(
-    table: WorkdayTable, periods: dict[str, str]
+    table: WorkdayTable, periods: dict[str, str], repeated: set[str]
 ) -> list[ProfileCourse]:
     """Read the graded courses of one record grid.
 
@@ -149,6 +155,7 @@ def graded_courses(
     Args:
         table: One grid from "My Academic Record".
         periods: Academic period by course code, from academic progress.
+        repeated: Course codes found in more than one record grid.
 
     Returns:
         The grid's courses, each with its term and grade.
@@ -161,7 +168,7 @@ def graded_courses(
         and whole_credits(row.get("Credit Hours")) is not None
     ]
     listings = [split_listing(row["Course"]) for row in rows]
-    term = term_name(table_period([code for code, _ in listings], periods))
+    term = term_name(table_period([code for code, _ in listings], periods, repeated))
     return [
         ProfileCourse(
             course_code=code,
@@ -210,8 +217,16 @@ def past_courses(pages: WorkdayPages) -> list[ProfileCourse]:
     """
     periods = course_periods(pages.progress)
     starts = {term_name(period): term_dates(period)[0] for period in periods.values()}
+    grids = Counter(
+        code
+        for table in pages.record
+        for code in {split_listing(row["Course"])[0] for row in table.rows if row.get("Course")}
+    )
+    repeated = {code for code, count in grids.items() if count > 1}
     courses = [
-        course for table in pages.record for course in graded_courses(table, periods)
+        course
+        for table in pages.record
+        for course in graded_courses(table, periods, repeated)
     ]
     ordered = sorted(courses, key=lambda course: starts.get(course.term or "", date.max))
     return transfer_courses(pages.record) + ordered

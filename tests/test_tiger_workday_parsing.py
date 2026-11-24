@@ -348,3 +348,29 @@ def test_term_gpas_leave_out_unknown_terms() -> None:
     known = WorkdayCourse(course_code="CSC 1351", course_name="CS II", credits=4,
                           term="2025 Spring Semester", grade="B")
     assert term_gpas([unknown, known]) == {"2025 Spring Semester": 3.0}
+
+
+def test_retaken_course_does_not_move_its_term() -> None:
+    """A course in two record grids does not vote on either grid's term."""
+    spring = "2025 Spring Semester (01/13/2025-05/03/2025)"
+    fall = "2024 Fall Semester (08/24/2024-12/14/2024)"
+    raw = {
+        "record": [
+            {"rows": [graded("MATH 1550 - Calculus I", "F", "5", "0.0"),
+                      graded("ENGL 1001 - Composition", "A", "3", "12.0")]},
+            {"rows": [graded("MATH 1550 - Calculus I", "B", "5", "15.0"),
+                      graded("CSC 1350 - Computer Science I", "A", "4", "16.0")]},
+        ],
+        "progress": [{"rows": [
+            {"Registrations Used": "ENGL 1001 - Composition", "Academic Period": fall},
+            {"Registrations Used": "MATH 1550 - Calculus I", "Academic Period": spring},
+            {"Registrations Used": "CSC 1350 - Computer Science I", "Academic Period": spring},
+        ]}],
+    }
+    data = parse_workday(raw, FALL_DAY)
+    assert [(c.course_code, c.grade, c.term) for c in data.courses] == [
+        ("MATH 1550", "F", "2024 Fall Semester"),
+        ("ENGL 1001", "A", "2024 Fall Semester"),
+        ("MATH 1550", "B", "2025 Spring Semester"),
+        ("CSC 1350", "A", "2025 Spring Semester"),
+    ]
