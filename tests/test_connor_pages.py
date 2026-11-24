@@ -323,7 +323,13 @@ def test_escaping(client: TestClient) -> None:
     values["course_name"] = ['<script>alert("x")</script>'] * 5
     response: httpx.Response = submit_plan(client, values)
     soup: BeautifulSoup = BeautifulSoup(response.text, "html.parser")
-    assert not soup.find("script")
+        scripts = soup.find_all("script")
+    assert len(scripts) == 1
+    assert scripts[0].get("type") == "module"
+    assert scripts[0].get("src", "").endswith(
+        "/static/js/planning.js?v=ts1"
+    )
+    assert not scripts[0].get_text(strip=True)
     assert (
         soup.select_one("[name=course_name]")["value"]
         == values["course_name"][0]
