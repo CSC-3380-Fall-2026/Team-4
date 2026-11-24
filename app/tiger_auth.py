@@ -273,6 +273,22 @@ def require_login(
     return session
 
 
+def optional_login(request: Request) -> Session | None:
+    """Identify the student on a public page without requiring a login.
+
+    Args:
+        request: Current request, which may carry the login cookie.
+
+    Returns:
+        The verified session, or None when signed out, expired, or when
+        account services are unavailable, so the public page still loads.
+    """
+    try:
+        return verify_token(request.cookies.get(AUTH_COOKIE, ""))
+    except HTTPException:
+        return None
+
+
 def login_redirect(request: Request, error: Exception) -> RedirectResponse:
     """Send a signed-out browser to the login page and drop its stale cookie.
 

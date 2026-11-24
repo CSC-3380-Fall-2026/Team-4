@@ -8,11 +8,13 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
+import tiger_auth
 from models.tiger_catalog import (
     CourseResult,
     PrerequisiteRequest,
     Requirement,
 )
+from models.tiger_session import Session
 from tiger_views import render_page
 
 CATALOG_FILE = ( Path(__file__).resolve().parents[2] / "data" / "course_requirements.json" )
@@ -301,6 +303,7 @@ def catalog_page(
     Returns:
         An HTML result page with filters retained when errors occur.
     """
+    session: Session | None = tiger_auth.optional_login(request)
     courses: list[dict[str, object]] = []
     categories: list[str] = []
     error: str = ""
@@ -333,6 +336,7 @@ def catalog_page(
         query=query,
         category=category,
         error=error,
+        profile=tiger_auth.nav_profile(session) if session else None,
         status_code=status_code,
     )
 
